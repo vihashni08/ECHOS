@@ -133,8 +133,17 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
     return g.compile(checkpointer=saver), conn
 
 
-def day_ready(eng, patient_id: str, day: str) -> bool:
-    """All events of the day exist (the 'day' event is emitted last) and every agent has output for each."""
+def quality_down(eng) -> bool:
+    """Agent 0 is treated as down (its output is optional) when its heartbeat is missing or stale, the same rule the
+    workers use before passing events through. The day is then triaged with 'quality unchecked' (DATA_GAP), never NORMAL."""
+    with eng.begin() as c:
+        hb = c.execute(select(S.agent_heartbeat.c.ts).where(S.agent_heartbeat.c.agent_id == "quality")).first()
+    return hb is None or time.time() - hb[0] > 3 * load_config()["runtime"]["heartbeat_s"] + 10
+
+
+def day_ready(eng, patient_id: str, day: str, quality_optional: bool = False) -> bool:
+    """All events of the day exist (the 'day' event is emitted last) and every agent has output for each.
+    quality_optional: Agent 0 is down, so its output is not required."""
     with eng.begin() as c:
         evs = c.execute(select(S.event_log.c.event_id, S.event_log.c.kind).where(
             (S.event_log.c.patient_id == patient_id) & (S.event_log.c.day == day))).fetchall()
@@ -142,7 +151,8 @@ def day_ready(eng, patient_id: str, day: str) -> bool:
             return False
         done = {(r.agent_id, r.event_id) for r in c.execute(select(S.agent_output.c.agent_id, S.agent_output.c.event_id).where(
             (S.agent_output.c.patient_id == patient_id) & (S.agent_output.c.day == day)))}
-    return all((a, eid) in done for a, kinds in S.AGENT_KINDS.items() for eid, k in evs if k in kinds)
+    return all((a, eid) in done for a, kinds in S.AGENT_KINDS.items() for eid, k in evs
+               if k in kinds and not (quality_optional and a == "quality"))
 
 
 def process_case(graph, patient_id: str, day: str) -> bool:
@@ -164,10 +174,11 @@ def run_orchestrator(eng, graph, stop=None, poll_s=0.2, until_done=None, timeout
             days = c.execute(select(S.event_log.c.patient_id, S.event_log.c.day).where(S.event_log.c.kind == "day")
                              .order_by(S.event_log.c.day, S.event_log.c.patient_id)).fetchall()
         progressed, remaining = False, 0
+        q_opt = quality_down(eng)
         for p, d in days:
             if (p, d) in finished:
                 continue
-            if day_ready(eng, p, d):
+            if day_ready(eng, p, d, q_opt):
                 n += process_case(graph, p, d)
                 finished.add((p, d))
                 progressed = True

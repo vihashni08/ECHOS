@@ -42,7 +42,7 @@ def table(headers, body):
                      ["| " + " | ".join(str(c) for c in r) + " |" for r in body])
 
 
-def main():
+def build() -> str:
     out = []
     a1 = load("agent1")
     if a1:
@@ -126,20 +126,33 @@ def main():
         for r_ in body:
             add("e2e", r_[0], "value", None, None, str(r_[1]))
         out += ["### End-to-end replay (systems run, full period, injected falls)", table(["Measure", "Value"], body)]
+        if e.get("monitor_days_by_reason"):
+            nm = sum(e["monitor_days_by_reason"].values())
+            out += [f"MONITOR days by reason ({nm} days)", table(["Reason", "Days", "Share of MONITOR days"],
+                    [[k, v, f"{v / nm:.1%}"] for k, v in e["monitor_days_by_reason"].items()]),
+                    "DATA_GAP causes on MONITOR days (a day can have several)", table(["Cause", "Days"], [[k, v] for k, v in e["data_gap_days_by_cause_monitor_days"].items()])]
     fi = load("fault_injection")
     if fi:
         body = [[r["scenario"], r["lost_alerts"], r["extra_alerts"], r["duplicate_alerts"], r["falls_alerted"],
                  f(r["detect_s"], d=1) if r["detect_s"] is not None else "-", f(r["recover_s"], d=1) if r["recover_s"] is not None else "-",
-                 r["cases_identical_to_clean_run"], ",".join(f"{k}:{v}" for k, v in r["report_modes"].items()), r["wall_overhead_s"]]
+                 r["cases_identical_to_clean_run"], r.get("cases_differing_only_in_quality_flag", 0), r.get("cases_differing_other", 0),
+                 f(r["passthrough_after_s"], d=1) if r.get("passthrough_after_s") is not None else "-",
+                 r.get("agents12_outputs_without_quality", 0), ",".join(f"{k}:{v}" for k, v in r["report_modes"].items()), r["wall_overhead_s"]]
                 for r in fi["rows"]]
         for r in fi["rows"]:
             add("fault", r["scenario"], "lost_alerts", r["lost_alerts"], None, f"dup={r['duplicate_alerts']} cases_same={r['cases_identical_to_clean_run']}")
         c = fi["config"]
         out += [f"### Fault injection ({c['patients']} patients x {c['days_each']} days; clean run {c['ref_wall_s']} s)",
                 table(["Fault", "Lost alerts", "Extra alerts", "Duplicates", "Falls alerted", "Detect (s)", "Recover (s)",
-                       "Cases identical to clean run", "Report modes", "Wall overhead (s)"], body)]
+                       "Cases identical to clean run", "Differ only in quality flag", "Differ otherwise", "Pass-through after kill (s)",
+                       "Agent 1-2 outputs without Agent 0", "Report modes", "Wall overhead (s)"], body)]
+    return "\n\n".join(out) + "\n"
+
+
+def main():
+    rows.clear()
+    md = build()
     pd.DataFrame(rows).to_csv("reports/results_table.csv", index=False)
-    md = "\n\n".join(out) + "\n"
     Path("reports/results_table.md").write_text(md)
     print(md)
 

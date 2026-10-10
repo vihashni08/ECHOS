@@ -4,7 +4,6 @@ import pytest
 
 from echos.orchestrator import state as S
 from echos.reports import agent as A
-from echos.reports.knowledge import finding_types, get_guideline
 from echos.reports.llm import make_llm
 from echos.reports.validator import validate_report
 
@@ -93,9 +92,7 @@ def test_weekly_html_and_tools(agent_env):
     assert "for clinician review" in html and "data:image/png;base64" in html and "E1" in html
 
 
-def test_knowledge_and_llm_off():
-    assert len(sum((get_guideline(t) for t in finding_types()), [])) >= 10
-    assert get_guideline("nope") == [] and all(g["note"] == "for clinician review" for g in get_guideline("fall"))
+def test_llm_off():
     assert make_llm({"llm": {"model": None}}) is None
 
 
@@ -185,3 +182,35 @@ def test_api_error_records_code_status_and_429_retries_once(agent_env, monkeypat
     assert g.calls == 2 and out["mode"] == "template"  # exactly one retry, no extra retry in the report loop
     assert "429 RESOURCE_EXHAUSTED" in out["validation"]["fallback_reason"]
     assert L._retry_delay(E("x")) == 3.0
+
+
+def _weekly_with_fake_rag(agent_env, monkeypatch, fake, llm=None):
+    eng, tmp = agent_env
+    monkeypatch.setattr(A, "retrieve", fake)
+    ag = A.ReportAgent(eng, llm, root=tmp)
+    for i in range(1, 8):
+        ag.daily(facts(day=f"2019-05-0{i}", sys_now=150.0 + i, status="MONITOR", with_flag=True))
+    return ag.weekly("p1", "2019-05-07")
+
+
+def _chunk(ft, d=None, k=3):
+    return [{"id": "KB-7", "text": "Check blood pressure again later and review medicines.", "title": "Hypertension in adults: diagnosis and management",
+             "source": "NICE NG136 (2019)", "doc_id": "NICE-NG136", "page": "5", "score": 0.6, "finding_type": ft}]
+
+
+def test_weekly_references_section_and_rag_off(agent_env, monkeypatch):
+    out = _weekly_with_fake_rag(agent_env, monkeypatch, _chunk)
+    html = out["path"].read_text()
+    assert out["mode"] == "template" and out["validation"]["ok"], out["validation"]
+    assert "References (for clinician review)" in html and "KB-7" in html and "NICE NG136 (2019)" in html
+    out = _weekly_with_fake_rag(agent_env, monkeypatch, lambda ft, d=None, k=3: [])  # RAG disabled / not ingested
+    assert out["validation"]["ok"] and "No guideline sources used" in out["path"].read_text()
+
+
+def test_weekly_llm_uncited_guidance_falls_back(agent_env, monkeypatch):
+    class L:
+        def generate(self, system, user):
+            return json.dumps({"highlights": [{"text": "Alerts occurred.", "cites": ["E1"]}],
+                               "guidance": [{"text": "Recheck blood pressure and review medicines.", "cites": []}]})
+    out = _weekly_with_fake_rag(agent_env, monkeypatch, _chunk, llm=L())
+    assert out["mode"] == "template" and out["validation"]["ok"]

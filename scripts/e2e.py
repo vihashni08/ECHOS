@@ -52,6 +52,21 @@ def main(n=20):
     lat = [a.created_ts - last_out[(a.patient_id, a.day)] for a in alerts if (a.patient_id, a.day) in last_out.index]
     st = Counter(c.status for c in cases)
     false_fall = [k for k in fall_alert if k not in gt_keys]
+    mon_break, gap_cause = Counter(), Counter()
+    for c in cases:
+        rs = json.loads(c.reasons or "[]")
+        if c.status == "MONITOR":
+            parts = sorted({"vitals" if x.startswith("vitals alert") else "behaviour" if x.startswith("agitation") else
+                            "possible_fall" if x.startswith("possible fall") else "DATA_GAP" if x.startswith("DATA_GAP") else "other"
+                            for x in rs})
+            mon_break[" + ".join(parts) + (" only" if len(parts) == 1 else "")] += 1
+        if c.data_gap:
+            if c.status != "MONITOR":
+                gap_cause["URGENT day (cause not recorded in reasons)"] += 1
+                continue
+            for x in (g[len("DATA_GAP:"):].strip() for g in rs if g.startswith("DATA_GAP")):
+                gap_cause["sensor gap" if x.startswith("sensor gap") else "vitals gap > 7 days" if x.startswith("no vitals reading")
+                          else "quality unchecked" if x.startswith("quality") else "agent output missing"] += 1
     res = {
         "patients": n, "patient_days": len(cases), "patient_weeks": round(pw, 1), "wall_s": round(wall),
         "injected_falls": len(gt_keys), "falls_detected_as_urgent": len(detected),
@@ -66,6 +81,7 @@ def main(n=20):
         "urgent_alerts_per_patient_week": round(len(alerts) / pw, 3),
         "status_days": dict(st), "status_share": {k: round(v / len(cases), 3) for k, v in st.items()},
         "data_gap_share": round(sum(bool(c.data_gap) for c in cases) / len(cases), 3),
+        "monitor_days_by_reason": dict(mon_break.most_common()), "data_gap_days_by_cause_monitor_days": dict(gap_cause.most_common()),
         "duplicate_alerts": r["alerts"].__len__() - len(set(r["alerts"])),
         "notes": ["detection delay is simulated time from the fall to the end of that patient-day (orchestrator is daily-batch); "
                   "wall latency is measured after the day's agent outputs exist",

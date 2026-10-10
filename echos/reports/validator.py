@@ -56,9 +56,36 @@ def _texts(output) -> list:
     return out
 
 
-def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=None, cite_sections=()) -> dict:
+def _ngrams(text: str, n: int) -> set:
+    w = re.findall(r"[a-z0-9']+", text.lower())
+    return {tuple(w[i:i + n]) for i in range(len(w) - n + 1)}
+
+
+QUOTE_WORDS = 10  # a run of this many consecutive words copied from a retrieved chunk counts as a quote, not a paraphrase
+
+
+def check_guidance(output: dict, guidance: dict, errors: list):
+    """guidance = {"section": "guidance", "ids": retrieved chunk ids, "texts": {id: chunk text}}.
+    Every guidance statement must cite >=1 id, every cited id must be in the retrieved set, and statements must paraphrase."""
+    ids = set(guidance["ids"])
+    src = {i: _ngrams(t, QUOTE_WORDS) for i, t in guidance.get("texts", {}).items()}
+    for it in output.get(guidance["section"], []) or []:
+        if not isinstance(it, dict):
+            continue
+        cites = [c for c in (it.get("cites") or []) if isinstance(c, str)]
+        if not cites:
+            errors.append("guidance statement without a citation")
+        for c in cites:
+            if c not in ids:
+                errors.append(f"guidance cites {c}, which was not retrieved")
+        grams = _ngrams(str(it.get("text", "")), QUOTE_WORDS)
+        if any(grams & g for g in src.values()):
+            errors.append("guidance quotes the source verbatim (paraphrase required)")
+
+
+def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=None, cite_sections=(), guidance=None) -> dict:
     """Return {ok, errors}. required_ids: ids that must be cited; valid_ids: ids that may be cited;
-    cite_sections: sections whose every item must cite at least one id."""
+    cite_sections: sections whose every item must cite at least one id; guidance: see check_guidance."""
     errors = []
     if not isinstance(output, dict):
         return {"ok": False, "errors": ["output is not a JSON object"]}
@@ -87,6 +114,8 @@ def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=No
         for it in output.get(k, []) or []:
             if not it.get("cites"):
                 errors.append(f"{k}: item cites no evidence")
+    if guidance:
+        check_guidance(output, guidance, errors)
     for rid in (required_ids or []):
         if rid not in cites_text:
             errors.append(f"flag {rid} is not cited")

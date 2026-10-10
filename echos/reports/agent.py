@@ -22,7 +22,7 @@ from sqlalchemy import select
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 from echos.reports import facts as F
-from echos.reports.knowledge import get_guideline
+from echos.knowledge.retrieve import retrieve
 from echos.reports.llm import LLMAPIError
 from echos.reports.validator import validate_report
 
@@ -46,10 +46,12 @@ DAILY_ASK = ('Write for a family caregiver. Return {"changes":[{"text":str,"cite
              '"monitor":[{"text":str,"cites":[flag ids]}]}. "changes": what differs from this person\'s own usual pattern '
              '(one item per flag; if there are no flags write one item saying everything looked normal, cites []). '
              '"monitor": 2 or 3 simple things to watch today. Every flag id in the JSON must be cited at least once.')
-WEEKLY_ASK = ('Write for a clinician. Return {"highlights":[{"text":str,"cites":[evidence or guideline ids]}]} with 3 to 6 '
-              'factual highlights of the week (vitals vs baseline, alerts, routine, data completeness). Each highlight '
-              'must cite at least one evidence id (E..), and every evidence id must be cited at least once. Guideline '
-              'ids (G..) may only be cited as "for clinician review" context.')
+WEEKLY_ASK = ('Write for a clinician. Return {"highlights":[{"text":str,"cites":[evidence ids]}],"guidance":[{"text":str,"cites":[KB ids]}]}. '
+              '"highlights": 3 to 6 factual highlights of the week (vitals vs baseline, alerts, routine, data completeness); each must cite at '
+              'least one evidence id (E..) and every evidence id must be cited at least once. "guidance": at most one short statement per '
+              'finding type, using ONLY the retrieved chunks in "guidelines" (ids like KB-3). PARAPHRASE them in your own words (never copy '
+              'more than a few words in a row), cite the KB id(s) used in every guidance statement, and give no diagnosis. '
+              'If "guidelines" is empty return "guidance": [].')
 
 
 # ------------------------------------------------------------------ tools
@@ -61,12 +63,13 @@ class Tools:
         return F.get_last_7_days(self.eng, patient_id, day)
 
     @staticmethod
-    def get_guideline(finding_type: str) -> list:
-        return get_guideline(finding_type)
+    def get_guideline(finding_type: str, details: dict | None = None, k: int = 3) -> list:
+        """RAG retriever over the local guideline index: chunks with citation ids [KB-n] (empty when RAG is off)."""
+        return retrieve(finding_type, details, k)
 
     @staticmethod
-    def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=None, cite_sections=()) -> dict:
-        return validate_report(output, payload, required_ids, valid_ids, cite_sections)
+    def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=None, cite_sections=(), guidance=None) -> dict:
+        return validate_report(output, payload, required_ids, valid_ids, cite_sections, guidance)
 
 
 def _fmt(x):
@@ -199,9 +202,12 @@ def weekly_stats(days: list, patient_id: str, end_day: str) -> dict:
             "days_with_data_gap": sum(d["data_gap"] for d in days)}
     status = {k: sum(d["status"] == k for d in days) for k in LABEL}
     falls = [{"day": d["day"], **f} for d in days for f in d["falls"]]
-    types = sorted({e["type"] for e in evidence} | ({"data_gap"} if comp["days_with_data_gap"] else set())
-                   | ({"weight"} if vit["weight"]["n"] else set()))
-    guides = [g for t in types for g in get_guideline(t)]
+    guides, seen = [], set()
+    for e in evidence:  # RAG: guideline chunks for each finding type present this week (deduplicated by chunk id)
+        for g in retrieve(e["type"], {"kind": e["kind"]}):
+            if g["id"] not in seen:
+                seen.add(g["id"])
+                guides.append(g)
     series = {"days": [d["day"] for d in days],
               **{v: [d["vitals"][v]["value"] for d in days] for v in F.VITAL_VARS},
               **{v + "_base": [d["vitals"][v]["baseline"] for d in days] for v in F.VITAL_VARS},
@@ -244,7 +250,23 @@ def weekly_template_items(stats: dict) -> dict:
                         f"room-sensor activity on {c['days_with_activity']} of {c['days_covered']} days.", "cites": []})
     if not stats["evidence"]:
         out.insert(0, {"text": "No alerts were raised this week.", "cites": []})
-    return {"highlights": out}
+    return {"highlights": out, "guidance": guidance_template_items(stats)}
+
+
+GUIDE_LABEL = {"blood_pressure": "blood pressure changes", "vitals_news2": "vital-sign changes", "agitation": "agitation or restlessness",
+               "routine_change": "routine changes", "fall": "a possible fall", "fall_inactivity": "a possible fall with inactivity"}
+
+
+def guidance_template_items(stats: dict) -> list:
+    """Template fallback: no generated advice, just the source names of the best retrieved chunk per finding type."""
+    out, done = [], set()
+    for g in stats["guidelines"]:
+        if g["finding_type"] in done:
+            continue
+        done.add(g["finding_type"])
+        out.append({"text": f"For {GUIDE_LABEL.get(g['finding_type'], g['finding_type'])}, see {g['source']}, page {g['page']}; "
+                            "for clinician review.", "cites": [g["id"]]})
+    return out
 
 
 def _png64(fig) -> str:
@@ -298,7 +320,7 @@ def weekly_charts(series: dict) -> dict:
 
 
 # ------------------------------------------------------------------ generic LLM-with-validation loop
-def _write(llm, payload: dict, ask: str, required, valid, cite_sections, template_items: dict, retries: int, ctx: str = ""):
+def _write(llm, payload: dict, ask: str, required, valid, cite_sections, template_items: dict, retries: int, ctx: str = "", guidance=None):
     """Return (items, mode, validation, notes). Falls back to template_items when LLM is off or fails.
     A timeout is never retried; other failures get at most `retries` retry. Every fallback is logged with its reason."""
     notes, reason = [], None
@@ -323,14 +345,14 @@ def _write(llm, payload: dict, ask: str, required, valid, cite_sections, templat
                     reason = f"error ({type(ex).__name__})"
                 feedback = "\n\nYour previous reply was not valid JSON. Reply with JSON only."
                 continue
-            v = validate_report(out, payload, required, valid, cite_sections)
+            v = validate_report(out, payload, required, valid, cite_sections, guidance)
             if v["ok"]:
                 return out, "llm", v, notes
             notes.append(f"attempt {attempt + 1}: " + "; ".join(v["errors"][:4]))
             reason = "validation_failed"
             feedback = "\n\nYour previous reply was rejected for: " + "; ".join(v["errors"][:6]) + ". Fix these and reply again."
         FALLBACK_LOG.warning("report fallback to template [%s] reason=%s", ctx, reason)
-    v = validate_report(template_items, payload, required, valid, cite_sections)
+    v = validate_report(template_items, payload, required, valid, cite_sections, guidance)
     if reason:
         v["fallback_reason"] = reason
     return template_items, "template", v, notes
@@ -432,11 +454,15 @@ class ReportAgent:
         stats = weekly_stats(days, patient_id, day)
         payload = weekly_payload(stats)
         required = [e["id"] for e in stats["evidence"]]
-        valid = required + [g["id"] for g in stats["guidelines"]]
+        kb = [g["id"] for g in stats["guidelines"]]
+        valid = required + kb
+        guidance = {"section": "guidance", "ids": kb, "texts": {g["id"]: g["text"] for g in stats["guidelines"]}}
         items, mode, v, notes = _write(llm, payload, WEEKLY_ASK, required, valid, [],
-                                       weekly_template_items(stats), self.retries, ctx=f"weekly {patient_id} {day}")
+                                       weekly_template_items(stats), self.retries, ctx=f"weekly {patient_id} {day}", guidance=guidance)
+        cited = {c for it in items.get("guidance", []) for c in it.get("cites", [])}
+        refs = [g for g in stats["guidelines"] if g["id"] in cited]
         html = HTML_TPL.get_template("weekly.html.j2").render(
-            s=stats, items=items.get("highlights", []), charts=weekly_charts(stats["series"]) if days else {},
+            s=stats, items=items.get("highlights", []), guidance=items.get("guidance", []), refs=refs, charts=weekly_charts(stats["series"]) if days else {},
             vname=VITAL_NAME, unit=UNIT, mode=mode, label=LABEL, week_start=days[0]["day"] if days else day)
         path = self.root / self.rc["weekly_dir"] / f"{patient_id}_{day}.html"
         path.parent.mkdir(parents=True, exist_ok=True)

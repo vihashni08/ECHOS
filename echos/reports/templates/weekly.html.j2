@@ -42,7 +42,10 @@ th{background:#f1f5f9} img{max-width:100%} .muted{color:#64748b;font-size:.85rem
 temperature on {{ s.completeness.days_with_temperature }}, weight on {{ s.completeness.days_with_weight }}; days with a data gap: {{ s.completeness.days_with_data_gap }}.
 Missing readings are not evidence of normal values.</p>
 
-<h2>Guideline references <span class="tag">for clinician review</span></h2>
-{% if s.guidelines %}<ul>{% for g in s.guidelines %}<li><b>{{ g.source }}</b> [{{ g.id }}]: {{ g.text }} <span class="tag">for clinician review</span></li>{% endfor %}</ul>
-{% else %}<p>None triggered.</p>{% endif %}
+{% if guidance %}<h2>Guidance <span class="tag">for clinician review</span></h2>
+<ul>{% for g in guidance %}<li>{{ g.text }} {% for c in g.cites %}[{{ c }}] {% endfor %}</li>{% endfor %}</ul>{% endif %}
+
+<h2>References (for clinician review)</h2>
+{% if refs %}<ul>{% for g in refs %}<li>[{{ g.id }}] <b>{{ g.title }}</b>, {{ g.source }}, page {{ g.page }}</li>{% endfor %}</ul>
+{% else %}<p>No guideline sources used.</p>{% endif %}
 </body></html>

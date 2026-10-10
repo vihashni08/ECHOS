@@ -65,6 +65,12 @@ llm:
   timeout_s: 45        # hard per-call timeout; a timeout is never retried
   max_requests_per_min: 8    # request-rate limiter
   max_pending: 200     # background report backlog; beyond it reports stay template (logged)
+rag:
+  enabled: true                       # false -> reports have no guideline guidance (template mode still works)
+  embedding_model: all-MiniLM-L6-v2   # local sentence-transformers model, no API key
+  dir: data/rag                       # persistent Chroma store (git-ignored)
+  k: 3
+  min_score: 0.25                     # cosine similarity below this is treated as not relevant
 reports:
   daily_dir: reports/daily
   weekly_dir: reports/weekly

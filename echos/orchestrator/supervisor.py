@@ -21,7 +21,7 @@ from echos.orchestrator import state as S
 
 class Supervisor:
     def __init__(self, db, agents=("quality", "physiological", "behaviour", "fall"), hb_s=None, ck_s=None, stall_s=None,
-                 poll_s=None, missed=None, startup_grace_s=45.0, worker_args=None, fall_model=None):
+                 poll_s=None, missed=None, startup_grace_s=45.0, worker_args=None, fall_model=None, no_restart=()):
         cfg = load_config()
         self.db, self.agents = str(db) if db else None, list(agents)
         self.eng = S.get_engine(db)
@@ -32,6 +32,7 @@ class Supervisor:
         self.missed = missed or cfg["supervisor"]["missed_heartbeats"]
         self.grace, self.worker_args, self.fall_model = startup_grace_s, worker_args or {}, fall_model
         self.proc, self.started, self.track = {}, {}, {}
+        self.no_restart = set(no_restart)  # fault tests only: agents left dead (permanent outage)
         self.stop = threading.Event()
 
     # --- process control
@@ -92,7 +93,7 @@ class Supervisor:
                         tr["cursor"], tr["since"] = hb.last_event_id, t
                     elif t - tr["since"] > self.stall_s and self._pending(a, hb.last_event_id):
                         reason = "stalled_last_event_id"
-            if reason:
+            if reason and a not in self.no_restart:
                 out.append((a, reason, t, self.restart(a, reason, t)))
         return out
 
