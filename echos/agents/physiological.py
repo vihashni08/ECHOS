@@ -14,6 +14,7 @@ import pandas as pd
 import xgboost as xgb
 from sklearn.metrics import average_precision_score
 
+from echos.agents import oof
 from echos.config import ROOT, load_config
 from echos.data.patient_day import load_patient_day
 from echos.data.splits import patient_folds
@@ -200,6 +201,8 @@ def predict(patient_id: str, day) -> AgentResult:
     row = st["df"].loc[[(patient_id, d)]]
     X = row[art["features"]]
     score = float(art["model"].predict_proba(X)[0, 1])
+    if oof.enabled():  # replay evaluation with out-of-fold scores
+        score = float(oof.lookup(AGENT, patient_id, d) or 0.0)
     sv = st["expl"].shap_values(X)[0]
     top = np.argsort(-np.abs(sv))[:3]
     r = row.iloc[0]

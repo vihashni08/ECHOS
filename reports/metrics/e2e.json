@@ -2,7 +2,7 @@
   "patients": 20,
   "patient_days": 1266,
   "patient_weeks": 180.9,
-  "wall_s": 298,
+  "wall_s": 302,
   "injected_falls": 60,
   "falls_detected_as_urgent": 57,
   "fall_detection_rate": 0.95,
@@ -12,7 +12,7 @@
   ],
   "detection_delay_sim_hours_median": 11.4,
   "detection_delay_sim_hours_max": 23.8,
-  "pipeline_latency_s_median_after_last_agent_output": 0.19,
+  "pipeline_latency_s_median_after_last_agent_output": 0.15,
   "urgent_alerts_total": 73,
   "urgent_fall_alerts": 69,
   "false_fall_alerts": 12,
@@ -20,13 +20,13 @@
   "urgent_critical_vitals_days": 4,
   "urgent_alerts_per_patient_week": 0.404,
   "status_days": {
-    "NORMAL": 535,
-    "MONITOR": 658,
+    "NORMAL": 826,
+    "MONITOR": 367,
     "URGENT": 73
   },
   "status_share": {
-    "NORMAL": 0.423,
-    "MONITOR": 0.52,
+    "NORMAL": 0.652,
+    "MONITOR": 0.29,
     "URGENT": 0.058
   },
   "data_gap_share": 0.03,
@@ -35,6 +35,7 @@
     "detection delay is simulated time from the fall to the end of that patient-day (orchestrator is daily-batch); wall latency is measured after the day's agent outputs exist",
     "false fall alerts = fall-reason URGENT alerts on days without an injected fall (ADL windows from held-out SisFall subjects)",
     "critical-vitals URGENT days come from real TIHM readings and are not counted as false",
-    "Agents 1-2 were fitted on all TIHM patients: status shares are not out-of-sample"
-  ]
+    "Agents 1-2 scores are out-of-fold when ECHOS_OOF=1 (default); Agent 3 uses a fall model trained without the held-out SisFall subjects"
+  ],
+  "oof_scores": true
 }

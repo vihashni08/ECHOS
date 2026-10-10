@@ -53,8 +53,9 @@ PYTHONPATH=. python3 -m echos.data.patient_day
 PYTHONPATH=. python3 -m echos.agents.physiological
 PYTHONPATH=. python3 -m echos.agents.behaviour
 PYTHONPATH=. python3 -m echos.agents.fall
-# 3. triage thresholds from out-of-fold results
+# 3. triage thresholds from out-of-fold results (fall URGENT points; MONITOR alert budgets + OOF scores for e2e)
 PYTHONPATH=. python3 scripts/choose_thresholds.py
+PYTHONPATH=. python3 scripts/choose_monitor_thresholds.py
 # 4. demo pipeline: replay -> agents -> orchestrator -> reports into data/echos.db
 PYTHONPATH=. python3 scripts/run_demo.py 4 28
 # 5. systems tests
@@ -82,7 +83,7 @@ The sidebar switches between the Caregiver page (daily report) and the Clinician
 - Agent 1 PR-AUC 0.69 vs 0.26 for the fixed BP rule (out-of-fold, patient-level).
 - Agent 2 PR-AUC 0.20 vs 0.05 base rate; drift alone is at chance, the signal is mostly raw same-day activity.
 - Agent 3 sensitivity 0.985 adults / 0.853 elderly (one subject), on SisFall scripted falls.
-- End-to-end (20 patients, 60 injected falls): 57 detected; 52% of days are Monitor.
+- End-to-end (20 patients, 60 injected falls): 57 detected (95%); days are 65% Normal / 29% Monitor / 6% Urgent with MONITOR thresholds chosen from out-of-fold alert budgets (<=1 vitals alert/patient-week, <=10% behaviour Monitor days) and out-of-fold agent scores.
 - Fault injection: 0 lost, 0 duplicate alerts across all five scenarios.
 
 Small cohort, clinical-alert labels, simulated falls: treat all numbers as preliminary.

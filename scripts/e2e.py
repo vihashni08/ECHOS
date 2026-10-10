@@ -2,12 +2,14 @@
 whole pipeline (workers -> LangGraph -> reports). Writes reports/metrics/e2e.json.
 
 Usage: PYTHONPATH=. python3 scripts/e2e.py [n_patients]
-Caveat: Agents 1-2 were final-fitted on all TIHM patients, so their replayed outputs (and the Normal/Monitor/Urgent
-shares) are a systems result, not out-of-sample accuracy. Falls come from SisFall subjects held out of the fall model.
+Agents 1-2 return their out-of-fold scores (ECHOS_OOF=1, models/oof_scores.parquet from
+scripts/choose_monitor_thresholds.py) so the Normal/Monitor/Urgent shares are not inflated by in-sample fits;
+set ECHOS_OOF=0 to replay with the final in-sample models. Falls come from SisFall subjects held out of the fall model.
 """
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -26,10 +28,11 @@ from scripts.kill_test import run_pipeline  # noqa: E402
 
 
 def main(n=20):
+    os.environ.setdefault("ECHOS_OOF", "1")
     work = Path(tempfile.mkdtemp())
     t0 = time.time()
     try:
-        r = run_pipeline(work, None, n_patients=n, max_days=None, rate=0.0)
+        r = run_pipeline(work, None, n_patients=n, max_days=None, rate=0.0, report_llm=None)  # template reports: no LLM/API calls on 1000+ patient-days
         eng = S.get_engine(work / "echos.db")
         with eng.begin() as c:
             cases = c.execute(select(S.case_state)).fetchall()
@@ -68,7 +71,8 @@ def main(n=20):
                   "wall latency is measured after the day's agent outputs exist",
                   "false fall alerts = fall-reason URGENT alerts on days without an injected fall (ADL windows from held-out SisFall subjects)",
                   "critical-vitals URGENT days come from real TIHM readings and are not counted as false",
-                  "Agents 1-2 were fitted on all TIHM patients: status shares are not out-of-sample"]}
+                  "Agents 1-2 scores are out-of-fold when ECHOS_OOF=1 (default); Agent 3 uses a fall model trained without the held-out SisFall subjects"],
+        "oof_scores": os.environ["ECHOS_OOF"] == "1"}
     Path("reports/metrics/e2e.json").write_text(json.dumps(res, indent=2))
     print(json.dumps({k: v for k, v in res.items() if k != "notes"}))
 

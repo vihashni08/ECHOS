@@ -1,0 +1,35 @@
+{
+  "patient_days": 2797,
+  "patient_weeks": 399.57142857142856,
+  "old": {
+    "vitals_prob": 0.46,
+    "agitation_prob": 0.54,
+    "drift_cusum": 4.0,
+    "vitals_alerts_per_patient_week": 0.9435109045405792,
+    "vitals_recall": 0.7015873015873015,
+    "vitals_precision": 0.5862068965517241,
+    "agitation_recall": 0.6454545454545455,
+    "drift_recall": 0.2818181818181818,
+    "behaviour_monitor_recall": 0.8,
+    "behaviour_monitor_share_of_patient_days": 0.3768323203432249,
+    "drift_share_of_patient_days": 0.29495888451912766
+  },
+  "new": {
+    "vitals_prob": 0.439,
+    "agitation_prob": 0.762,
+    "drift_cusum": 10.4,
+    "vitals_alerts_per_patient_week": 0.9960672148730784,
+    "vitals_recall": 0.7238095238095238,
+    "vitals_precision": 0.5728643216080402,
+    "agitation_recall": 0.2727272727272727,
+    "drift_recall": 0.02727272727272727,
+    "behaviour_monitor_recall": 0.3,
+    "behaviour_monitor_share_of_patient_days": 0.09939220593493028,
+    "drift_share_of_patient_days": 0.04898105112620665
+  },
+  "notes": [
+    "OOF scores, patient-level GroupKFold; vitals budget uses all patient-days / 7 (as Agent 1 does)",
+    "behaviour monitor = max CUSUM >= drift_cusum OR agitation_prob >= agitation; capped at 10% of all patient-days; drift limited to half the cap",
+    "agitation recall counts same-day labels on activity days; vitals recall = BP/pulse/water alert labels on reading days"
+  ]
+}

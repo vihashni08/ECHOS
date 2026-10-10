@@ -33,11 +33,11 @@ e2e,Patients / patient-days / patient-weeks,value,,,,20 / 1266 / 180.9
 e2e,Injected falls,value,,,,60
 e2e,"Fall detection rate (URGENT, fall reason)",value,,,,0.950 (0.863-0.983) (57/60)
 e2e,"Detection delay, simulated (fall -> end of day), median / max",value,,,,11.4 h / 23.8 h
-e2e,"Pipeline latency after last agent output, median",value,,,,0.19 s
+e2e,"Pipeline latency after last agent output, median",value,,,,0.15 s
 e2e,False fall alerts per patient-week,value,,,,0.066 (12 alerts)
 e2e,URGENT days from critical vitals (real TIHM readings),value,,,,4
 e2e,All URGENT alerts per patient-week,value,,,,0.404
-e2e,Days Normal / Monitor / Urgent,value,,,,42.3% / 52.0% / 5.8%
+e2e,Days Normal / Monitor / Urgent,value,,,,65.2% / 29.0% / 5.8%
 e2e,Days with a data gap,value,,,,3.0%
 e2e,Duplicate alerts,value,,,,0
 fault,kill physiological,lost_alerts,0.0,,,dup=0 cases_same=45/45

@@ -60,7 +60,7 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 | False fall alerts per patient-week | 0.066 (12 alerts) |
 | URGENT days from critical vitals (real TIHM readings) | 4 |
 | All URGENT alerts per patient-week | 0.404 |
-| Days Normal / Monitor / Urgent | 42.3% / 52.0% / 5.8% |
+| Days Normal / Monitor / Urgent | 65.2% / 29.0% / 5.8% |
 | Days with a data gap | 3.0% |
 | Duplicate alerts | 0 |
 
@@ -74,12 +74,29 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 | LLM delayed 1s then timeout | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:51 | 94.9 |
 | LLM key removed | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:51 | -0.2 |
 
+### MONITOR thresholds re-selected from out-of-fold predictions (alert budget)
+
+Budgets: vitals <= 1 alert per patient-week; behaviour Monitor days (drift OR agitation) <= 10% of patient-days; URGENT rules unchanged. Computed on 2797 patient-days / 400 patient-weeks, patient-level GroupKFold (`scripts/choose_monitor_thresholds.py`, `reports/metrics/monitor_thresholds.json`).
+
+| | Old | New |
+|---|---|---|
+| vitals_prob | 0.46 | 0.439 |
+| agitation_prob | 0.54 | 0.762 |
+| drift trigger (max CUSUM) | >= 4 (30% of days) | >= 10.4 |
+| Vitals alerts / patient-week | 0.94 | 1.00 |
+| Vitals recall (BP/pulse/water labels) | 0.702 | 0.724 |
+| Behaviour Monitor days, share of patient-days | 37.7% | 9.9% |
+| Agitation recall via agitation_prob alone | 0.645 | 0.273 |
+| Agitation recall via drift OR agitation (Monitor) | 0.800 | 0.300 |
+
+Recall lost: vitals none (the old threshold was already about 1 alert/patient-week; the new one is marginally looser). Behaviour: Monitor recall of same-day agitation falls from 0.80 to 0.30. The old 0.80 came mostly from drift firing on ~30% of all days (drift alone is at chance, ROC 0.45), so it was not skill. At a 10% Monitor budget, recall is 0.30, against about 0.10 expected for random flagging. Triage change: the drift Monitor trigger now uses the max per-feature CUSUM against `drift_cusum` (before: any CUSUM >= h=4). Day-status shares in the end-to-end table now use out-of-fold Agent 1-2 scores (previously in-sample), so the 52.0% -> 29.0% Monitor change mixes the threshold change with the in-sample correction. Reports in that run used templates (no LLM).
+
 ## Reading the tables
 
 - **Agent 1** beats the fixed BP rule on PR-AUC (0.69 vs 0.26; CIs do not overlap). At the rule's own alert count it recalls 0.88 vs 0.76, though the CIs overlap. At ~1 alert/patient-week it recalls 0.70 with 0.41 false alerts/patient-week. The target includes `water_alert`, which has no BP/HR signal, and labels are likely threshold-derived, so part of this is re-learning the labelling rule.
 - **Agent 2 (headline = within-patient):** median per-patient ROC-AUC 0.857 (IQR 0.733-0.941), PR-AUC 0.343 (IQR 0.151-0.572) over 27 patients with both classes; the pooled numbers (ROC 0.87, PR-AUC 4.2x base rate) are inflated by between-patient activity-level differences. Without absolute levels, pooled ROC falls to 0.66 but within-patient ROC stays 0.857, so per-patient z-scores carry the within-patient signal. 27 patients only; IQRs are wide. Earlier note on pooled results: has real but modest skill: PR-AUC 4.2x the base rate, ROC-AUC 0.87. Most of that comes from same-day raw activity level. The personal-baseline drift score alone is at chance (ROC 0.45), so "routine drift" is not evidence of agitation here.
 - **Agent 3** is near-ceiling on adults in SisFall; elderly sensitivity (0.85) rests on a single subject (SE06). Its false alarms (1-2.3 per hour of ADL recordings) are high for continuous wear; the triage rules therefore require post-fall inactivity or p >= 0.90 for URGENT.
-- **End-to-end:** 57/60 injected falls raised an URGENT alert. Alerts are produced at day close, so the simulated delay is 11.4 h median (max 23.8 h): the orchestrator is a daily batch, not real-time. 52% of patient-days are Monitor (including 3% data gaps), which would be too noisy for caregivers in practice. Agents 1-2 were final-fitted on all TIHM patients, so these shares are not out-of-sample.
+- **End-to-end:** 57/60 injected falls raised an URGENT alert. Alerts are produced at day close, so the simulated delay is 11.4 h median (max 23.8 h): the orchestrator is a daily batch, not real-time. 29% of patient-days are Monitor (including 3% data gaps; was 52% with the old thresholds and in-sample scores), which would be too noisy for caregivers in practice. Agents 1-2 were final-fitted on all TIHM patients, so these shares are not out-of-sample.
 - **Fault injection:** 0 lost, 0 extra and 0 duplicate alerts in every scenario, and all 45 cases ended identical to the clean run. Duplicates are also prevented by a UNIQUE(patient, day, level) key, so that zero is partly by construction. Detection takes ~3 s (supervisor polling and 3 missed 1 s heartbeats) and recovery 4-5 s. The delayed-LLM run (each call 1 s, then timeout, retried once) slowed the pipeline by ~95 s because the report node waits on the LLM, but alerts are written before that node, so they are unaffected. There is no per-call LLM timeout beyond the SDK's own; a real hung call would block reports (not alerts).
 - **Bugs found and fixed while producing these results:** (1) `run_orchestrator` could stop before processing days inserted during a slow pass (lost alerts under a slow LLM); (2) Agent 1's bootstrap CIs for recall at an alert budget undercounted patient-weeks for resampled duplicate patients, biasing them low. Point estimates are unchanged.
 

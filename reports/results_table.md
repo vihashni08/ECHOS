@@ -52,11 +52,11 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 | Injected falls | 60 |
 | Fall detection rate (URGENT, fall reason) | 0.950 (0.863-0.983) (57/60) |
 | Detection delay, simulated (fall -> end of day), median / max | 11.4 h / 23.8 h |
-| Pipeline latency after last agent output, median | 0.19 s |
+| Pipeline latency after last agent output, median | 0.15 s |
 | False fall alerts per patient-week | 0.066 (12 alerts) |
 | URGENT days from critical vitals (real TIHM readings) | 4 |
 | All URGENT alerts per patient-week | 0.404 |
-| Days Normal / Monitor / Urgent | 42.3% / 52.0% / 5.8% |
+| Days Normal / Monitor / Urgent | 65.2% / 29.0% / 5.8% |
 | Days with a data gap | 3.0% |
 | Duplicate alerts | 0 |
 

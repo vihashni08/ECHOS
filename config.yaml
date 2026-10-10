@@ -39,9 +39,9 @@ replay:
   adl_windows_per_day: 2
 triage:
   # chosen from reports/metrics/{agent1,agent2,triage_thresholds}.json (see docs in orchestrator/triage.py)
-  vitals_prob: 0.46        # agent1 OOF threshold at 1 alert / patient-week
-  agitation_prob: 0.54     # agent2 OOF threshold at 1 alert / patient-week
-  drift_score: 0.5         # = CUSUM h (any feature past its decision limit)
+  vitals_prob: 0.439       # agent1 OOF: <= 1 alert / patient-week (scripts/choose_monitor_thresholds.py)
+  agitation_prob: 0.762    # agent2 OOF: with drift_cusum, behaviour Monitor days <= 10% of patient-days
+  drift_cusum: 10.4        # max per-feature CUSUM (decision limit h=4 fired on 30% of days; this keeps drift <= 5%)
   fall_prob_high: 0.90     # OOF: sens 0.905, 0.41 false alarms/h (no inactivity needed)
   fall_prob: 0.50          # with post_fall_inactive: sens 0.942, 0.90 FA/h; without -> MONITOR only
   critical_vitals: {sys_high: 180, sys_low: 85, dia_high: 120, hr_high: 130, hr_low: 40}

@@ -11,6 +11,7 @@ import pandas as pd
 import xgboost as xgb
 from sklearn.metrics import average_precision_score, roc_auc_score
 
+from echos.agents import oof
 from echos.config import ROOT, load_config
 from echos.data.patient_day import load_patient_day
 from echos.data.splits import patient_folds
@@ -150,6 +151,8 @@ def predict(patient_id: str, day) -> AgentResult:
     art, r = st["art"], st["df"].loc[(patient_id, d)]
     X = pd.DataFrame([r[art["features"]].astype(float)])
     prob = float(art["model"].predict_proba(X)[0, 1]) if not X.isna().all(axis=None) and not np.isnan(r["total_events_z"]) else 0.0
+    if oof.enabled():  # replay evaluation with out-of-fold scores
+        prob = float(oof.lookup(AGENT, patient_id, d) or 0.0)
     h = load_config()["agent2"]["cusum"]["h"]
     drifted = [f for f in FEATS if r[f"{f}_cusum"] >= h]
     ev = {"drift_score": float(r["drift_score"]), "agitation_prob": prob, "drifted_features": drifted,

@@ -13,6 +13,7 @@ from sqlalchemy import select
 
 from echos.config import load_config
 from echos.orchestrator import state as S
+from echos.orchestrator.triage import drift_level
 
 VITAL_VARS = ["sys", "dia", "hr", "temp", "weight"]
 ROUTINE_VARS = ["total_events", "night_events", "night_bathroom"]
@@ -111,7 +112,7 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
         if beh["score"] >= t["agitation_prob"]:
             add("agitation", risk=round(beh["score"], 2), night_events=routine["night_events"]["value"],
                 night_events_baseline=routine["night_events"]["baseline"])
-        if ev.get("drifted_features") or ev.get("drift_score", 0) >= t["drift_score"]:
+        if drift_level(ev) >= t["drift_cusum"]:
             add("routine_change", features=list(ev.get("drifted_features", [])), drift_score=_r(ev.get("drift_score"), 2))
     # ---- data gaps
     gaps = [r for r in decision.get("reasons", []) if str(r).startswith("data_gap:")]
