@@ -1,0 +1,13 @@
+seed: 42
+paths:
+  tihm: data/tihm/Dataset
+  processed: data/processed/patient_day.parquet
+  models: models
+  metrics: reports/metrics
+splits:
+  n_folds: 5
+night_hours: {start: 22, end: 6}
+agent1:
+  fixed_rule: {sys_high: 140, dia_high: 90, sys_low: 100}
+  alert_budget_per_patient_week: [0.5, 1.0, 2.0]
+  baseline_window_days: 28

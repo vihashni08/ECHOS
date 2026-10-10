@@ -1,0 +1,12 @@
+pandas
+pyarrow
+pydantic>=2
+scikit-learn
+xgboost
+shap
+langgraph
+streamlit
+sqlalchemy
+pytest
+pyyaml
+joblib

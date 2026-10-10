@@ -1,0 +1,91 @@
+{
+  "n_reading_days": 1733,
+  "n_patients": 54,
+  "n_positive": 315,
+  "patient_weeks": 375.71428571428567,
+  "prevalence": 0.1817657241777265,
+  "threshold_at_1_per_week": 0.46072307229042053,
+  "results": {
+    "fixed_rule": {
+      "alerts": 834,
+      "recall": 0.7587301587301587,
+      "precision": 0.2865707434052758,
+      "false_alerts_per_patient_week": 1.5836501901140687,
+      "pr_auc": 0.2612844530519623
+    },
+    "xgboost": {
+      "pr_auc": 0.6894624520115561,
+      "at_rule_budget": {
+        "alerts": 834,
+        "recall": 0.8825396825396825,
+        "precision": 0.3333333333333333,
+        "false_alerts_per_patient_week": 1.4798479087452474
+      },
+      "at_0.5_alerts_per_patient_week": {
+        "alerts": 187,
+        "recall": 0.4793650793650794,
+        "precision": 0.8074866310160428,
+        "false_alerts_per_patient_week": 0.0958174904942966
+      },
+      "at_1.0_alerts_per_patient_week": {
+        "alerts": 375,
+        "recall": 0.7015873015873015,
+        "precision": 0.5893333333333334,
+        "false_alerts_per_patient_week": 0.40988593155893543
+      },
+      "at_2.0_alerts_per_patient_week": {
+        "alerts": 751,
+        "recall": 0.8761904761904762,
+        "precision": 0.36750998668442075,
+        "false_alerts_per_patient_week": 1.26425855513308
+      }
+    }
+  },
+  "bootstrap_95ci": {
+    "prevalence": [
+      0.12370193318620533,
+      0.2469400912460793
+    ],
+    "xgb_pr_auc": [
+      0.5691270273486125,
+      0.7752441211828768
+    ],
+    "rule_pr_auc": [
+      0.18286307137720412,
+      0.3455044423017096
+    ],
+    "xgb_recall@0.5": [
+      0.2232840372238575,
+      0.4570203960981377
+    ],
+    "xgb_recall@1.0": [
+      0.43133980105612185,
+      0.685518899204244
+    ],
+    "xgb_recall@2.0": [
+      0.6825308938134571,
+      0.8588323391132906
+    ],
+    "rule_recall": [
+      0.6166717555225149,
+      0.8723551136363638
+    ],
+    "xgb_recall@rule_budget": [
+      0.810929725728854,
+      0.93247145660512
+    ]
+  },
+  "shap_global_top5": {
+    "sys": 0.6696000099182129,
+    "dia": 0.6353999972343445,
+    "hr": 0.37130001187324524,
+    "dia_base": 0.3359000086784363,
+    "hr_base": 0.18960000574588776
+  },
+  "notes": [
+    "OOF predictions from patient-level GroupKFold(5, seed 42)",
+    "patient_weeks = all monitored patient-days / 7; scoring only on days with a vitals reading",
+    "target includes water_alert, which has no BP/HR signal in these features",
+    "~49 labelled patients: wide CIs; labels likely derive from clinical thresholds"
+  ]
+}
