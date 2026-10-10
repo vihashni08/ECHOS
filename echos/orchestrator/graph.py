@@ -103,14 +103,14 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
 
     def daily_report(st: CaseState) -> dict:  # Report agent: also runs on URGENT days (alerts + times belong in the report)
         facts = build_day_facts(eng, st["patient_id"], st["day"], st["decision"], st["results"])
-        out = reporter.daily(facts)
+        out = reporter.daily(facts, defer_llm=True)  # template now, LLM wording later: never blocks alerts / next cases
         with eng.begin() as c:
             c.execute(S.case_state.update().where((S.case_state.c.patient_id == st["patient_id"]) &
                                                   (S.case_state.c.day == st["day"])).values(report=str(out["path"].name)))
         return {}
 
     def weekly_report(st: CaseState) -> dict:
-        reporter.weekly(st["patient_id"], st["day"])
+        reporter.weekly(st["patient_id"], st["day"], defer_llm=True)
         return {}
 
     def after(st: CaseState) -> str:

@@ -9,7 +9,10 @@ from __future__ import annotations
 import base64
 import io
 import json
+import logging
 import time
+import weakref
+from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
 
 import jinja2
@@ -285,26 +288,56 @@ def weekly_charts(series: dict) -> dict:
 
 
 # ------------------------------------------------------------------ generic LLM-with-validation loop
-def _write(llm, payload: dict, ask: str, required, valid, cite_sections, template_items: dict, retries: int):
-    """Return (items, mode, validation, notes). Falls back to template_items when LLM is off or fails validation twice."""
-    notes = []
+def _write(llm, payload: dict, ask: str, required, valid, cite_sections, template_items: dict, retries: int, ctx: str = ""):
+    """Return (items, mode, validation, notes). Falls back to template_items when LLM is off or fails.
+    A timeout is never retried; other failures get at most `retries` retry. Every fallback is logged with its reason."""
+    notes, reason = [], None
     if llm is not None:
         feedback = ""
         for attempt in range(retries + 1):
             try:
                 raw = llm.generate(SYSTEM, ask + feedback + "\n\nINPUT JSON:\n" + json.dumps(payload, default=str))
                 out = json.loads(raw)
+            except TimeoutError as ex:  # includes LLMTimeout: no retry on timeouts
+                notes.append(f"attempt {attempt + 1}: timeout")
+                reason = f"timeout ({type(ex).__name__})"
+                break
             except Exception as ex:  # network / quota / bad JSON -> counts as a failed attempt
                 notes.append(f"attempt {attempt + 1}: {type(ex).__name__}")
+                reason = f"error ({type(ex).__name__})"
                 feedback = "\n\nYour previous reply was not valid JSON. Reply with JSON only."
                 continue
             v = validate_report(out, payload, required, valid, cite_sections)
             if v["ok"]:
                 return out, "llm", v, notes
             notes.append(f"attempt {attempt + 1}: " + "; ".join(v["errors"][:4]))
+            reason = "validation_failed"
             feedback = "\n\nYour previous reply was rejected for: " + "; ".join(v["errors"][:6]) + ". Fix these and reply again."
+        FALLBACK_LOG.warning("report fallback to template [%s] reason=%s", ctx, reason)
     v = validate_report(template_items, payload, required, valid, cite_sections)
+    if reason:
+        v["fallback_reason"] = reason
     return template_items, "template", v, notes
+
+
+FALLBACK_LOG = logging.getLogger("echos.llm.fallback")
+_AGENTS: "weakref.WeakSet" = weakref.WeakSet()
+
+
+def _setup_fallback_log():
+    if not any(isinstance(h, logging.FileHandler) for h in FALLBACK_LOG.handlers):
+        path = ROOT / "data" / "llm_fallbacks.log"
+        path.parent.mkdir(exist_ok=True)
+        h = logging.FileHandler(path)
+        h.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+        FALLBACK_LOG.addHandler(h)
+        FALLBACK_LOG.setLevel(logging.INFO)
+
+
+def drain_all(timeout: float | None = None) -> None:
+    """Wait for background LLM report upgrades of every ReportAgent (used at the end of runs / tests)."""
+    for a in list(_AGENTS):
+        a.drain(timeout)
 
 
 class ReportAgent:
@@ -314,20 +347,53 @@ class ReportAgent:
         self.retries = (cfg.get("llm") or {}).get("retries", 1)
         self.root = Path(root) if root else ROOT
         self.rc = cfg["reports"]
+        self.max_pending = (cfg.get("llm") or {}).get("max_pending", 200)
+        self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="report-llm")
+        self._futs: list = []
+        _AGENTS.add(self)
+        if llm is not None:
+            _setup_fallback_log()
+
+    # ---- the LLM never sits on the alert path: with defer_llm the template report is written immediately and the
+    # LLM version replaces it later from a single background worker (bounded backlog, so a slow LLM cannot grow forever).
+    def _defer(self, fn, *args, ctx: str):
+        self._futs = [f for f in self._futs if not f.done()]
+        if len(self._futs) >= self.max_pending:
+            FALLBACK_LOG.warning("report fallback to template [%s] reason=backlog_full", ctx)
+            return
+        self._futs.append(self._pool.submit(self._safe, fn, *args, ctx))
+
+    @staticmethod
+    def _safe(fn, *args):
+        *a, ctx = args
+        try:
+            fn(*a)
+        except Exception as ex:  # noqa: BLE001 - a failed upgrade keeps the template report
+            FALLBACK_LOG.warning("report fallback to template [%s] reason=upgrade_error (%s)", ctx, type(ex).__name__)
+
+    def drain(self, timeout: float | None = None) -> None:
+        wait(list(self._futs), timeout=timeout)
 
     def _record(self, pid, day, kind, mode, path, validation):
         with self.eng.begin() as c:
             S.upsert(c, S.reports, ["patient_id", "day", "kind"], patient_id=pid, day=day, kind=kind, mode=mode,
                      path=str(path), validation=S.j(validation), created_ts=S.now())
 
-    def daily(self, facts: dict, save: bool = True) -> dict:
+    def daily(self, facts: dict, save: bool = True, defer_llm: bool = False) -> dict:
         if save:
             F.save_day_facts(self.eng, facts)
+        if defer_llm and self.llm is not None:
+            out = self._daily(facts, None)
+            self._defer(self._daily, facts, self.llm, ctx=f"daily {facts['patient_id']} {facts['day']}")
+            return out
+        return self._daily(facts, self.llm)
+
+    def _daily(self, facts: dict, llm) -> dict:
         payload = daily_payload(facts)
         required = [f["id"] for f in facts["flags"] if f["type"] != "data_gap"]
         valid = [f["id"] for f in facts["flags"]]
-        items, mode, v, notes = _write(self.llm, payload, DAILY_ASK, required, valid, ["changes"] if required else [],
-                                       daily_template_items(facts), self.retries)
+        items, mode, v, notes = _write(llm, payload, DAILY_ASK, required, valid, ["changes"] if required else [],
+                                       daily_template_items(facts), self.retries, ctx=f"daily {facts['patient_id']} {facts['day']}")
         text = TPL.get_template("daily.md.j2").render(
             pid=facts["patient_id"], day=facts["day"], label=LABEL[facts["status"]], alerts=daily_alerts(facts),
             changes=items.get("changes", []), monitor=items.get("monitor", [])[:3], data_note=daily_data_note(facts), mode=mode)
@@ -338,14 +404,21 @@ class ReportAgent:
         self._record(facts["patient_id"], facts["day"], "daily", mode, path.relative_to(self.root), v)
         return {"mode": mode, "path": path, "text": text, "validation": v}
 
-    def weekly(self, patient_id: str, day: str) -> dict:
+    def weekly(self, patient_id: str, day: str, defer_llm: bool = False) -> dict:
+        if defer_llm and self.llm is not None:
+            out = self._weekly(patient_id, day, None)
+            self._defer(self._weekly, patient_id, day, self.llm, ctx=f"weekly {patient_id} {day}")
+            return out
+        return self._weekly(patient_id, day, self.llm)
+
+    def _weekly(self, patient_id: str, day: str, llm) -> dict:
         days = self.tools.get_last_7_days(patient_id, day)
         stats = weekly_stats(days, patient_id, day)
         payload = weekly_payload(stats)
         required = [e["id"] for e in stats["evidence"]]
         valid = required + [g["id"] for g in stats["guidelines"]]
-        items, mode, v, notes = _write(self.llm, payload, WEEKLY_ASK, required, valid, [],
-                                       weekly_template_items(stats), self.retries)
+        items, mode, v, notes = _write(llm, payload, WEEKLY_ASK, required, valid, [],
+                                       weekly_template_items(stats), self.retries, ctx=f"weekly {patient_id} {day}")
         html = HTML_TPL.get_template("weekly.html.j2").render(
             s=stats, items=items.get("highlights", []), charts=weekly_charts(stats["series"]) if days else {},
             vname=VITAL_NAME, unit=UNIT, mode=mode, label=LABEL, week_start=days[0]["day"] if days else day)

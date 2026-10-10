@@ -79,6 +79,8 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
         timing["recover_s"] = n - t_kill
         timing["restart_to_first_output_s"] = n - r.restarted_ts
     orch.join(timeout=600)
+    from echos.reports.agent import drain_all
+    drain_all(600)  # background LLM report upgrades
     sup.stop_all()
     with eng.begin() as c:
         alerts = c.execute(select(S.alerts.c.patient_id, S.alerts.c.day)).fetchall()
@@ -88,10 +90,11 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
         gt = {(r.patient_id, r.day) for r in c.execute(select(S.gt_fall))}
         cases = {(r.patient_id, r.day): (r.status, r.reasons) for r in c.execute(select(S.case_state))}
         modes = [r.mode for r in c.execute(select(S.reports.c.mode))]
+        fallbacks = [json.loads(r.validation).get("fallback_reason") for r in c.execute(select(S.reports.c.validation))]
         alert_lat = [r.created_ts for r in c.execute(select(S.alerts.c.created_ts))]
     conn.close()
     return {"alerts": [tuple(a) for a in alerts], "n_cases": n_cases, "events": n_ev, "outputs": outs, "gt_falls": gt,
-            "timing": timing, "replay": summary, "cases": cases, "modes": modes, "alert_ts": alert_lat,
+            "timing": timing, "replay": summary, "cases": cases, "modes": modes, "fallbacks": [f for f in fallbacks if f], "alert_ts": alert_lat,
             "t_end": S.now()}
 
 

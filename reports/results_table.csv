@@ -43,5 +43,5 @@ e2e,Duplicate alerts,value,,,,0
 fault,kill physiological,lost_alerts,0.0,,,dup=0 cases_same=45/45
 fault,kill behaviour,lost_alerts,0.0,,,dup=0 cases_same=45/45
 fault,kill fall,lost_alerts,0.0,,,dup=0 cases_same=45/45
-fault,LLM delayed 1s then timeout,lost_alerts,0.0,,,dup=0 cases_same=45/45
+fault,"real Gemini client, 1s timeout",lost_alerts,0.0,,,dup=0 cases_same=45/45
 fault,LLM key removed,lost_alerts,0.0,,,dup=0 cases_same=45/45

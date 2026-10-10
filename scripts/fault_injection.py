@@ -23,11 +23,14 @@ from scripts.kill_test import run_pipeline  # noqa: E402
 LLM_DELAY_S = 1.0
 
 
-class SlowFailingLLM:
-    """Stands in for a Gemini call that hangs for LLM_DELAY_S and then times out (-> validator retry -> template)."""
-    def generate(self, system, user):
-        time.sleep(LLM_DELAY_S)
-        raise TimeoutError("simulated LLM timeout")
+def real_client_1s():
+    """The real Gemini client (needs ECHOS_LLM_API_KEY) with the hard per-call timeout forced to LLM_DELAY_S seconds."""
+    from echos.reports.llm import make_llm
+    cfg = load_config()
+    llm = make_llm({**cfg, "llm": {**cfg["llm"], "timeout_s": LLM_DELAY_S}})
+    if llm is None:
+        raise SystemExit("real LLM client unavailable (no llm.model or ECHOS_LLM_API_KEY): cannot run the delayed-LLM scenario")
+    return llm
 
 
 def compare(ref, run, scenario, wall, ref_wall) -> dict:
@@ -40,7 +43,8 @@ def compare(ref, run, scenario, wall, ref_wall) -> dict:
             "falls_alerted": f"{len(run['gt_falls'] & set(ka))}/{len(run['gt_falls'])}",
             "cases_identical_to_clean_run": f"{same}/{len(ref['cases'])}",
             "detect_s": t.get("detect_s"), "recover_s": t.get("recover_s"),
-            "report_modes": dict(Counter(run["modes"])), "wall_s": round(wall, 1), "wall_overhead_s": round(wall - ref_wall, 1)}
+            "report_modes": dict(Counter(run["modes"])), "fallbacks": len(run["fallbacks"]),
+            "fallback_reasons": dict(Counter(run["fallbacks"])), "wall_s": round(wall, 1), "wall_overhead_s": round(wall - ref_wall, 1)}
 
 
 def timed(work, **kw):
@@ -58,8 +62,8 @@ def main():
         for agent in ("physiological", "behaviour", "fall"):
             r, w = timed(tmp / f"kill_{agent}", kill_agent=agent)
             rows.append(compare(ref, r, f"kill {agent}", w, ref_wall))
-        r, w = timed(tmp / "llm_delay", kill_agent=None, report_llm=SlowFailingLLM())
-        rows.append(compare(ref, r, f"LLM delayed {LLM_DELAY_S:g}s then timeout", w, ref_wall))
+        r, w = timed(tmp / "llm_delay", kill_agent=None, report_llm=real_client_1s())
+        rows.append(compare(ref, r, f"real Gemini client, {LLM_DELAY_S:g}s timeout", w, ref_wall))
         # no key: model configured, key absent -> make_llm() returns None -> template mode (no code path needs the key)
         cfg = {**load_config(), "llm": {**load_config()["llm"], "model": "gemini-configured-but-no-key"}}
         env = {k: v for k, v in os.environ.items() if k != "ECHOS_LLM_API_KEY"}
@@ -73,7 +77,7 @@ def main():
         shutil.rmtree(tmp, ignore_errors=True)
     Path("reports/metrics").mkdir(parents=True, exist_ok=True)
     Path("reports/metrics/fault_injection.json").write_text(json.dumps(
-        {"config": {"patients": 3, "days_each": 15, "llm_delay_s": LLM_DELAY_S, "ref_wall_s": round(ref_wall, 1)}, "rows": rows}, indent=2))
+        {"config": {"patients": 3, "days_each": 15, "llm_timeout_s": LLM_DELAY_S, "ref_wall_s": round(ref_wall, 1)}, "rows": rows}, indent=2))
     print(json.dumps(rows, indent=1)[:200], "...")
 
 

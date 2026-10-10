@@ -1,0 +1,70 @@
+{
+  "patient_days_all": 2797,
+  "scored_days": 2308,
+  "agitation_days": 110,
+  "patients_with_agitation": 27,
+  "agitation_thresholds": {
+    "b": 0.6021491885185242,
+    "config": 0.762
+  },
+  "triggers": {
+    "a_drift_or_agitation": {
+      "share_of_scored_days": 0.12045060658578856,
+      "share_of_all_patient_days": 0.09939220593493028,
+      "recall": 0.3,
+      "recall_ci95": [
+        0.18277126099706745,
+        0.41672008547008543
+      ],
+      "flagged_days": 278,
+      "agitation_days_caught": 33,
+      "patients_with_agitation_caught": 13,
+      "random_baseline_recall": 0.12045060658578856
+    },
+    "b_agitation_alone": {
+      "share_of_scored_days": 0.12088388214904679,
+      "share_of_all_patient_days": 0.09974973185555953,
+      "recall": 0.5727272727272728,
+      "recall_ci95": [
+        0.4137816091954023,
+        0.6944883966244725
+      ],
+      "flagged_days": 279,
+      "agitation_days_caught": 63,
+      "patients_with_agitation_caught": 17,
+      "random_baseline_recall": 0.12088388214904679
+    },
+    "c_patient_past_p90": {
+      "share_of_scored_days": 0.0805892547660312,
+      "share_of_all_patient_days": 0.06649982123703968,
+      "recall": 0.20909090909090908,
+      "recall_ci95": [
+        0.1278119796134632,
+        0.36252840909090905
+      ],
+      "flagged_days": 186,
+      "agitation_days_caught": 23,
+      "patients_with_agitation_caught": 16,
+      "random_baseline_recall": 0.0805892547660312
+    },
+    "c2_patient_past_p83.5_budget_matched": {
+      "share_of_scored_days": 0.12045060658578856,
+      "share_of_all_patient_days": 0.09939220593493028,
+      "recall": 0.3090909090909091,
+      "recall_ci95": [
+        0.22009139150943396,
+        0.4805653170359052
+      ],
+      "flagged_days": 278,
+      "agitation_days_caught": 34,
+      "patients_with_agitation_caught": 20,
+      "random_baseline_recall": 0.12045060658578856
+    }
+  },
+  "notes": [
+    "OOF scores only (patient-level GroupKFold); patient bootstrap 1000x on scored days",
+    "thresholds for (a) and (b) were set on the same OOF scores (mild optimism); (c) uses no global threshold",
+    "(c) cannot flag a patient's first 14 scored days; agitation days there count as missed",
+    "random baseline = flagged share (expected recall of flagging days at random)"
+  ]
+}

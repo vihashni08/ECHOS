@@ -68,11 +68,11 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 
 | Fault | Lost alerts | Extra alerts | Duplicates | Falls alerted | Detect (s) | Recover (s) | Cases identical to clean run | Report modes | Wall overhead (s) |
 |---|---|---|---|---|---|---|---|---|---|
-| kill physiological | 0 | 0 | 0 | 9/9 | 2.9 | 4.8 | 45/45 | template:51 | -0.1 |
-| kill behaviour | 0 | 0 | 0 | 9/9 | 3.1 | 4.2 | 45/45 | template:51 | 0.1 |
-| kill fall | 0 | 0 | 0 | 9/9 | 2.8 | 3.9 | 45/45 | template:51 | 3.7 |
-| LLM delayed 1s then timeout | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:51 | 94.9 |
-| LLM key removed | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:51 | -0.2 |
+| kill physiological | 0 | 0 | 0 | 9/9 | 2.9 | 4.8 | 45/45 | llm:42,template:9 | 2.2 |
+| kill behaviour | 0 | 0 | 0 | 9/9 | 2.8 | 4.0 | 45/45 | llm:42,template:9 | 10.7 |
+| kill fall | 0 | 0 | 0 | 9/9 | 2.8 | 3.8 | 45/45 | template:9,llm:42 | 8.6 |
+| real Gemini client, 1s timeout | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:47,llm:4 | -10.6 |
+| LLM key removed | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:51 | -168.8 |
 
 ### MONITOR thresholds re-selected from out-of-fold predictions (alert budget)
 
@@ -109,3 +109,6 @@ Recall lost: vitals none (the old threshold was already about 1 alert/patient-we
 - **Fault injection used 3 patients x 15 days** and one process-kill per agent on one machine; it does not cover disk failure, orchestrator-host loss or a truly hung LLM call.
 - **No LLM was evaluated.** `llm.model` is unset, so every report used template mode; the delayed-LLM test used a stub that times out. LLM wording quality, and the validator's behaviour on real model output, are untested here.
 - **Decision support, not diagnosis.** Triage is a fixed if-then rule set; the LLM never decides emergencies. Nothing here has been clinically validated.
+
+
+**LLM guardrails (report generation):** hard 15 s per-call timeout (timeouts are never retried, other failures retry at most once), a 20 requests/min limiter, and LLM wording is produced in a background worker after the template report and the alert are already written, so it cannot block alerts or the next case. Every fallback is logged with a reason (`data/llm_fallbacks.log` and the report's validation record). Real-client test with the timeout forced to 1 s (the Gemini API itself rejects HTTP deadlines under 10 s, so sub-10 s timeouts are enforced by a watchdog thread): 0 lost alerts, 0 extra, 45/45 cases identical to the clean run, 47/51 reports fell back to template (42 timeouts, 5 API client errors), 4 completed in under 1 s. In the other real-LLM runs 3-4 of 51 reports failed validation and 5-6 hit an API client error (cause not diagnosed; possibly quota).

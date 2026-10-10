@@ -97,3 +97,70 @@ def test_knowledge_and_llm_off():
     assert len(sum((get_guideline(t) for t in finding_types()), [])) >= 10
     assert get_guideline("nope") == [] and all(g["note"] == "for clinician review" for g in get_guideline("fall"))
     assert make_llm({"llm": {"model": None}}) is None
+
+
+class RaisingLLM:
+    def __init__(self, exc):
+        self.exc, self.calls = exc, 0
+
+    def generate(self, system, user):
+        self.calls += 1
+        raise self.exc
+
+
+def test_timeout_is_not_retried_and_fallback_has_reason(agent_env):
+    eng, tmp = agent_env
+    llm = RaisingLLM(TimeoutError("slow"))
+    out = A.ReportAgent(eng, llm, root=tmp).daily(facts())
+    assert out["mode"] == "template" and llm.calls == 1 and out["validation"]["fallback_reason"].startswith("timeout")
+
+
+def test_other_errors_retry_at_most_once(agent_env):
+    eng, tmp = agent_env
+    llm = RaisingLLM(RuntimeError("boom"))
+    out = A.ReportAgent(eng, llm, root=tmp).daily(facts())
+    assert out["mode"] == "template" and llm.calls == 2 and out["validation"]["fallback_reason"].startswith("error")
+
+
+def test_deferred_llm_never_blocks_the_caller(agent_env):
+    import time
+    eng, tmp = agent_env
+
+    class Slow:
+        def generate(self, system, user):
+            time.sleep(1.0)
+            return good()
+    ag = A.ReportAgent(eng, Slow(), root=tmp)
+    t0 = time.time()
+    out = ag.daily(facts(), defer_llm=True)
+    assert time.time() - t0 < 0.5 and out["mode"] == "template"  # template written immediately
+    ag.drain(10)
+    with eng.begin() as c:
+        assert c.execute(S.reports.select()).first().mode == "llm"  # upgraded in the background
+
+
+def test_rate_limiter_spaces_requests():
+    import time
+    from echos.reports.llm import RateLimiter
+    rl, t0 = RateLimiter(600), time.monotonic()  # 0.1 s gap
+    for _ in range(4):
+        rl.wait()
+    assert time.monotonic() - t0 >= 0.29
+
+
+def test_watchdog_enforces_short_timeout_without_retry(agent_env):
+    import time
+    from echos.reports.llm import GeminiLLM
+    eng, tmp = agent_env
+    g = GeminiLLM.__new__(GeminiLLM)  # no network: stub the SDK call with a hang
+    g.timeout_s, g.calls = 0.3, 0
+    from echos.reports.llm import RateLimiter
+    g.limiter = RateLimiter(0)
+
+    def hang(system, user):
+        g.calls += 1
+        time.sleep(3)
+    g._call = hang
+    t0 = time.time()
+    out = A.ReportAgent(eng, g, root=tmp).daily(facts())
+    assert time.time() - t0 < 1.5 and g.calls == 1 and out["validation"]["fallback_reason"].startswith("timeout")

@@ -2,8 +2,8 @@
   "config": {
     "patients": 3,
     "days_each": 15,
-    "llm_delay_s": 1.0,
-    "ref_wall_s": 13.0
+    "llm_timeout_s": 1.0,
+    "ref_wall_s": 181.6
   },
   "rows": [
     {
@@ -16,13 +16,19 @@
       "duplicate_alerts": 0,
       "falls_alerted": "9/9",
       "cases_identical_to_clean_run": "45/45",
-      "detect_s": 2.8706986904144287,
-      "recover_s": 4.831251859664917,
+      "detect_s": 2.853969097137451,
+      "recover_s": 4.807780981063843,
       "report_modes": {
-        "template": 51
+        "llm": 42,
+        "template": 9
       },
-      "wall_s": 12.8,
-      "wall_overhead_s": -0.1
+      "fallbacks": 9,
+      "fallback_reasons": {
+        "error (ClientError)": 6,
+        "validation_failed": 3
+      },
+      "wall_s": 183.9,
+      "wall_overhead_s": 2.2
     },
     {
       "scenario": "kill behaviour",
@@ -34,13 +40,19 @@
       "duplicate_alerts": 0,
       "falls_alerted": "9/9",
       "cases_identical_to_clean_run": "45/45",
-      "detect_s": 3.061992883682251,
-      "recover_s": 4.240041017532349,
+      "detect_s": 2.849266290664673,
+      "recover_s": 3.9588122367858887,
       "report_modes": {
-        "template": 51
+        "llm": 42,
+        "template": 9
       },
-      "wall_s": 13.1,
-      "wall_overhead_s": 0.1
+      "fallbacks": 9,
+      "fallback_reasons": {
+        "error (ClientError)": 5,
+        "validation_failed": 4
+      },
+      "wall_s": 192.3,
+      "wall_overhead_s": 10.7
     },
     {
       "scenario": "kill fall",
@@ -52,16 +64,22 @@
       "duplicate_alerts": 0,
       "falls_alerted": "9/9",
       "cases_identical_to_clean_run": "45/45",
-      "detect_s": 2.8320603370666504,
-      "recover_s": 3.881411075592041,
+      "detect_s": 2.7870781421661377,
+      "recover_s": 3.829767942428589,
       "report_modes": {
-        "template": 51
+        "template": 9,
+        "llm": 42
       },
-      "wall_s": 16.7,
-      "wall_overhead_s": 3.7
+      "fallbacks": 9,
+      "fallback_reasons": {
+        "error (ClientError)": 6,
+        "validation_failed": 3
+      },
+      "wall_s": 190.3,
+      "wall_overhead_s": 8.6
     },
     {
-      "scenario": "LLM delayed 1s then timeout",
+      "scenario": "real Gemini client, 1s timeout",
       "cases": 45,
       "alerts_ref": 9,
       "alerts_run": 9,
@@ -73,10 +91,16 @@
       "detect_s": null,
       "recover_s": null,
       "report_modes": {
-        "template": 51
+        "template": 47,
+        "llm": 4
       },
-      "wall_s": 107.9,
-      "wall_overhead_s": 94.9
+      "fallbacks": 47,
+      "fallback_reasons": {
+        "timeout (LLMTimeout)": 42,
+        "error (ClientError)": 5
+      },
+      "wall_s": 171.1,
+      "wall_overhead_s": -10.6
     },
     {
       "scenario": "LLM key removed",
@@ -93,8 +117,10 @@
       "report_modes": {
         "template": 51
       },
-      "wall_s": 12.8,
-      "wall_overhead_s": -0.2
+      "fallbacks": 0,
+      "fallback_reasons": {},
+      "wall_s": 12.9,
+      "wall_overhead_s": -168.8
     }
   ]
 }

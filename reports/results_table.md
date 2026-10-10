@@ -60,12 +60,12 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 | Days with a data gap | 3.0% |
 | Duplicate alerts | 0 |
 
-### Fault injection (3 patients x 15 days; clean run 13.0 s)
+### Fault injection (3 patients x 15 days; clean run 181.6 s)
 
 | Fault | Lost alerts | Extra alerts | Duplicates | Falls alerted | Detect (s) | Recover (s) | Cases identical to clean run | Report modes | Wall overhead (s) |
 |---|---|---|---|---|---|---|---|---|---|
-| kill physiological | 0 | 0 | 0 | 9/9 | 2.9 | 4.8 | 45/45 | template:51 | -0.1 |
-| kill behaviour | 0 | 0 | 0 | 9/9 | 3.1 | 4.2 | 45/45 | template:51 | 0.1 |
-| kill fall | 0 | 0 | 0 | 9/9 | 2.8 | 3.9 | 45/45 | template:51 | 3.7 |
-| LLM delayed 1s then timeout | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:51 | 94.9 |
-| LLM key removed | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:51 | -0.2 |
+| kill physiological | 0 | 0 | 0 | 9/9 | 2.9 | 4.8 | 45/45 | llm:42,template:9 | 2.2 |
+| kill behaviour | 0 | 0 | 0 | 9/9 | 2.8 | 4.0 | 45/45 | llm:42,template:9 | 10.7 |
+| kill fall | 0 | 0 | 0 | 9/9 | 2.8 | 3.8 | 45/45 | template:9,llm:42 | 8.6 |
+| real Gemini client, 1s timeout | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:47,llm:4 | -10.6 |
+| LLM key removed | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:51 | -168.8 |
