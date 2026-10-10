@@ -1,0 +1,126 @@
+{
+  "config": {
+    "patients": 3,
+    "days_each": 15,
+    "llm_timeout_s": 1.0,
+    "ref_wall_s": 181.6
+  },
+  "rows": [
+    {
+      "scenario": "kill physiological",
+      "cases": 45,
+      "alerts_ref": 9,
+      "alerts_run": 9,
+      "lost_alerts": 0,
+      "extra_alerts": 0,
+      "duplicate_alerts": 0,
+      "falls_alerted": "9/9",
+      "cases_identical_to_clean_run": "45/45",
+      "detect_s": 2.853969097137451,
+      "recover_s": 4.807780981063843,
+      "report_modes": {
+        "llm": 42,
+        "template": 9
+      },
+      "fallbacks": 9,
+      "fallback_reasons": {
+        "error (ClientError)": 6,
+        "validation_failed": 3
+      },
+      "wall_s": 183.9,
+      "wall_overhead_s": 2.2
+    },
+    {
+      "scenario": "kill behaviour",
+      "cases": 45,
+      "alerts_ref": 9,
+      "alerts_run": 9,
+      "lost_alerts": 0,
+      "extra_alerts": 0,
+      "duplicate_alerts": 0,
+      "falls_alerted": "9/9",
+      "cases_identical_to_clean_run": "45/45",
+      "detect_s": 2.849266290664673,
+      "recover_s": 3.9588122367858887,
+      "report_modes": {
+        "llm": 42,
+        "template": 9
+      },
+      "fallbacks": 9,
+      "fallback_reasons": {
+        "error (ClientError)": 5,
+        "validation_failed": 4
+      },
+      "wall_s": 192.3,
+      "wall_overhead_s": 10.7
+    },
+    {
+      "scenario": "kill fall",
+      "cases": 45,
+      "alerts_ref": 9,
+      "alerts_run": 9,
+      "lost_alerts": 0,
+      "extra_alerts": 0,
+      "duplicate_alerts": 0,
+      "falls_alerted": "9/9",
+      "cases_identical_to_clean_run": "45/45",
+      "detect_s": 2.7870781421661377,
+      "recover_s": 3.829767942428589,
+      "report_modes": {
+        "template": 9,
+        "llm": 42
+      },
+      "fallbacks": 9,
+      "fallback_reasons": {
+        "error (ClientError)": 6,
+        "validation_failed": 3
+      },
+      "wall_s": 190.3,
+      "wall_overhead_s": 8.6
+    },
+    {
+      "scenario": "real Gemini client, 1s timeout",
+      "cases": 45,
+      "alerts_ref": 9,
+      "alerts_run": 9,
+      "lost_alerts": 0,
+      "extra_alerts": 0,
+      "duplicate_alerts": 0,
+      "falls_alerted": "9/9",
+      "cases_identical_to_clean_run": "45/45",
+      "detect_s": null,
+      "recover_s": null,
+      "report_modes": {
+        "template": 47,
+        "llm": 4
+      },
+      "fallbacks": 47,
+      "fallback_reasons": {
+        "timeout (LLMTimeout)": 42,
+        "error (ClientError)": 5
+      },
+      "wall_s": 171.1,
+      "wall_overhead_s": -10.6
+    },
+    {
+      "scenario": "LLM key removed",
+      "cases": 45,
+      "alerts_ref": 9,
+      "alerts_run": 9,
+      "lost_alerts": 0,
+      "extra_alerts": 0,
+      "duplicate_alerts": 0,
+      "falls_alerted": "9/9",
+      "cases_identical_to_clean_run": "45/45",
+      "detect_s": null,
+      "recover_s": null,
+      "report_modes": {
+        "template": 51
+      },
+      "fallbacks": 0,
+      "fallback_reasons": {},
+      "wall_s": 12.9,
+      "wall_overhead_s": -168.8
+    }
+  ]
+}

@@ -18,6 +18,19 @@ def J(name):
     return json.loads((M / f"{name}.json").read_text())
 
 
+def check_fault_table(results: str) -> list[str]:
+    """RESULTS.md fault-injection table (10 columns, pre-Agent-0 run) must equal reports/metrics/fault_injection_pre_agent0.json
+    (= commit 62669da). fault_injection.json is overwritten by every new run, so it is not compared."""
+    fi = J("fault_injection_pre_agent0")
+    c = fi["config"]
+    d = lambda v: f"{v:.1f}" if v is not None else "-"
+    want = [f"### Fault injection ({c['patients']} patients x {c['days_each']} days; clean run {c['ref_wall_s']} s)"]
+    want += [f"| {r['scenario']} | {r['lost_alerts']} | {r['extra_alerts']} | {r['duplicate_alerts']} | {r['falls_alerted']} | {d(r['detect_s'])} | "
+             f"{d(r['recover_s'])} | {r['cases_identical_to_clean_run']} | {','.join(f'{k}:{v}' for k, v in r['report_modes'].items())} | {r['wall_overhead_s']} |"
+             for r in fi["rows"]]
+    return [f"RESULTS.md missing fault-injection line: {w[:110]}" for w in want if w not in results]
+
+
 def check() -> list[str]:
     import os
     os.chdir(ROOT)
@@ -26,9 +39,11 @@ def check() -> list[str]:
     evaluate.rows.clear()
     results, readme = (ROOT / "reports/RESULTS.md").read_text(), (ROOT / "README.md").read_text()
     bad = []
-    for line in evaluate.build().splitlines():
+    generated = evaluate.build().split("### Fault injection")[0]  # fault table is checked below against the frozen pre-Agent-0 run
+    for line in generated.splitlines():
         if line.strip() and line not in results:
             bad.append(f"RESULTS.md missing generated line: {line[:110]}")
+    bad += check_fault_table(results)
     a1, a2, a3, e, mt = J("agent1"), J("agent2"), J("agent3"), J("e2e"), J("monitor_thresholds")
     x, rule = a1["results"]["xgboost"], a1["results"]["fixed_rule"]
     g = a3["groups"]

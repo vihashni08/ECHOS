@@ -19,6 +19,8 @@ COLLECTION = "echos_guidelines"
 SOURCES = {"STEADI": ("STEADI", "CDC STEADI"), "falls-assessment": ("NICE-NG249", "NICE NG249 (2025)"),
            "dementia-assessment": ("NICE-NG97", "NICE NG97 (2018)"), "hypertension-in-adults": ("NICE-NG136", "NICE NG136 (2019)"),
            "news2": ("RCP-NEWS2", "Royal College of Physicians NEWS2 (2017)")}
+# doc id -> title, where the PDF's own metadata title is unusable
+TITLE_OVERRIDES = {"RCP-NEWS2": "National Early Warning Score (NEWS) 2, Royal College of Physicians (2017)"}
 
 
 class _Text(HTMLParser):
@@ -97,6 +99,7 @@ def build_chunks() -> list[dict]:
     for path in sorted(p for p in RAW.iterdir() if p.suffix.lower() in (".pdf", ".html", ".htm", ".txt")):
         doc_id, source = next((v for k, v in SOURCES.items() if path.name.startswith(k)), (path.stem[:24], path.stem))
         title, pages = read_pages(path)
+        title = TITLE_OVERRIDES.get(doc_id, title)
         for c in chunk_words(clean_pages(pages)):
             if usable(c["text"]):
                 chunks.append({**c, "doc_id": doc_id, "title": title, "source": source, "file": path.name})

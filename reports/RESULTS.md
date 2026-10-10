@@ -64,7 +64,9 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 | Days with a data gap | 4.5% |
 | Duplicate alerts | 0 |
 
-### Fault injection (3 patients x 15 days; clean run 13.0 s)
+### Fault injection (3 patients x 15 days; clean run 181.6 s)
+
+Source: `reports/metrics/fault_injection_pre_agent0.json` (commit 62669da, before Agent 0 was added; not re-run since). `fault_injection.json` is overwritten by later runs and is not what this table shows.
 
 | Fault | Lost alerts | Extra alerts | Duplicates | Falls alerted | Detect (s) | Recover (s) | Cases identical to clean run | Report modes | Wall overhead (s) |
 |---|---|---|---|---|---|---|---|---|---|

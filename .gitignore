@@ -8,3 +8,4 @@ __pycache__/
 reports/daily/
 reports/weekly/
 data/rag/
+echos/knowledge/raw/*.pdf
