@@ -1,0 +1,72 @@
+{
+  "n_fall_windows": 1797,
+  "n_adl_windows": 37774,
+  "n_subjects": 38,
+  "adl_hours": 14.500300000000003,
+  "threshold": 0.5,
+  "pr_auc": 0.9954302520447756,
+  "roc_auc": 0.9990681332691845,
+  "groups": {
+    "adult": {
+      "n_falls": 1722,
+      "fall_subjects": [
+        "SA01",
+        "SA02",
+        "SA03",
+        "SA04",
+        "SA05",
+        "SA06",
+        "SA07",
+        "SA08",
+        "SA09",
+        "SA10",
+        "SA11",
+        "SA12",
+        "SA13",
+        "SA14",
+        "SA15",
+        "SA16",
+        "SA17",
+        "SA18",
+        "SA19",
+        "SA20",
+        "SA21",
+        "SA22",
+        "SA23"
+      ],
+      "sensitivity": 0.9849012775842044,
+      "n_adl_windows": 24626,
+      "adl_hours": 9.49556111111111,
+      "specificity_windows": 0.9988629903354178,
+      "false_alarms_per_hour": 2.316872035530052
+    },
+    "elderly": {
+      "n_falls": 75,
+      "fall_subjects": [
+        "SE06"
+      ],
+      "sensitivity": 0.8533333333333334,
+      "n_adl_windows": 13148,
+      "adl_hours": 5.004738888888889,
+      "specificity_windows": 0.9995436568299361,
+      "false_alarms_per_hour": 0.9990531196543719
+    }
+  },
+  "overall_false_alarms_per_hour": 1.8620304407495014,
+  "top_false_alarm_activities": {
+    "D13": 12,
+    "D18": 10,
+    "D14": 6
+  },
+  "post_fall_inactivity": {
+    "detected_in_falls": 0.9571508069003896,
+    "detected_in_adl_windows": 0.22579022608143168,
+    "note": "falls: checked from 1 s after impact for N s; ADL: same offset from window centre"
+  },
+  "notes": [
+    "OOF predictions, subject-level GroupKFold(5)",
+    "false alarms/hour = runs of consecutive flagged ADL windows / hours of ADL recordings",
+    "SisFall: only 1 elderly subject (SE06) performed falls -> elderly sensitivity rests on 5 trials x 15 types of one person",
+    "SisFall falls are scripted on mats by young volunteers; real-world performance will be lower"
+  ]
+}

@@ -11,3 +11,14 @@ agent1:
   fixed_rule: {sys_high: 140, dia_high: 90, sys_low: 100}
   alert_budget_per_patient_week: [0.5, 1.0, 2.0]
   baseline_window_days: 28
+agent2:
+  baseline_window_days: 28
+  min_baseline_days: 7
+  cusum: {k: 0.5, h: 4.0}
+  alert_budget_per_patient_week: [0.5, 1.0, 2.0]
+agent3:
+  fs: 200
+  window_s: 2.5
+  stride_s: 1.25
+  inactivity: {seconds: 3.0, std_g: 0.05}
+  n_folds: 5

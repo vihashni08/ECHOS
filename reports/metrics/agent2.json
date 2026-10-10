@@ -1,0 +1,85 @@
+{
+  "n_days": 2308,
+  "n_patients": 50,
+  "n_positive": 110,
+  "n_patients_with_agitation": 27,
+  "patient_weeks": 329.7142857142857,
+  "point": {
+    "prevalence": 0.047660311958405546,
+    "pr_auc": 0.20216664774951,
+    "roc_auc": 0.8737778145421458,
+    "drift_only_pr_auc": 0.04252345086934804,
+    "drift_only_roc_auc": 0.4523326991479857,
+    "recall@0.5": 0.3090909090909091,
+    "recall@1.0": 0.6454545454545455,
+    "recall@2.0": 0.8545454545454545
+  },
+  "bootstrap_95ci": {
+    "prevalence": [
+      0.027586243352276607,
+      0.07651867257679412
+    ],
+    "pr_auc": [
+      0.13690875756870666,
+      0.3014560011453127
+    ],
+    "roc_auc": [
+      0.8320397906258558,
+      0.9138550401993872
+    ],
+    "drift_only_pr_auc": [
+      0.025142113820347155,
+      0.06797960430699995
+    ],
+    "drift_only_roc_auc": [
+      0.3835848808870321,
+      0.5286727337174445
+    ],
+    "recall@0.5": [
+      0.20374007251381215,
+      0.5279234478601565
+    ],
+    "recall@1.0": [
+      0.4802324485332931,
+      0.776105002748763
+    ],
+    "recall@2.0": [
+      0.7543129496402877,
+      0.9611819125837816
+    ]
+  },
+  "alert_budget_table": {
+    "at_0.5_alerts_per_patient_week": {
+      "recall": 0.3090909090909091,
+      "precision": 0.2073170731707317,
+      "false_alerts_per_patient_week": 0.39428076256499134
+    },
+    "at_1.0_alerts_per_patient_week": {
+      "recall": 0.6454545454545455,
+      "precision": 0.21580547112462006,
+      "false_alerts_per_patient_week": 0.7824956672443674
+    },
+    "at_2.0_alerts_per_patient_week": {
+      "recall": 0.8545454545454545,
+      "precision": 0.1426403641881639,
+      "false_alerts_per_patient_week": 1.7136048526863084
+    }
+  },
+  "threshold_at_1_per_week": 0.5374414324760437,
+  "notes": [
+    "OOF predictions, patient-level GroupKFold; CI = patient bootstrap (300)",
+    "z/CUSUM use past-only rolling 28d baseline (shift(1)); same-day label = detection, not forecast",
+    "wide CIs: only ~27 patients have an agitation day"
+  ],
+  "ablation_oof": {
+    "no_raw_counts(personal-baseline features only)": {
+      "pr_auc": 0.08,
+      "roc_auc": 0.639
+    },
+    "z_scores_only": {
+      "pr_auc": 0.084,
+      "roc_auc": 0.66
+    },
+    "note": "most signal is raw same-day activity level (agitated days mean 574 events vs 372); personal-baseline drift adds little. Drift-only score is at chance (ROC 0.45)."
+  }
+}
