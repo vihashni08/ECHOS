@@ -12,5 +12,5 @@ if __name__ == "__main__":
     (ROOT / "data").mkdir(exist_ok=True)
     for f in ("echos.db", "echos.db-wal", "echos.db-shm", "cp.sqlite"):
         (ROOT / "data" / f).unlink(missing_ok=True)
-    r = run_pipeline(ROOT / "data", None, n_patients=n, max_days=d)
+    r = run_pipeline(ROOT / "data", None, n_patients=n, max_days=d, report_llm=None)  # template mode: no LLM calls
     print("cases", r["n_cases"], "alerts", len(r["alerts"]))
