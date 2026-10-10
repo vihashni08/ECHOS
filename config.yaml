@@ -16,6 +16,18 @@ agent2:
   min_baseline_days: 7
   cusum: {k: 0.5, h: 4.0}
   alert_budget_per_patient_week: [0.5, 1.0, 2.0]
+data_quality:   # Agent 0 (rule-based), see docs/DATA_POLICY.md
+  sensor_gap_frac: 0.05        # activity events < this fraction of the patient's PAST median -> SENSOR_GAP
+  min_history_days: 3          # past good days needed before the median rule applies (zero events is always a gap)
+  weights: {activity: 0.5, vitals: 0.4, validity: 0.1}   # completeness score
+  ranges:                      # physiologically plausible limits (from reports/eda/DATA_QUALITY.md)
+    Body Temperature: [34, 42]
+    Skin Temperature: [20, 40]
+    Systolic blood pressure: [60, 250]
+    Diastolic blood pressure: [30, 150]
+    Heart rate: [30, 220]
+    Body weight: [30, 200]
+    Total body water: [30, 80]
 agent3:
   fs: 200
   window_s: 2.5

@@ -20,7 +20,7 @@ from echos.orchestrator import state as S
 
 
 class Supervisor:
-    def __init__(self, db, agents=("physiological", "behaviour", "fall"), hb_s=None, ck_s=None, stall_s=None,
+    def __init__(self, db, agents=("quality", "physiological", "behaviour", "fall"), hb_s=None, ck_s=None, stall_s=None,
                  poll_s=None, missed=None, startup_grace_s=45.0, worker_args=None, fall_model=None):
         cfg = load_config()
         self.db, self.agents = str(db) if db else None, list(agents)

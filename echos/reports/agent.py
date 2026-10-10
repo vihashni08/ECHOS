@@ -144,14 +144,23 @@ def daily_alerts(facts: dict) -> list:
 
 
 def daily_data_note(facts: dict):
-    notes = []
+    """Data note from Agent 0's output (quality) plus the triage DATA_GAP reasons."""
+    notes, q = [], facts.get("quality") or {}
+    if "quality" in facts and not q.get("checked", False):
+        notes.append("The data-quality check did not run today, so today's data was used unchecked.")
+    if q.get("sensor_gap"):
+        notes.append("The room sensors were silent or unusually quiet today (sensor gap), so the routine could not be checked; "
+                     "this is not treated as no movement.")
+    elif not facts["has_activity"]:
+        notes.append("No room-sensor activity was recorded today, so the daily routine could not be checked.")
     if not facts["has_reading"]:
         notes.append("No blood pressure or heart rate reading was recorded today, so vitals could not be compared with the usual level.")
-    if not facts["has_activity"]:
-        notes.append("No room-sensor activity was recorded today, so the daily routine could not be checked.")
-    for r in facts["triage_reasons"]:
-        if str(r).startswith("data_gap:") and "no vitals reading for" in r:
-            notes.append(str(r)[len("data_gap:"):].strip().capitalize() + ".")
+    dsl = q.get("days_since_last_reading")
+    if dsl is not None and dsl > load_config()["triage"]["max_vitals_gap_days"]:
+        notes.append(f"No vitals reading for {dsl} days.")
+    inv = q.get("invalid_values") or []
+    if inv:
+        notes.append(f"{len(inv)} implausible measurement(s) ({', '.join(sorted({i['device_type'] for i in inv}))}) were ignored.")
     return " ".join(notes) or None
 
 

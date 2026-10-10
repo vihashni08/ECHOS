@@ -115,14 +115,18 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
         if drift_level(ev) >= t["drift_cusum"]:
             add("routine_change", features=list(ev.get("drifted_features", [])), drift_score=_r(ev.get("drift_score"), 2))
     # ---- data gaps
-    gaps = [r for r in decision.get("reasons", []) if str(r).startswith("data_gap:")]
+    gaps = [r for r in decision.get("reasons", []) if str(r).startswith("DATA_GAP:")]
     for g in gaps:
-        add("data_gap", note=str(g)[len("data_gap:"):].strip())
+        add("data_gap", note=str(g)[len("DATA_GAP:"):].strip())
+    qe = (results.get("quality") or {}).get("evidence", {})
+    quality = {"checked": bool(qe) and qe.get("quality_checked", True), "sensor_gap": bool(qe.get("sensor_gap")),
+               "sensor_gap_reason": qe.get("sensor_gap_reason"), "days_since_last_reading": qe.get("days_since_last_reading"),
+               "invalid_values": qe.get("invalid_values", []), "completeness": qe.get("completeness")}
 
     return {"patient_id": patient_id, "day": day, "status": decision.get("status", "NORMAL"), "data_gap": bool(decision.get("data_gap")),
             "triage_reasons": list(decision.get("reasons", [])),
             "has_reading": bool(row is not None and row["has_reading"]), "has_activity": has_activity,
-            "vitals": vitals, "routine": routine, "falls": falls, "flags": flags}
+            "vitals": vitals, "routine": routine, "falls": falls, "flags": flags, "quality": quality}
 
 
 def save_day_facts(eng, facts: dict) -> None:

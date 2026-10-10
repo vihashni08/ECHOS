@@ -32,6 +32,9 @@ class Handlers:
         return self._files[path]
 
     def __call__(self, agent_id: str, ev) -> dict:
+        if agent_id == "quality":
+            from echos.agents import data_quality as m
+            return m.predict(ev.patient_id, ev.day).model_dump(mode="json")  # never raises: pass-through + 'unchecked'
         if agent_id == "physiological":
             from echos.agents import physiological as m
             return m.predict(ev.patient_id, ev.day).model_dump(mode="json")
@@ -65,6 +68,7 @@ class AgentWorker:
         self.delay, self.hang_after = process_delay_s, hang_after
         self.kinds, self.handlers = S.AGENT_KINDS[agent_id], Handlers(fall_model)
         self.stop, self.cursor, self.status, self.n_done = threading.Event(), 0, "starting", 0
+        self.t_start = time.time()
 
     # --- bookkeeping
     def _heartbeat(self):
@@ -79,6 +83,19 @@ class AgentWorker:
     def _hb_loop(self):
         while not self.stop.wait(self.hb_s):
             self._heartbeat()
+
+    def _quality_ready(self, ev) -> bool:
+        """True when Agent 0 has output for this event. If Agent 0 looks dead (stale heartbeat, or none within 15 s of
+        this worker's start, e.g. a run without Agent 0) the event passes through so the pipeline never blocks on it."""
+        with self.eng.begin() as c:
+            done = c.execute(select(S.agent_output.c.event_id).where(and_(S.agent_output.c.event_id == ev.event_id,
+                                                                          S.agent_output.c.agent_id == "quality"))).first()
+            hb = c.execute(select(S.agent_heartbeat.c.ts).where(S.agent_heartbeat.c.agent_id == "quality")).first()
+        if done:
+            return True
+        if hb is None:
+            return time.time() - self.t_start > 15
+        return time.time() - hb[0] > 3 * self.hb_s + 10
 
     # --- main loop
     def run(self):
@@ -96,6 +113,8 @@ class AgentWorker:
                                                               S.event_log.c.kind.in_(self.kinds)))
                                 .order_by(S.event_log.c.event_id).limit(self.batch)).fetchall()
             for ev in evs:
+                if self.id in S.AFTER_QUALITY and not self._quality_ready(ev):
+                    break  # keep event order: wait for Agent 0 (bounded by its heartbeat, see _quality_ready)
                 if self.hang_after is not None and self.n_done >= self.hang_after:
                     threading.Event().wait()  # simulated hang: heartbeats continue, progress stops
                 self._process(ev)

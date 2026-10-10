@@ -7,7 +7,7 @@ Threshold choice (from validation metrics, see scripts/choose_thresholds.py and 
 - fall_prob_high 0.90: OOF sensitivity 0.905 at 0.41 false alarms/h without needing any other evidence.
 - fall_prob 0.50 + post_fall_inactive: OOF sensitivity 0.942 at 0.90 FA/h; without inactivity it is only MONITOR.
 - critical vitals: absolute clinical limits, independent of any model.
-data_gap (silent activity sensors, or no vitals for > max_vitals_gap_days) is never NORMAL: it yields MONITOR.
+DATA_GAP (Agent 0: sensor gap, quality unchecked/missing, or no vitals for > max_vitals_gap_days) is never NORMAL: it yields MONITOR.
 Not a diagnostic tool; the LLM never takes part in these decisions.
 """
 from __future__ import annotations
@@ -68,11 +68,20 @@ def triage(results: dict, days_since_vitals: int = 0, cfg: Optional[dict] = None
         if beh["score"] >= t["agitation_prob"]:
             monitor.append(f"agitation p={beh['score']:.2f}")
 
-    # ---- data gaps (never NORMAL)
+    # ---- data gaps (Agent 0 output): never NORMAL
+    q = results.get("quality")
+    qe = (q or {}).get("evidence", {})
+    if q is None:
+        gap.append("quality agent output missing: data unchecked")
+    elif not qe.get("quality_checked", True):
+        gap.append("quality unchecked (Agent 0 failed, data passed through)")
+    else:
+        if qe.get("sensor_gap"):
+            gap.append("sensor gap (" + str(qe.get("sensor_gap_reason") or "activity silent") + "): activity not treated as zero")
+        if qe.get("days_since_last_reading") is not None:
+            days_since_vitals = qe["days_since_last_reading"]
     if beh is None:
         gap.append("behaviour agent output missing")
-    elif beh["evidence"].get("reason") == "no_activity_data":
-        gap.append("no activity sensor data")
     if phys is None:
         gap.append("physiological agent output missing")
     if days_since_vitals > t["max_vitals_gap_days"]:
@@ -81,6 +90,6 @@ def triage(results: dict, days_since_vitals: int = 0, cfg: Optional[dict] = None
     if urgent:
         return TriageDecision(status=TriageStatus.URGENT, reasons=urgent + monitor, data_gap=bool(gap))
     if monitor or gap:
-        return TriageDecision(status=TriageStatus.MONITOR, reasons=monitor + [f"data_gap: {g}" for g in gap],
+        return TriageDecision(status=TriageStatus.MONITOR, reasons=monitor + [f"DATA_GAP: {g}" for g in gap],
                               data_gap=bool(gap))
     return TriageDecision(status=TriageStatus.NORMAL)

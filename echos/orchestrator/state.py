@@ -35,7 +35,9 @@ restart_log = Table("restart_log", md, Column("id", Integer, primary_key=True, a
                     Column("restarted_ts", Float))
 
 # which event kinds each agent consumes
-AGENT_KINDS = {"physiological": ["day"], "behaviour": ["day"], "fall": ["sensor"]}
+AGENT_KINDS = {"quality": ["day"], "physiological": ["day"], "behaviour": ["day"], "fall": ["sensor"]}
+# Agent 0 runs first: these agents wait for its output of the same event (unless its heartbeat is stale; then pass-through)
+AFTER_QUALITY = ("physiological", "behaviour")
 
 
 def db_url(path=None) -> str:

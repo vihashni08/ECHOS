@@ -25,8 +25,14 @@ def vit(sys=120, dia=80, hr=70, score=0.0):
     return R(score, current_vs_baseline={"sys": {"current": sys}, "dia": {"current": dia}, "hr": {"current": hr}})
 
 
-def res(phys=None, beh=None, fall=None):
-    return {"physiological": phys or vit(), "behaviour": beh or R(0.0, drift_score=0.0, drifted_features=[]),
+def qual(**ev):
+    base = {"quality_checked": True, "sensor_gap": False, "days_since_last_reading": 0, "invalid_values": [], "has_vitals": True}
+    return R(0.0, **{**base, **ev})
+
+
+def res(phys=None, beh=None, fall=None, quality=None):
+    return {"quality": quality or qual(), "physiological": phys or vit(),
+            "behaviour": beh or R(0.0, drift_score=0.0, drifted_features=[]),
             "fall": fall or R(0.0, post_fall_inactive=False)}
 
 
@@ -49,17 +55,19 @@ def test_triage_branches(r, status, gap):
 
 
 @pytest.mark.parametrize("r,dsv", [
-    (res(beh=R(0.0, reason="no_activity_data")), 0),     # silent sensor
-    (res(), CFG["max_vitals_gap_days"] + 1),             # no vitals for too long
+    (res(quality=qual(sensor_gap=True, sensor_gap_reason="zero_events")), 0),   # sensor gap (Agent 0)
+    (res(quality=qual(days_since_last_reading=CFG["max_vitals_gap_days"] + 1)), 0),  # no vitals for too long
+    (res(quality=qual(quality_checked=False)), 0),       # Agent 0 failed: pass-through, unchecked
+    ({**res(), "quality": None}, 0),                      # Agent 0 output missing
     ({**res(), "physiological": None}, 0),               # agent output missing
 ])
 def test_data_gap_never_normal(r, dsv):
     d = triage(r, dsv, CFG)
-    assert d.data_gap and d.status.value == "MONITOR"
+    assert d.data_gap and d.status.value == "MONITOR" and any(x.startswith("DATA_GAP:") for x in d.reasons)
 
 
 def test_urgent_beats_gap():
-    d = triage(res(fall=R(0.99)), CFG["max_vitals_gap_days"] + 3, CFG)
+    d = triage(res(fall=R(0.99), quality=qual(days_since_last_reading=CFG["max_vitals_gap_days"] + 3)), 0, CFG)
     assert d.status.value == "URGENT" and d.data_gap
 
 
@@ -68,9 +76,9 @@ def _seed(eng):
     with eng.begin() as c:
         for k in ("day", "sensor"):
             eid = c.execute(S.event_log.insert().values(patient_id="p1", day="2019-05-05", ts="t", kind=k, payload="{}")).inserted_primary_key[0]
-            agents = ["physiological", "behaviour"] if k == "day" else ["fall"]
+            agents = ["quality", "physiological", "behaviour"] if k == "day" else ["fall"]
             for a in agents:
-                r = {"physiological": vit(), "behaviour": R(0.0, drift_score=0, drifted_features=[]),
+                r = {"quality": qual(), "physiological": vit(), "behaviour": R(0.0, drift_score=0, drifted_features=[]),
                      "fall": R(0.97, post_fall_inactive=True)}[a]
                 S.insert_ignore(c, S.agent_output, event_id=eid, agent_id=a, patient_id="p1", day="2019-05-05", result=S.j(r), done_ts=1.0)
 

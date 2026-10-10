@@ -81,6 +81,9 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
         has_vitals = bool(phys and "current_vs_baseline" in phys["evidence"])
         prev = st["days_since_vitals"]
         dsv = 0 if has_vitals else (1 if prev < 0 else prev + 1)
+        q = res.get("quality")
+        if q and q["evidence"].get("quality_checked", True) and q["evidence"].get("days_since_last_reading") is not None:
+            dsv = int(q["evidence"]["days_since_last_reading"])  # Agent 0 is the source of truth
         return {"results": res, "days_since_vitals": dsv}
 
     def triage_node(st: CaseState) -> dict:

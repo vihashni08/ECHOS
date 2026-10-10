@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
+
 import pandas as pd
 
 from echos.config import ROOT, load_config
+from echos.agents import data_quality as dq
 from echos.data import loaders
 
 ROOMS = ["Kitchen", "Hallway", "Lounge", "Bedroom", "Fridge Door", "Bathroom", "Front Door", "Back Door"]
@@ -34,11 +37,13 @@ def _activity_features(act: pd.DataFrame, night_start: int, night_end: int) -> p
     return out.reset_index()
 
 
-def build_patient_day() -> pd.DataFrame:
+def build_patient_day(return_stats: bool = False):
+    """Patient-day table built from Agent 0's cleaned data (docs/DATA_POLICY.md)."""
     cfg = load_config()
     nh = cfg["night_hours"]
-    act = loaders.load_activity()
-    phys = loaders.load_physiology()
+    act, act_stats = dq.clean_activity(loaders.load_activity())
+    phys, invalid, phys_stats = dq.clean_physiology(loaders.load_physiology())
+    gaps = dq.sensor_gap_table(act)
     lab = loaders.load_labels()
     demo = loaders.load_demographics()
     keys = ["patient_id", "day"]
@@ -68,11 +73,36 @@ def build_patient_day() -> pd.DataFrame:
     df[flag_cols] = df[flag_cols].fillna(0).astype(int)
     df = df.merge(demo, on="patient_id", how="left")
     df = df.sort_values(keys).reset_index(drop=True)
+
+    # ---- Agent 0 columns. SENSOR_GAP days keep NaN behaviour features (not zero) and are not usable activity days.
+    df = df.merge(gaps[["patient_id", "day", "sensor_gap", "sensor_gap_reason"]], on=keys, how="left")
+    no_rec = df["sensor_gap"].isna()  # day outside the patient's activity window (or no activity record at all)
+    df["sensor_gap"] = df["sensor_gap"].fillna(True).astype(bool)
+    df["sensor_gap_reason"] = df["sensor_gap_reason"].where(~no_rec, "no_activity_record")
+    df.loc[df.sensor_gap & df.has_activity, "sensor_gap_reason"] = df.loc[df.sensor_gap & df.has_activity, "sensor_gap_reason"].fillna("low_events")
+    df["has_activity"] = df["has_activity"] & ~df["sensor_gap"]
+    df.loc[~df.has_activity, act_cols] = float("nan")
+    df["days_since_last_reading"] = dq.days_since_reading(df)
+    inv = invalid.assign(day=pd.to_datetime(invalid["day"]))
+    inv_json = inv.groupby(["patient_id", "day"]).apply(
+        lambda g: json.dumps([{"device_type": r.device_type, "value": None if pd.isna(r.value) else float(r.value),
+                               "range": r.range, "reason": r.reason} for r in g.itertuples()])).rename("invalid_json").reset_index() \
+        if len(inv) else pd.DataFrame(columns=["patient_id", "day", "invalid_json"])
+    df = df.merge(inv_json, on=keys, how="left")
+    df["invalid_json"] = df["invalid_json"].fillna("")
+    df["n_invalid"] = df["invalid_json"].map(lambda x: len(json.loads(x)) if x else 0)
+    df["completeness"] = [dq.completeness(g, v, n) for g, v, n in zip(df.sensor_gap, df.has_reading, df.n_invalid)]
+    if return_stats:
+        return df, {"physiology": phys_stats, "activity": act_stats}
     return df
 
 
 def save_patient_day() -> pd.DataFrame:
-    df = build_patient_day()
+    df, stats = build_patient_day(return_stats=True)
+    stats["patient_days"] = int(len(df))
+    stats["sensor_gap_days"] = int(df.sensor_gap.sum())
+    stats["sensor_gap_by_reason"] = df[df.sensor_gap].sensor_gap_reason.value_counts().to_dict()
+    (ROOT / "reports/metrics/data_quality.json").write_text(json.dumps(stats, indent=2, default=str))
     path = ROOT / load_config()["paths"]["processed"]
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(path, index=False)
