@@ -1,64 +1,64 @@
 {
   "patient_days_all": 2797,
-  "scored_days": 2308,
+  "scored_days": 2236,
   "agitation_days": 110,
   "patients_with_agitation": 27,
   "agitation_thresholds": {
-    "b": 0.6021491885185242,
-    "config": 0.762
+    "b": 0.5869485139846802,
+    "config": 0.587
   },
   "triggers": {
     "a_drift_or_agitation": {
-      "share_of_scored_days": 0.12045060658578856,
-      "share_of_all_patient_days": 0.09939220593493028,
-      "recall": 0.3,
+      "share_of_scored_days": 0.17173524150268335,
+      "share_of_all_patient_days": 0.13728995352163031,
+      "recall": 0.5636363636363636,
       "recall_ci95": [
-        0.18277126099706745,
-        0.41672008547008543
+        0.3823049872122762,
+        0.7166703539823008
       ],
-      "flagged_days": 278,
-      "agitation_days_caught": 33,
-      "patients_with_agitation_caught": 13,
-      "random_baseline_recall": 0.12045060658578856
+      "flagged_days": 384,
+      "agitation_days_caught": 62,
+      "patients_with_agitation_caught": 18,
+      "random_baseline_recall": 0.17173524150268335
     },
     "b_agitation_alone": {
-      "share_of_scored_days": 0.12088388214904679,
+      "share_of_scored_days": 0.12477638640429338,
       "share_of_all_patient_days": 0.09974973185555953,
-      "recall": 0.5727272727272728,
+      "recall": 0.5454545454545454,
       "recall_ci95": [
-        0.4137816091954023,
-        0.6944883966244725
+        0.35292446524064175,
+        0.6969824293353706
       ],
       "flagged_days": 279,
-      "agitation_days_caught": 63,
+      "agitation_days_caught": 60,
       "patients_with_agitation_caught": 17,
-      "random_baseline_recall": 0.12088388214904679
+      "random_baseline_recall": 0.12477638640429338
     },
     "c_patient_past_p90": {
-      "share_of_scored_days": 0.0805892547660312,
-      "share_of_all_patient_days": 0.06649982123703968,
-      "recall": 0.20909090909090908,
+      "share_of_scored_days": 0.08407871198568873,
+      "share_of_all_patient_days": 0.06721487307829818,
+      "recall": 0.21818181818181817,
       "recall_ci95": [
-        0.1278119796134632,
-        0.36252840909090905
+        0.13042594556380346,
+        0.38104395604395597
       ],
-      "flagged_days": 186,
-      "agitation_days_caught": 23,
-      "patients_with_agitation_caught": 16,
-      "random_baseline_recall": 0.0805892547660312
+      "flagged_days": 188,
+      "agitation_days_caught": 24,
+      "patients_with_agitation_caught": 14,
+      "random_baseline_recall": 0.08407871198568873
     },
-    "c2_patient_past_p83.5_budget_matched": {
-      "share_of_scored_days": 0.12045060658578856,
-      "share_of_all_patient_days": 0.09939220593493028,
-      "recall": 0.3090909090909091,
+    "c2_patient_past_p82.5_budget_matched": {
+      "share_of_scored_days": 0.12567084078711985,
+      "share_of_all_patient_days": 0.10046478369681802,
+      "recall": 0.3181818181818182,
       "recall_ci95": [
-        0.22009139150943396,
-        0.4805653170359052
+        0.2162085380835381,
+        0.5001506024096384
       ],
-      "flagged_days": 278,
-      "agitation_days_caught": 34,
-      "patients_with_agitation_caught": 20,
-      "random_baseline_recall": 0.12045060658578856
+      "flagged_days": 281,
+      "agitation_days_caught": 35,
+      "patients_with_agitation_caught": 17,
+      "random_baseline_recall": 0.12567084078711985
     }
   },
   "notes": [

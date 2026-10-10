@@ -33,7 +33,7 @@ def past_pctl(q):
 k = int(CAP * n_days)
 thr_b = float(np.sort(d.oof.values)[::-1][k - 1])
 trig = {
-    "a_drift_or_agitation": (d.cusum_max >= T["drift_cusum"]) | (d.oof >= T["agitation_prob"]),
+    "a_drift_or_agitation": (d.cusum_max >= T["drift_evidence_cusum"]) | (d.oof >= T["agitation_prob"]),
     "b_agitation_alone": d.oof >= thr_b,
     "c_patient_past_p90": past_pctl(0.90),
 }

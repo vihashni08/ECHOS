@@ -44,7 +44,7 @@ def res(phys=None, beh=None, fall=None, quality=None):
     (res(phys=vit(sys=190)), "URGENT", False),                             # critical vitals
     (res(phys=vit(hr=35)), "URGENT", False),
     (res(phys=vit(score=0.7)), "MONITOR", False),
-    (res(beh=R(0.1, drift_score=0.6, drifted_features=["night_events"], cusum={"night_events": 11.0})), "MONITOR", False),
+    (res(beh=R(0.1, drift_score=0.6, drifted_features=["night_events"], cusum={"night_events": 11.0})), "NORMAL", False),                                  # drift is evidence only, not a trigger
     (res(beh=R(0.8, drift_score=0.0, drifted_features=[])), "MONITOR", False),
     (res(), "NORMAL", False),
 ])

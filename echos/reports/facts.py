@@ -112,7 +112,7 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
         if beh["score"] >= t["agitation_prob"]:
             add("agitation", risk=round(beh["score"], 2), night_events=routine["night_events"]["value"],
                 night_events_baseline=routine["night_events"]["baseline"])
-        if drift_level(ev) >= t["drift_cusum"]:
+        if drift_level(ev) >= t["drift_evidence_cusum"]:
             add("routine_change", features=list(ev.get("drifted_features", [])), drift_score=_r(ev.get("drift_score"), 2))
     # ---- data gaps
     gaps = [r for r in decision.get("reasons", []) if str(r).startswith("DATA_GAP:")]

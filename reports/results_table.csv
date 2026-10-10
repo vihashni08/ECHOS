@@ -1,28 +1,28 @@
 section,method,metric,value,ci_low,ci_high,note
-agent1,XGBoost @ same alert count as rule,recall,0.8825396825396825,0.810929725728854,0.93247145660512,
-agent1,XGBoost @ same alert count as rule,false_alerts_per_patient_week,1.4798479087452474,,,
-agent1,XGBoost @ 0.5 alerts/pt-wk,recall,0.4793650793650794,0.36950643609123285,0.5994279176201374,
-agent1,XGBoost @ 0.5 alerts/pt-wk,false_alerts_per_patient_week,0.0958174904942966,,,
-agent1,XGBoost @ 1.0 alerts/pt-wk,recall,0.7015873015873015,0.6190247252747253,0.7975487126828291,
-agent1,XGBoost @ 1.0 alerts/pt-wk,false_alerts_per_patient_week,0.40988593155893543,,,
-agent1,XGBoost @ 2.0 alerts/pt-wk,recall,0.8761904761904762,0.7998489010989012,0.913460938976006,
+agent1,XGBoost @ same alert count as rule,recall,0.8857142857142857,0.8189091409197053,0.931614448352462,
+agent1,XGBoost @ same alert count as rule,false_alerts_per_patient_week,1.4771863117870725,,,
+agent1,XGBoost @ 0.5 alerts/pt-wk,recall,0.473015873015873,0.3664137015648286,0.5992916926595966,
+agent1,XGBoost @ 0.5 alerts/pt-wk,false_alerts_per_patient_week,0.1011406844106464,,,
+agent1,XGBoost @ 1.0 alerts/pt-wk,recall,0.6984126984126984,0.611568650303018,0.7927068932411675,
+agent1,XGBoost @ 1.0 alerts/pt-wk,false_alerts_per_patient_week,0.4125475285171103,,,
+agent1,XGBoost @ 2.0 alerts/pt-wk,recall,0.8761904761904762,0.802415354915355,0.9156319667485359,
 agent1,XGBoost @ 2.0 alerts/pt-wk,false_alerts_per_patient_week,1.26425855513308,,,
 agent1,fixed rule,pr_auc,0.2612844530519623,0.18286307137720412,0.3455044423017096,
 agent1,fixed rule,recall,0.7587301587301587,0.6166717555225149,0.8723551136363638,
 agent1,fixed rule,false_alerts_per_patient_week,1.5836501901140687,,,
-agent1,XGBoost,pr_auc,0.6894624520115561,0.5691270273486125,0.7752441211828768,
+agent1,XGBoost,pr_auc,0.681383281493035,0.5609983398067658,0.7672210597571119,
 agent1,prevalence (no-skill PR-AUC),pr_auc,0.1817657241777265,0.12370193318620533,0.2469400912460793,
-agent2,@0.5/wk,recall,0.3090909090909091,0.20374007251381215,0.5279234478601565,
-agent2,@0.5/wk,false_alerts_per_patient_week,0.39428076256499134,,,
-agent2,@1.0/wk,recall,0.6454545454545455,0.4802324485332931,0.776105002748763,
-agent2,@1.0/wk,false_alerts_per_patient_week,0.7824956672443674,,,
-agent2,@2.0/wk,recall,0.8545454545454545,0.7543129496402877,0.9611819125837816,
-agent2,@2.0/wk,false_alerts_per_patient_week,1.7136048526863084,,,
-agent2,pr_auc,pr_auc,0.20216664774951,0.13690875756870666,0.3014560011453127,
-agent2,roc_auc,roc_auc,0.8737778145421458,0.8320397906258558,0.9138550401993872,
-agent2,drift_only_pr_auc,drift_only_pr_auc,0.04252345086934804,0.025142113820347155,0.06797960430699995,
-agent2,drift_only_roc_auc,drift_only_roc_auc,0.4523326991479857,0.3835848808870321,0.5286727337174445,
-agent2,prevalence,prevalence,0.047660311958405546,0.027586243352276607,0.07651867257679412,
+agent2,@0.5/wk,recall,0.33636363636363636,0.18623738890223396,0.5024532710280373,
+agent2,@0.5/wk,false_alerts_per_patient_week,0.3819320214669052,,,
+agent2,@1.0/wk,recall,0.5727272727272728,0.410730478117506,0.7193169361468895,
+agent2,@1.0/wk,false_alerts_per_patient_week,0.8014311270125223,,,
+agent2,@2.0/wk,recall,0.8272727272727273,0.7223685804263565,0.9198020257826887,
+agent2,@2.0/wk,false_alerts_per_patient_week,1.7124329159212879,,,
+agent2,pr_auc,pr_auc,0.19435869055933735,0.13253000877355667,0.30864608064049504,
+agent2,roc_auc,roc_auc,0.8522064483024031,0.8042248476839607,0.8997159519524566,
+agent2,drift_only_pr_auc,drift_only_pr_auc,0.043875018725482745,0.026178712416571187,0.07011925941966295,
+agent2,drift_only_roc_auc,drift_only_roc_auc,0.4531813905755581,0.3779598469067113,0.5423846944990756,
+agent2,prevalence,prevalence,0.049194991055456175,0.028362713503493207,0.07876242312082475,
 agent3,adult,sensitivity,0.9849012775842044,0.9779681850106785,0.989675659013014,
 agent3,adult,specificity,0.9988629903354178,,,
 agent3,adult,false_alarms_per_hour,2.316872035530052,,,
@@ -33,12 +33,12 @@ e2e,Patients / patient-days / patient-weeks,value,,,,20 / 1266 / 180.9
 e2e,Injected falls,value,,,,60
 e2e,"Fall detection rate (URGENT, fall reason)",value,,,,0.950 (0.863-0.983) (57/60)
 e2e,"Detection delay, simulated (fall -> end of day), median / max",value,,,,11.4 h / 23.8 h
-e2e,"Pipeline latency after last agent output, median",value,,,,0.15 s
+e2e,"Pipeline latency after last agent output, median",value,,,,0.21 s
 e2e,False fall alerts per patient-week,value,,,,0.066 (12 alerts)
 e2e,URGENT days from critical vitals (real TIHM readings),value,,,,4
 e2e,All URGENT alerts per patient-week,value,,,,0.404
-e2e,Days Normal / Monitor / Urgent,value,,,,65.2% / 29.0% / 5.8%
-e2e,Days with a data gap,value,,,,3.0%
+e2e,Days Normal / Monitor / Urgent,value,,,,65.6% / 28.7% / 5.8%
+e2e,Days with a data gap,value,,,,4.5%
 e2e,Duplicate alerts,value,,,,0
 fault,kill physiological,lost_alerts,0.0,,,dup=0 cases_same=45/45
 fault,kill behaviour,lost_alerts,0.0,,,dup=0 cases_same=45/45

@@ -2,8 +2,8 @@
 
 Threshold choice (from validation metrics, see scripts/choose_thresholds.py and reports/metrics/triage_thresholds.json):
 - MONITOR thresholds come from scripts/choose_monitor_thresholds.py (out-of-fold alert budget):
-  vitals_prob <= 1 vitals alert per patient-week; agitation_prob + drift_cusum keep behaviour Monitor days <= 10% of patient-days.
-- drift_cusum: max per-feature CUSUM (uncapped); the old h=4 limit flagged ~30% of patient-days.
+  vitals_prob <= 1 vitals alert per patient-week; agitation_prob alone keeps behaviour Monitor days <= 10% of patient-days; drift is report evidence only.
+- drift_level(): max per-feature CUSUM; used for report evidence (drift_evidence_cusum), never as a trigger.
 - fall_prob_high 0.90: OOF sensitivity 0.905 at 0.41 false alarms/h without needing any other evidence.
 - fall_prob 0.50 + post_fall_inactive: OOF sensitivity 0.942 at 0.90 FA/h; without inactivity it is only MONITOR.
 - critical vitals: absolute clinical limits, independent of any model.
@@ -63,8 +63,6 @@ def triage(results: dict, days_since_vitals: int = 0, cfg: Optional[dict] = None
         monitor.append(f"vitals alert p={phys['score']:.2f}")
     if beh and "reason" not in beh["evidence"]:
         ev = beh["evidence"]
-        if drift_level(ev) >= t["drift_cusum"]:
-            monitor.append("routine drift: " + ",".join(ev.get("drifted_features", [])))
         if beh["score"] >= t["agitation_prob"]:
             monitor.append(f"agitation p={beh['score']:.2f}")
 
