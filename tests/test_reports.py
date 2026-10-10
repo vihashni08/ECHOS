@@ -164,3 +164,24 @@ def test_watchdog_enforces_short_timeout_without_retry(agent_env):
     t0 = time.time()
     out = A.ReportAgent(eng, g, root=tmp).daily(facts())
     assert time.time() - t0 < 1.5 and g.calls == 1 and out["validation"]["fallback_reason"].startswith("timeout")
+
+
+def test_api_error_records_code_status_and_429_retries_once(agent_env, monkeypatch):
+    import time
+    from echos.reports import llm as L
+    eng, tmp = agent_env
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+    g = L.GeminiLLM.__new__(L.GeminiLLM)
+    g.timeout_s, g.limiter, g.calls = 5, L.RateLimiter(0), 0
+
+    class E(Exception):
+        code, status, message, details = 429, "RESOURCE_EXHAUSTED", "quota exceeded, retry in 3s", None
+
+    def call(system, user):
+        g.calls += 1
+        raise E("429 RESOURCE_EXHAUSTED")
+    g._call = call
+    out = A.ReportAgent(eng, g, root=tmp).daily(facts())
+    assert g.calls == 2 and out["mode"] == "template"  # exactly one retry, no extra retry in the report loop
+    assert "429 RESOURCE_EXHAUSTED" in out["validation"]["fallback_reason"]
+    assert L._retry_delay(E("x")) == 3.0

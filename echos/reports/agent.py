@@ -23,6 +23,7 @@ from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 from echos.reports import facts as F
 from echos.reports.knowledge import get_guideline
+from echos.reports.llm import LLMAPIError
 from echos.reports.validator import validate_report
 
 TPL = jinja2.Environment(loader=jinja2.FileSystemLoader(str(Path(__file__).parent / "templates")), autoescape=False,
@@ -303,8 +304,14 @@ def _write(llm, payload: dict, ask: str, required, valid, cite_sections, templat
                 reason = f"timeout ({type(ex).__name__})"
                 break
             except Exception as ex:  # network / quota / bad JSON -> counts as a failed attempt
-                notes.append(f"attempt {attempt + 1}: {type(ex).__name__}")
-                reason = f"error ({type(ex).__name__})"
+                if isinstance(ex, LLMAPIError):  # keep HTTP code + error status, e.g. "429 RESOURCE_EXHAUSTED"
+                    notes.append(f"attempt {attempt + 1}: {ex}")
+                    reason = f"api_error {ex.code} {ex.status}: {ex.message[:120]}"
+                    if ex.code == 429:  # the client already retried once after the suggested delay
+                        break
+                else:
+                    notes.append(f"attempt {attempt + 1}: {type(ex).__name__}")
+                    reason = f"error ({type(ex).__name__})"
                 feedback = "\n\nYour previous reply was not valid JSON. Reply with JSON only."
                 continue
             v = validate_report(out, payload, required, valid, cite_sections)

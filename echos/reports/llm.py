@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import threading
 import time
 
@@ -20,6 +21,37 @@ log = logging.getLogger("echos.llm")
 
 class LLMTimeout(TimeoutError):
     """The call exceeded the hard per-call timeout. Never retried."""
+
+
+class LLMAPIError(Exception):
+    """API error with the HTTP status code and error status (e.g. 429 RESOURCE_EXHAUSTED)."""
+    def __init__(self, code, status, message, retry_after=None):
+        self.code, self.status, self.retry_after = code, status, retry_after
+        self.message = re.sub(r"AIza[\w-]+", "<key>", str(message))[:300]
+        super().__init__(f"{code} {status}: {self.message}")
+
+
+RETRY_CAP_S = 20.0
+
+
+def _retry_delay(ex) -> float | None:
+    """Delay suggested by the API (RetryInfo.retryDelay '12s', or 'Please retry in 12.3s' in the message)."""
+    d = getattr(ex, "details", None)
+    try:
+        for item in (d.get("error", d) or {}).get("details", []):
+            if str(item.get("@type", "")).endswith("RetryInfo"):
+                return float(str(item["retryDelay"]).rstrip("s"))
+    except Exception:  # noqa: BLE001
+        pass
+    m = re.search(r"retry in ([\d.]+)\s*s", f"{ex} {getattr(ex, 'message', '')}", re.I)
+    return float(m.group(1)) if m else None
+
+
+def _wrap(ex: BaseException) -> BaseException:
+    code = getattr(ex, "code", None)
+    if isinstance(code, int) and not isinstance(ex, TimeoutError):
+        return LLMAPIError(code, getattr(ex, "status", None) or "UNKNOWN", getattr(ex, "message", None) or ex, _retry_delay(ex))
+    return ex
 
 
 def _is_timeout(ex: BaseException) -> bool:
@@ -59,7 +91,7 @@ class GeminiLLM:
                                                response_mime_type="application/json"))
         return r.text or ""
 
-    def generate(self, system: str, user: str) -> str:
+    def _once(self, system: str, user: str) -> str:
         self.limiter.wait()
         box: dict = {}
 
@@ -76,8 +108,21 @@ class GeminiLLM:
         if "err" in box:
             if _is_timeout(box["err"]):
                 raise LLMTimeout(f"{type(box['err']).__name__}: timed out after {self.timeout_s:g}s") from box["err"]
-            raise box["err"]
+            raise _wrap(box["err"])
         return box["out"]
+
+    def generate(self, system: str, user: str) -> str:
+        """One request; on HTTP 429 exactly one retry after the API-suggested delay (capped at RETRY_CAP_S).
+        Timeouts are never retried. Errors carry the HTTP code and error status (LLMAPIError)."""
+        try:
+            return self._once(system, user)
+        except LLMAPIError as ex:
+            if ex.code != 429:
+                raise
+            delay = min(ex.retry_after if ex.retry_after is not None else 5.0, RETRY_CAP_S)
+            log.info("429 %s: retrying once after %.1fs", ex.status, delay)
+            time.sleep(delay)
+            return self._once(system, user)
 
 
 def make_llm(cfg: dict | None = None):

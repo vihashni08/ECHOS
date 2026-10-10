@@ -50,8 +50,8 @@ llm:
   model: gemini-3.5-flash-lite         # Gemini model name, set by the user; null -> template mode (no LLM calls)
   temperature: 0.2
   retries: 1           # failed (non-timeout) LLM output is retried at most this many times, then Jinja2 template fallback
-  timeout_s: 15        # hard per-call timeout; a timeout is never retried
-  max_requests_per_min: 20   # request-rate limiter
+  timeout_s: 45        # hard per-call timeout; a timeout is never retried
+  max_requests_per_min: 8    # request-rate limiter
   max_pending: 200     # background report backlog; beyond it reports stay template (logged)
 reports:
   daily_dir: reports/daily
