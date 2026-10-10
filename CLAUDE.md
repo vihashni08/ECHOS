@@ -27,4 +27,9 @@ NO trained fusion model: triage is plain if-then rules (Normal / Changed-monitor
 - Honest results: if something is weak, report it as weak. Save metrics to reports/metrics/*.json.
 - Every agent returns the AgentResult schema in echos/schemas.py.
 - Keep output short. Do not print DataFrames over 10 rows. Commit after each finished phase.
-- LLM key is ECHOS_LLM_API_KEY from .env. LLM must never decide emergencies; rules do.
+
+## LLM (Report agent)
+- Provider: Google Gemini via the official `google-genai` Python SDK. Check the current Google docs for the exact package and call syntax before writing code; do not guess.
+- API key is in the environment variable ECHOS_LLM_API_KEY (loaded from .env with python-dotenv). NEVER print, log, commit, or open .env contents.
+- Model name lives in config.yaml (`llm.model`); I will set it. LLM must be optional: template mode works with no key.
+- The LLM never decides emergencies; rules do.
