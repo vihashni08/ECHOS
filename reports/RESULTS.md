@@ -91,6 +91,23 @@ Budgets: vitals <= 1 alert per patient-week; behaviour Monitor days <= 10% of pa
 
 Drift alone caught 1.8% of agitation days (at 4.2% of days), so it added almost no recall; dropping it lets agitation_prob use the whole 10% budget (threshold 0.762 -> 0.587), which raises Monitor recall from 0.29 to 0.55 against ~0.10 for random flagging. Day-status shares in the end-to-end table use out-of-fold Agent 1-2 scores. Reports in that run used templates (no LLM). Fault-injection table was not re-run after this change.
 
+## Data quality (Agent 0)
+
+From `reports/eda/DATA_QUALITY.md` (read-only EDA, `scripts/eda.py`) and the rules in `docs/DATA_POLICY.md` (`echos/agents/data_quality.py`, counts in `reports/metrics/data_quality.json`).
+
+- 56 patients, median window 54 days; no BP/HR reading on 39.9% of patient-days (1152 of 2885); 18 patients have a gap > 7 days (max 91).
+- Activity outages: 128 zero-event and 56 low-event (< 5% of the patient's median) patient-days; 2 system-wide days (2019-06-15, 06-16), 99 patient-specific.
+- Implausible physiology values: 9 of 17679 (0.05%). Exact duplicates and out-of-order rows: 0 in Physiology, Activity and Labels.
+- Labels: 608 rows, 49 patients, 7 patients with none. Base rates: agitation 4.19%, vitals alert 18.2%.
+- Policy: out-of-range values become NaN and are listed (never dropped silently, never imputed); no forward-fill of vitals; sensor-gap days have NaN behaviour features instead of "zero activity" and are excluded from baselines; a day with a sensor gap, unchecked data, or more than 7 days without vitals is DATA_GAP and cannot be Normal (Urgent still wins). Daily reports carry a data note.
+
+## Report agent: RAG, LLM and privacy
+
+- **RAG:** 5 guideline PDFs (CDC STEADI, NICE NG249, NG97, NG136, RCP NEWS2) -> 306 chunks (~250 words, 50 overlap), local `all-MiniLM-L6-v2` embeddings, Chroma in `data/rag/`; top-3 chunks per finding type with ids `[KB-n]`. Top-1 relevance was eyeballed with `scripts/rag_check.py` (cosine 0.54-0.71 for 10 typical findings, sources matched the topic; critical blood pressure returned a NEWS2 chunk and the NEWS2 PDF's metadata title is just "News Report"). Retrieval quality has not been measured against labelled relevance.
+- **Guardrails:** paraphrase only, every guidance statement cites a retrieved id, validator rejects unknown/missing citations, copied runs of 10+ words and diagnostic wording; template fallback prints source names; weekly report lists references for clinician review. `rag.enabled: false` turns it off.
+- **LLM:** Gemini via `google-genai`, `llm.model: gemini-3.5-flash-lite`, temperature 0.2, timeout 45 s (not retried), 1 retry for invalid output, 8 requests/min, backlog 200 (see `config.yaml`).
+- **Privacy:** only structured summaries (pseudonymous patient id, day, flags, statistics, evidence ids) and retrieved public guideline text are sent to the LLM; no raw sensor rows. Embedding is local. The LLM never decides emergencies and alerts are written before report generation.
+
 ## Reading the tables
 
 - **Agent 1** beats the fixed BP rule on PR-AUC (0.68 vs 0.26; CIs do not overlap). At the rule's own alert count it recalls 0.89 vs 0.76, though the CIs overlap. At ~1 alert/patient-week it recalls 0.70 with 0.41 false alerts/patient-week. The target includes `water_alert`, which has no BP/HR signal, and labels are likely threshold-derived, so part of this is re-learning the labelling rule.
@@ -107,8 +124,8 @@ Drift alone caught 1.8% of agitation days (at 4.2% of days), so it added almost 
 - **TIHM has no falls and no accelerometer.** Falls are simulated by injecting SisFall windows (young volunteers, scripted falls on mats, one elderly faller) into TIHM patients' days. Fall results say nothing about real home falls, and the end-to-end fall detection rate is a pipeline check on held-out SisFall subjects (SA03, SA11, SA19, SE06).
 - **Replay is not out-of-sample** for Agents 1-2 (final models were fitted on all patients), and injected sensor windows are unrelated to the patient's TIHM data.
 - **Fault injection used 3 patients x 15 days** and one process-kill per agent on one machine; it does not cover disk failure, orchestrator-host loss or a truly hung LLM call.
-- **No LLM was evaluated.** `llm.model` is unset, so every report used template mode; the delayed-LLM test used a stub that times out. LLM wording quality, and the validator's behaviour on real model output, are untested here.
+- **LLM wording quality was not evaluated.** The tables above used template mode; the delayed-LLM test used a stub that times out, and the earlier real-client runs only measured fallbacks. The RAG guidance path (paraphrase/citation checks) is covered by unit tests and a stub, not by a study of real model output.
 - **Decision support, not diagnosis.** Triage is a fixed if-then rule set; the LLM never decides emergencies. Nothing here has been clinically validated.
 
 
-**LLM guardrails (report generation):** hard 15 s per-call timeout (timeouts are never retried, other failures retry at most once), a 20 requests/min limiter, and LLM wording is produced in a background worker after the template report and the alert are already written, so it cannot block alerts or the next case. Every fallback is logged with a reason (`data/llm_fallbacks.log` and the report's validation record). Real-client test with the timeout forced to 1 s (the Gemini API itself rejects HTTP deadlines under 10 s, so sub-10 s timeouts are enforced by a watchdog thread): 0 lost alerts, 0 extra, 45/45 cases identical to the clean run, 47/51 reports fell back to template (42 timeouts, 5 API client errors), 4 completed in under 1 s. In the other real-LLM runs 3-4 of 51 reports failed validation and 5-6 hit an API client error (cause not diagnosed; possibly quota).
+**LLM guardrails (report generation):** per-call timeout (15 s when those runs were made; `config.yaml` now has 45 s) (timeouts are never retried, other failures retry at most once), a requests/min limiter (20 then; now 8), and LLM wording is produced in a background worker after the template report and the alert are already written, so it cannot block alerts or the next case. Every fallback is logged with a reason (`data/llm_fallbacks.log` and the report's validation record). Real-client test with the timeout forced to 1 s (the Gemini API itself rejects HTTP deadlines under 10 s, so sub-10 s timeouts are enforced by a watchdog thread): 0 lost alerts, 0 extra, 45/45 cases identical to the clean run, 47/51 reports fell back to template (42 timeouts, 5 API client errors), 4 completed in under 1 s. In the other real-LLM runs 3-4 of 51 reports failed validation and 5-6 hit an API client error (cause not diagnosed; possibly quota).
