@@ -97,7 +97,7 @@ def main():
                     table(["Model", "Pooled ROC-AUC", "Within-patient ROC-AUC", "Pooled PR-AUC", "Within-patient PR-AUC"], wrows),
                     "Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. "
                     "Top gain importance: " + ", ".join(f"{k} {v:.2f}" for k, v in list(au["top10_gain_importance"].items())[:10]) + ". "
-                    "Dropping absolute levels cuts pooled ROC 0.874 to 0.660 but within-patient ROC stays ~0.86: personal-baseline z-scores carry the within-patient signal; absolute levels mostly separate patients."]
+                    "Dropping absolute levels cuts pooled ROC 0.852 to 0.664 but within-patient ROC stays ~0.83: personal-baseline z-scores carry the within-patient signal; absolute levels mostly separate patients."]
     a3 = load("agent3")
     if a3:
         body = []

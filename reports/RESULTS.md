@@ -37,7 +37,7 @@ Ablation: most signal is raw same-day activity level (agitated days mean 574 eve
 | Per-patient z-scores only (no absolute levels) | 0.664 | 0.827 (IQR 0.621-0.956) | 0.089 | 0.309 (IQR 0.122-0.442) |
 | Drift score only | 0.453 | 0.500 (IQR 0.333-0.642) | 0.044 | 0.091 (IQR 0.044-0.214) |
 
-Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. Top gain importance: total_events 0.19, room_transitions 0.13, total_events_delta 0.05, kitchen_cusum 0.04, night_bathroom_cusum 0.04, fridge_z 0.04, fridge 0.04, night_events 0.04, room_transitions_z 0.03, kitchen_z 0.03. Dropping absolute levels cuts pooled ROC 0.874 to 0.660 but within-patient ROC stays ~0.86: personal-baseline z-scores carry the within-patient signal; absolute levels mostly separate patients.
+Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. Top gain importance: total_events 0.19, room_transitions 0.13, total_events_delta 0.05, kitchen_cusum 0.04, night_bathroom_cusum 0.04, fridge_z 0.04, fridge 0.04, night_events 0.04, room_transitions_z 0.03, kitchen_z 0.03. Dropping absolute levels cuts pooled ROC 0.852 to 0.664 but within-patient ROC stays ~0.83: personal-baseline z-scores carry the within-patient signal; absolute levels mostly separate patients.
 
 ### Agent 3 (falls, SisFall), subject-wise out-of-fold, threshold 0.5. Overall PR-AUC 0.995, 38 subjects
 
