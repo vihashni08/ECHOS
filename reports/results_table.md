@@ -25,6 +25,16 @@ SHAP top features: sys 0.67, dia 0.64, hr 0.37, dia_base 0.34, hr_base 0.19
 
 Ablation: most signal is raw same-day activity level (agitated days mean 574 events vs 372); personal-baseline drift adds little. Drift-only score is at chance (ROC 0.45).
 
+**Agent 2 headline (within-patient, 27 patients with both classes; median across patients):** ROC-AUC 0.857 (IQR 0.733-0.941), PR-AUC 0.343 (IQR 0.151-0.572) (median per-patient prevalence 0.037). Pooled numbers above mix between-patient differences in activity level with within-patient signal.
+
+| Model | Pooled ROC-AUC | Within-patient ROC-AUC | Pooled PR-AUC | Within-patient PR-AUC |
+|---|---|---|---|---|
+| Full feature set | 0.874 | 0.857 (IQR 0.733-0.941) | 0.202 | 0.343 (IQR 0.151-0.572) |
+| Per-patient z-scores only (no absolute levels) | 0.660 | 0.857 (IQR 0.637-0.947) | 0.084 | 0.299 (IQR 0.125-0.416) |
+| Drift score only | 0.452 | 0.449 (IQR 0.313-0.637) | 0.043 | 0.078 (IQR 0.042-0.187) |
+
+Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. Top gain importance: total_events 0.16, room_transitions 0.13, total_events_delta 0.05, total_events_z 0.04, night_door 0.04, night_bathroom_cusum 0.04, kitchen_z 0.04, fridge 0.04, fridge_z 0.03, room_transitions_z 0.03. Dropping absolute levels cuts pooled ROC 0.874 to 0.660 but within-patient ROC stays ~0.86: personal-baseline z-scores carry the within-patient signal; absolute levels mostly separate patients.
+
 ### Agent 3 (falls, SisFall), subject-wise out-of-fold, threshold 0.5. Overall PR-AUC 0.995, 38 subjects
 
 | Group | Fall subjects | Fall trials | Sensitivity (Wilson 95% CI) | Specificity (windows) | False alarms / hour |

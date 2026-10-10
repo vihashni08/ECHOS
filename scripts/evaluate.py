@@ -83,6 +83,21 @@ def main():
         out += [f"### Agent 2 (behaviour / agitation) vs base rate, out-of-fold; CI = patient bootstrap. {a2['n_days']} days, "
                 f"{a2['n_patients']} patients ({a2['n_patients_with_agitation']} with an agitation day)",
                 table(["Metric", "Value (95% CI)", "Reference"], body), "Ablation: " + a2["ablation_oof"]["note"]]
+        au = a2.get("within_patient_audit")
+        if au:
+            g = lambda t: f"{t[0]:.3f} (IQR {t[1]:.3f}-{t[2]:.3f})"
+            wrows = [[n, f"{au[k]['pooled_roc_auc']:.3f}", g(au[k]["within_patient"]["roc_auc_median_q1_q3"]),
+                     f"{au[k]['pooled_pr_auc']:.3f}", g(au[k]["within_patient"]["pr_auc_median_q1_q3"])]
+                    for k, n in [("full", "Full feature set"), ("z_only", "Per-patient z-scores only (no absolute levels)"),
+                                 ("drift_score_only", "Drift score only")]]
+            w = au["full"]["within_patient"]
+            out += [f"**Agent 2 headline (within-patient, {w['n_patients']} patients with both classes; median across patients):** "
+                    f"ROC-AUC {g(w['roc_auc_median_q1_q3'])}, PR-AUC {g(w['pr_auc_median_q1_q3'])} "
+                    f"(median per-patient prevalence {w['patient_prevalence_median']:.3f}). Pooled numbers above mix between-patient differences in activity level with within-patient signal.",
+                    table(["Model", "Pooled ROC-AUC", "Within-patient ROC-AUC", "Pooled PR-AUC", "Within-patient PR-AUC"], wrows),
+                    "Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. "
+                    "Top gain importance: " + ", ".join(f"{k} {v:.2f}" for k, v in list(au["top10_gain_importance"].items())[:10]) + ". "
+                    "Dropping absolute levels cuts pooled ROC 0.874 to 0.660 but within-patient ROC stays ~0.86: personal-baseline z-scores carry the within-patient signal; absolute levels mostly separate patients."]
     a3 = load("agent3")
     if a3:
         body = []

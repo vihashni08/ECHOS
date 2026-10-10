@@ -81,5 +81,74 @@
       "roc_auc": 0.66
     },
     "note": "most signal is raw same-day activity level (agitated days mean 574 events vs 372); personal-baseline drift adds little. Drift-only score is at chance (ROC 0.45)."
+  },
+  "within_patient_audit": {
+    "full": {
+      "pooled_roc_auc": 0.8737778145421458,
+      "pooled_pr_auc": 0.20216664774951,
+      "within_patient": {
+        "n_patients": 27,
+        "roc_auc_median_q1_q3": [
+          0.8571428571428572,
+          0.7329616923956546,
+          0.9414141414141414
+        ],
+        "pr_auc_median_q1_q3": [
+          0.343000274579222,
+          0.15119047619047618,
+          0.5720671614597538
+        ],
+        "patient_prevalence_median": 0.037037037037037035
+      }
+    },
+    "z_only": {
+      "pooled_roc_auc": 0.6602117627595335,
+      "pooled_pr_auc": 0.08404415298009801,
+      "within_patient": {
+        "n_patients": 27,
+        "roc_auc_median_q1_q3": [
+          0.8571428571428572,
+          0.6368298368298368,
+          0.9467984934086628
+        ],
+        "pr_auc_median_q1_q3": [
+          0.29868113206394586,
+          0.125,
+          0.416121528065698
+        ],
+        "patient_prevalence_median": 0.037037037037037035
+      }
+    },
+    "drift_score_only": {
+      "pooled_roc_auc": 0.4523326991479857,
+      "pooled_pr_auc": 0.04252345086934804,
+      "within_patient": {
+        "n_patients": 27,
+        "roc_auc_median_q1_q3": [
+          0.4487179487179487,
+          0.31273148148148144,
+          0.6371092220148824
+        ],
+        "pr_auc_median_q1_q3": [
+          0.07848230201171377,
+          0.04226193376543467,
+          0.18693734871387918
+        ],
+        "patient_prevalence_median": 0.037037037037037035
+      }
+    },
+    "top10_gain_importance": {
+      "total_events": 0.16294163518498325,
+      "room_transitions": 0.1345345546191048,
+      "total_events_delta": 0.05066725274346633,
+      "total_events_z": 0.04206399576157011,
+      "night_door": 0.04142531056071715,
+      "night_bathroom_cusum": 0.04025466504033964,
+      "kitchen_z": 0.040186446645472926,
+      "fridge": 0.03998544388737701,
+      "fridge_z": 0.034729550145065874,
+      "room_transitions_z": 0.03438467726691384
+    },
+    "prevalence": 0.047660311958405546
   }
 }
