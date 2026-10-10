@@ -156,6 +156,7 @@ def run_orchestrator(eng, graph, stop=None, poll_s=0.2, until_done=None, timeout
     """Process every ready patient-day in chronological order until no unprocessed days remain."""
     t0, n, finished = time.time(), 0, set()
     while not (stop and stop.is_set()):
+        producer_done = bool(until_done and until_done())  # read BEFORE the snapshot: a slow pass must not miss late days
         with eng.begin() as c:
             days = c.execute(select(S.event_log.c.patient_id, S.event_log.c.day).where(S.event_log.c.kind == "day")
                              .order_by(S.event_log.c.day, S.event_log.c.patient_id)).fetchall()
@@ -169,7 +170,7 @@ def run_orchestrator(eng, graph, stop=None, poll_s=0.2, until_done=None, timeout
                 progressed = True
             else:
                 remaining += 1
-        if until_done and until_done() and remaining == 0:
+        if producer_done and remaining == 0:
             break
         if timeout and time.time() - t0 > timeout:
             break

@@ -110,9 +110,9 @@ def evaluate() -> dict:
     budgets = cfg["agent1"]["alert_budget_per_patient_week"]
     rule_stats = _budget_stats(y, rule + 1e-9 * oof, int(rule.sum()), pw)  # ties in rule broken by model
 
-    def metrics(idx):
+    def metrics(idx, pwi=None):
         yy, ss, rr = y[idx], oof[idx], rule[idx]
-        pwi = float(pw_by_patient.loc[df.patient_id.iloc[idx].unique()].sum())
+        pwi = pw if pwi is None else pwi
         out = {"prevalence": float(yy.mean()),
                "xgb_pr_auc": float(average_precision_score(yy, ss)),
                "rule_pr_auc": float(average_precision_score(yy, rr))}
@@ -135,7 +135,7 @@ def evaluate() -> dict:
         if y[idx].sum() == 0:
             continue
         try:
-            boots.append(metrics(idx))
+            boots.append(metrics(idx, float(pw_by_patient.loc[samp].sum())))  # duplicates counted
         except Exception:
             pass
     bdf = pd.DataFrame(boots)

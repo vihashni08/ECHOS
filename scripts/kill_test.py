@@ -22,12 +22,13 @@ from sqlalchemy import func, select  # noqa: E402
 from echos.orchestrator import state as S  # noqa: E402
 from echos.orchestrator.graph import build_graph, run_orchestrator  # noqa: E402
 from echos.orchestrator.supervisor import Supervisor  # noqa: E402
-from echos.sim.replay import replay, train_replay_fall_model  # noqa: E402
+from echos.sim.replay import build_events, replay, train_replay_fall_model  # noqa: E402
 
 HB, CK, DELAY = 1.0, 1.0, 0.08
 
 
-def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, rate=20.0) -> dict:
+def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, rate=20.0, report_llm="auto",
+                 kill_frac=0.4) -> dict:
     db = work / "echos.db"
     eng = S.get_engine(db)
     model = train_replay_fall_model()
@@ -36,7 +37,7 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
     sup.start_all()
     t = threading.Thread(target=sup.run, daemon=True)
     t.start()
-    graph, conn = build_graph(eng, work / "cp.sqlite")
+    graph, conn = build_graph(eng, work / "cp.sqlite", report_llm=report_llm)
     rep_done = threading.Event()
     summary = {}
 
@@ -48,12 +49,15 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
     orch.start()
     timing = {}
     if kill_agent:
+        kinds = S.AGENT_KINDS[kill_agent]
+        expected = sum(e["kind"] in kinds for e in build_events(n_patients, max_days=max_days)[0])
+        kill_at = max(1, int(kill_frac * expected))
         while True:  # wait until the agent is ~40% through the sensor events
             time.sleep(0.2)
             with eng.begin() as c:
                 done = c.execute(select(func.count()).select_from(S.agent_output).where(S.agent_output.c.agent_id == kill_agent)).scalar()
                 hb = c.execute(select(S.agent_heartbeat).where(S.agent_heartbeat.c.agent_id == kill_agent)).first()
-            if done >= 40 and hb:
+            if done >= kill_at and hb:
                 break
         t_kill = S.now()
         os.kill(hb.pid, signal.SIGKILL)
@@ -82,9 +86,13 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
         n_ev = c.execute(select(func.count()).select_from(S.event_log)).scalar()
         outs = c.execute(select(func.count()).select_from(S.agent_output)).scalar()
         gt = {(r.patient_id, r.day) for r in c.execute(select(S.gt_fall))}
+        cases = {(r.patient_id, r.day): (r.status, r.reasons) for r in c.execute(select(S.case_state))}
+        modes = [r.mode for r in c.execute(select(S.reports.c.mode))]
+        alert_lat = [r.created_ts for r in c.execute(select(S.alerts.c.created_ts))]
     conn.close()
     return {"alerts": [tuple(a) for a in alerts], "n_cases": n_cases, "events": n_ev, "outputs": outs, "gt_falls": gt,
-            "timing": timing, "replay": summary}
+            "timing": timing, "replay": summary, "cases": cases, "modes": modes, "alert_ts": alert_lat,
+            "t_end": S.now()}
 
 
 if __name__ == "__main__":

@@ -1,0 +1,47 @@
+section,method,metric,value,ci_low,ci_high,note
+agent1,XGBoost @ same alert count as rule,recall,0.8825396825396825,0.810929725728854,0.93247145660512,
+agent1,XGBoost @ same alert count as rule,false_alerts_per_patient_week,1.4798479087452474,,,
+agent1,XGBoost @ 0.5 alerts/pt-wk,recall,0.4793650793650794,0.36950643609123285,0.5994279176201374,
+agent1,XGBoost @ 0.5 alerts/pt-wk,false_alerts_per_patient_week,0.0958174904942966,,,
+agent1,XGBoost @ 1.0 alerts/pt-wk,recall,0.7015873015873015,0.6190247252747253,0.7975487126828291,
+agent1,XGBoost @ 1.0 alerts/pt-wk,false_alerts_per_patient_week,0.40988593155893543,,,
+agent1,XGBoost @ 2.0 alerts/pt-wk,recall,0.8761904761904762,0.7998489010989012,0.913460938976006,
+agent1,XGBoost @ 2.0 alerts/pt-wk,false_alerts_per_patient_week,1.26425855513308,,,
+agent1,fixed rule,pr_auc,0.2612844530519623,0.18286307137720412,0.3455044423017096,
+agent1,fixed rule,recall,0.7587301587301587,0.6166717555225149,0.8723551136363638,
+agent1,fixed rule,false_alerts_per_patient_week,1.5836501901140687,,,
+agent1,XGBoost,pr_auc,0.6894624520115561,0.5691270273486125,0.7752441211828768,
+agent1,prevalence (no-skill PR-AUC),pr_auc,0.1817657241777265,0.12370193318620533,0.2469400912460793,
+agent2,@0.5/wk,recall,0.3090909090909091,0.20374007251381215,0.5279234478601565,
+agent2,@0.5/wk,false_alerts_per_patient_week,0.39428076256499134,,,
+agent2,@1.0/wk,recall,0.6454545454545455,0.4802324485332931,0.776105002748763,
+agent2,@1.0/wk,false_alerts_per_patient_week,0.7824956672443674,,,
+agent2,@2.0/wk,recall,0.8545454545454545,0.7543129496402877,0.9611819125837816,
+agent2,@2.0/wk,false_alerts_per_patient_week,1.7136048526863084,,,
+agent2,pr_auc,pr_auc,0.20216664774951,0.13690875756870666,0.3014560011453127,
+agent2,roc_auc,roc_auc,0.8737778145421458,0.8320397906258558,0.9138550401993872,
+agent2,drift_only_pr_auc,drift_only_pr_auc,0.04252345086934804,0.025142113820347155,0.06797960430699995,
+agent2,drift_only_roc_auc,drift_only_roc_auc,0.4523326991479857,0.3835848808870321,0.5286727337174445,
+agent2,prevalence,prevalence,0.047660311958405546,0.027586243352276607,0.07651867257679412,
+agent3,adult,sensitivity,0.9849012775842044,0.9779681850106785,0.989675659013014,
+agent3,adult,specificity,0.9988629903354178,,,
+agent3,adult,false_alarms_per_hour,2.316872035530052,,,
+agent3,elderly,sensitivity,0.8533333333333334,0.7561502569307123,0.9160836906299664,
+agent3,elderly,specificity,0.9995436568299361,,,
+agent3,elderly,false_alarms_per_hour,0.9990531196543719,,,
+e2e,Patients / patient-days / patient-weeks,value,,,,20 / 1266 / 180.9
+e2e,Injected falls,value,,,,60
+e2e,"Fall detection rate (URGENT, fall reason)",value,,,,0.950 (0.863-0.983) (57/60)
+e2e,"Detection delay, simulated (fall -> end of day), median / max",value,,,,11.4 h / 23.8 h
+e2e,"Pipeline latency after last agent output, median",value,,,,0.19 s
+e2e,False fall alerts per patient-week,value,,,,0.066 (12 alerts)
+e2e,URGENT days from critical vitals (real TIHM readings),value,,,,4
+e2e,All URGENT alerts per patient-week,value,,,,0.404
+e2e,Days Normal / Monitor / Urgent,value,,,,42.3% / 52.0% / 5.8%
+e2e,Days with a data gap,value,,,,3.0%
+e2e,Duplicate alerts,value,,,,0
+fault,kill physiological,lost_alerts,0.0,,,dup=0 cases_same=45/45
+fault,kill behaviour,lost_alerts,0.0,,,dup=0 cases_same=45/45
+fault,kill fall,lost_alerts,0.0,,,dup=0 cases_same=45/45
+fault,LLM delayed 1s then timeout,lost_alerts,0.0,,,dup=0 cases_same=45/45
+fault,LLM key removed,lost_alerts,0.0,,,dup=0 cases_same=45/45

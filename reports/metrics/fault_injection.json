@@ -1,0 +1,100 @@
+{
+  "config": {
+    "patients": 3,
+    "days_each": 15,
+    "llm_delay_s": 1.0,
+    "ref_wall_s": 13.0
+  },
+  "rows": [
+    {
+      "scenario": "kill physiological",
+      "cases": 45,
+      "alerts_ref": 9,
+      "alerts_run": 9,
+      "lost_alerts": 0,
+      "extra_alerts": 0,
+      "duplicate_alerts": 0,
+      "falls_alerted": "9/9",
+      "cases_identical_to_clean_run": "45/45",
+      "detect_s": 2.8706986904144287,
+      "recover_s": 4.831251859664917,
+      "report_modes": {
+        "template": 51
+      },
+      "wall_s": 12.8,
+      "wall_overhead_s": -0.1
+    },
+    {
+      "scenario": "kill behaviour",
+      "cases": 45,
+      "alerts_ref": 9,
+      "alerts_run": 9,
+      "lost_alerts": 0,
+      "extra_alerts": 0,
+      "duplicate_alerts": 0,
+      "falls_alerted": "9/9",
+      "cases_identical_to_clean_run": "45/45",
+      "detect_s": 3.061992883682251,
+      "recover_s": 4.240041017532349,
+      "report_modes": {
+        "template": 51
+      },
+      "wall_s": 13.1,
+      "wall_overhead_s": 0.1
+    },
+    {
+      "scenario": "kill fall",
+      "cases": 45,
+      "alerts_ref": 9,
+      "alerts_run": 9,
+      "lost_alerts": 0,
+      "extra_alerts": 0,
+      "duplicate_alerts": 0,
+      "falls_alerted": "9/9",
+      "cases_identical_to_clean_run": "45/45",
+      "detect_s": 2.8320603370666504,
+      "recover_s": 3.881411075592041,
+      "report_modes": {
+        "template": 51
+      },
+      "wall_s": 16.7,
+      "wall_overhead_s": 3.7
+    },
+    {
+      "scenario": "LLM delayed 1s then timeout",
+      "cases": 45,
+      "alerts_ref": 9,
+      "alerts_run": 9,
+      "lost_alerts": 0,
+      "extra_alerts": 0,
+      "duplicate_alerts": 0,
+      "falls_alerted": "9/9",
+      "cases_identical_to_clean_run": "45/45",
+      "detect_s": null,
+      "recover_s": null,
+      "report_modes": {
+        "template": 51
+      },
+      "wall_s": 107.9,
+      "wall_overhead_s": 94.9
+    },
+    {
+      "scenario": "LLM key removed",
+      "cases": 45,
+      "alerts_ref": 9,
+      "alerts_run": 9,
+      "lost_alerts": 0,
+      "extra_alerts": 0,
+      "duplicate_alerts": 0,
+      "falls_alerted": "9/9",
+      "cases_identical_to_clean_run": "45/45",
+      "detect_s": null,
+      "recover_s": null,
+      "report_modes": {
+        "template": 51
+      },
+      "wall_s": 12.8,
+      "wall_overhead_s": -0.2
+    }
+  ]
+}
