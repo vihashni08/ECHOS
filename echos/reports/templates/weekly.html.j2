@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Weekly clinician report {{ s.patient_id }} {{ s.week_ending }}</title>
+<style>
+body{font:15px/1.5 system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;color:#1e293b}
+h1{font-size:1.5rem;margin-bottom:.2rem} h2{font-size:1.1rem;margin-top:2rem;border-bottom:1px solid #e2e8f0;padding-bottom:.2rem}
+table{border-collapse:collapse;width:100%;font-size:.9rem} th,td{border-bottom:1px solid #e2e8f0;padding:.35rem .5rem;text-align:left}
+th{background:#f1f5f9} img{max-width:100%} .muted{color:#64748b;font-size:.85rem} .tag{background:#fef3c7;border-radius:4px;padding:0 .4rem;font-size:.75rem}
+.cite{color:#2563eb;font-size:.8rem}
+</style></head><body>
+<h1>Weekly clinician report: {{ s.patient_id }}</h1>
+<p class="muted">Week {{ week_start }} to {{ s.week_ending }}. Decision-support summary from home-monitoring data; not a medical assessment. Wording: {{ mode }} mode.</p>
+
+<h2>Highlights</h2>
+<ul>{% for it in items %}<li>{{ it.text }}{% if it.cites %} <span class="cite">[{{ it.cites | join(', ') }}]</span>{% endif %}</li>{% endfor %}</ul>
+<p class="muted">Days by status: {% for k, n in s.status_counts.items() %}{{ label[k] }} {{ n }}{% if not loop.last %}, {% endif %}{% endfor %}.</p>
+
+<h2>Vitals versus personal baseline</h2>
+<table><tr><th>Measure</th><th>Mean</th><th>Min</th><th>Max</th><th>Baseline (past data only)</th><th>Mean minus baseline</th><th>Days with readings</th></tr>
+{% for k, v in s.vitals.items() %}<tr><td>{{ vname[k] }} ({{ unit[k] }})</td>
+<td>{{ v.mean if v.mean is not none else 'n/a' }}</td><td>{{ v.min if v.min is not none else 'n/a' }}</td><td>{{ v.max if v.max is not none else 'n/a' }}</td>
+<td>{{ v.baseline if v.baseline is not none else 'n/a' }}</td><td>{{ v.delta if v.delta is not none else 'n/a' }}</td><td>{{ v.n }}</td></tr>{% endfor %}</table>
+{% if charts.vitals %}<p><img alt="Vitals trend charts" src="data:image/png;base64,{{ charts.vitals }}"></p>
+<p class="muted">Dashed lines: personal baseline. Shaded days: status other than Normal.</p>{% endif %}
+
+<h2>Alerts and flags</h2>
+<p>Falls: {{ s.falls | length }}. Evidence groups: {{ s.evidence | length }}.</p>
+{% if s.falls %}<ul>{% for f in s.falls %}<li>{{ f.day }} {{ f.time or '' }}: possible fall (likelihood {{ '%.2f' % f.prob }}){% if f.post_fall_inactive %}, inactivity afterwards{% endif %}</li>{% endfor %}</ul>{% endif %}
+
+<h2>Routine trend</h2>
+<table><tr><th>Measure</th><th>Weekly mean</th><th>Baseline</th></tr>
+{% for k, v in s.routine.items() %}<tr><td>{{ k.replace('_', ' ') }}</td><td>{{ v.mean if v.mean is not none else 'n/a' }}</td><td>{{ v.baseline if v.baseline is not none else 'n/a' }}</td></tr>{% endfor %}</table>
+{% if charts.routine %}<p><img alt="Routine trend charts" src="data:image/png;base64,{{ charts.routine }}"></p>{% endif %}
+
+<h2>Evidence behind each flag</h2>
+{% if s.evidence %}<table><tr><th>Id</th><th>Finding</th><th>Count</th><th>Days</th><th>Detail</th></tr>
+{% for e in s.evidence %}<tr><td>{{ e.id }}</td><td>{{ e.type.replace('_', ' ') }}{% if e.kind == 'critical' %} (critical){% endif %}</td><td>{{ e.count }}</td><td>{{ e.days | join(', ') }}</td>
+<td class="muted">{% for d in e.detail %}{{ d.items() | map('join', '=') | join('; ') }}<br>{% endfor %}</td></tr>{% endfor %}</table>
+{% else %}<p>No flags this week.</p>{% endif %}
+
+<h2>Data completeness</h2>
+<p>{{ s.completeness.days_covered }} days covered. Vitals readings on {{ s.completeness.days_with_vitals }}, room-sensor activity on {{ s.completeness.days_with_activity }},
+temperature on {{ s.completeness.days_with_temperature }}, weight on {{ s.completeness.days_with_weight }}; days with a data gap: {{ s.completeness.days_with_data_gap }}.
+Missing readings are not evidence of normal values.</p>
+
+<h2>Guideline references <span class="tag">for clinician review</span></h2>
+{% if s.guidelines %}<ul>{% for g in s.guidelines %}<li><b>{{ g.source }}</b> [{{ g.id }}]: {{ g.text }} <span class="tag">for clinician review</span></li>{% endfor %}</ul>
+{% else %}<p>None triggered.</p>{% endif %}
+</body></html>

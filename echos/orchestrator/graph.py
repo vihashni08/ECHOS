@@ -30,9 +30,15 @@ class CaseState(TypedDict, total=False):
     weekly: bool
 
 
-def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]] = None, inline_agents=None):
+def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]] = None, inline_agents=None,
+                report_llm="auto", report_root=None):
     """fault(node_name) may raise to simulate a crash. inline_agents: {agent_id: fn(event_row)->dict} used only
-    when an agent's stored output is missing (tests / no-process mode)."""
+    when an agent's stored output is missing (tests / no-process mode). report_llm: "auto" = Gemini if configured
+    (llm.model + key), None/False = template mode."""
+    from echos.reports.agent import ReportAgent
+    from echos.reports.facts import build_day_facts
+    from echos.reports.llm import make_llm
+    reporter = ReportAgent(eng, make_llm() if report_llm == "auto" else (report_llm or None), root=report_root)
     fault = fault or (lambda node: None)
     cp = checkpoint_path or ROOT / load_config()["checkpoint_db_path"]
     cp = str(cp)
@@ -95,13 +101,16 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
         fault("immediate_alert")  # crash point AFTER the side effect: resume must not duplicate it
         return {}
 
-    def daily_report(st: CaseState) -> dict:  # stub: Report agent comes in a later phase
+    def daily_report(st: CaseState) -> dict:  # Report agent: also runs on URGENT days (alerts + times belong in the report)
+        facts = build_day_facts(eng, st["patient_id"], st["day"], st["decision"], st["results"])
+        out = reporter.daily(facts)
         with eng.begin() as c:
             c.execute(S.case_state.update().where((S.case_state.c.patient_id == st["patient_id"]) &
-                                                  (S.case_state.c.day == st["day"])).values(report="daily:stub"))
+                                                  (S.case_state.c.day == st["day"])).values(report=str(out["path"].name)))
         return {}
 
-    def weekly_report(st: CaseState) -> dict:  # stub
+    def weekly_report(st: CaseState) -> dict:
+        reporter.weekly(st["patient_id"], st["day"])
         return {}
 
     def after(st: CaseState) -> str:
@@ -115,7 +124,7 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
     g.add_edge("load_day", "run_agents")
     g.add_edge("run_agents", "triage")
     g.add_conditional_edges("triage", route, {"immediate_alert": "immediate_alert", "daily_report": "daily_report"})
-    g.add_conditional_edges("immediate_alert", after, {"weekly_report": "weekly_report", END: END})
+    g.add_edge("immediate_alert", "daily_report")
     g.add_conditional_edges("daily_report", after, {"weekly_report": "weekly_report", END: END})
     g.add_edge("weekly_report", END)
     return g.compile(checkpointer=saver), conn

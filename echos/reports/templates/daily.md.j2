@@ -1,0 +1,29 @@
+# Daily report for {{ pid }} - {{ day }}
+
+**Status: {{ label }}**
+{% if alerts %}
+
+## Alerts
+{% for a in alerts %}
+- {{ a }}
+{% endfor %}
+{% endif %}
+
+## What changed compared with their usual pattern
+{% for c in changes %}
+- {{ c.text }}{% if c.cites %} [{{ c.cites | join(', ') }}]{% endif %}
+
+{% endfor %}
+
+## What to monitor today
+{% for m in monitor %}
+- {{ m.text }}
+{% endfor %}
+{% if data_note %}
+
+## Data note
+{{ data_note }}
+{% endif %}
+
+---
+_Decision-support only, not a medical assessment. Wording: {{ mode }} mode._

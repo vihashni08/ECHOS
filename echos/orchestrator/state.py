@@ -74,3 +74,10 @@ def j(x) -> str:
 
 def now() -> float:
     return time.time()
+
+# ---- Report agent tables (daily facts feed the reports and the dashboards; reports index points to files in reports/)
+daily_facts = Table("daily_facts", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True),
+                    Column("facts", Text))
+reports = Table("reports", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True),
+                Column("kind", String, primary_key=True), Column("mode", String), Column("path", String),
+                Column("validation", Text), Column("created_ts", Float))

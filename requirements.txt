@@ -11,3 +11,7 @@ pytest
 pyyaml
 joblib
 langgraph-checkpoint-sqlite
+google-genai
+python-dotenv
+jinja2
+matplotlib

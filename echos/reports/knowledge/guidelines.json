@@ -1,0 +1,40 @@
+{
+  "fall": [
+    {"id": "G1", "source": "NICE NG249 Falls: assessment and prevention in older people (2025)",
+     "text": "After a fall, older people should be offered a multifactorial assessment covering medication review, vision, footwear, home hazards, continence and blood pressure."},
+    {"id": "G2", "source": "WHO World Guidelines for Falls Prevention and Management for Older Adults (2022)",
+     "text": "Exercise that includes balance and strength training is the main evidence-based way to lower fall risk; prompt help after a fall limits harm from a long lie."}
+  ],
+  "fall_inactivity": [
+    {"id": "G3", "source": "NICE NG249 Falls: assessment and prevention in older people (2025)",
+     "text": "A person found on the floor or who stays inactive after a possible fall needs prompt in-person checking for injury before any other follow-up."}
+  ],
+  "vitals_news2": [
+    {"id": "G4", "source": "Royal College of Physicians NEWS2 (2017)",
+     "text": "NEWS2 scores respiration rate, oxygen saturation, systolic blood pressure, pulse, consciousness and temperature together; a single-parameter extreme score or a high aggregate calls for urgent clinical review."},
+    {"id": "G5", "source": "Royal College of Physicians NEWS2 (2017)",
+     "text": "Pulse and systolic blood pressure outside the normal bands add to the NEWS2 score, so a change from the person's usual level should be interpreted alongside the other observations."}
+  ],
+  "blood_pressure": [
+    {"id": "G6", "source": "NICE NG136 Hypertension in adults (2019)",
+     "text": "A raised clinic reading should be confirmed with repeat or home/ambulatory measurement before any treatment decision; home readings should be averaged over several days."}
+  ],
+  "agitation": [
+    {"id": "G7", "source": "NICE NG97 Dementia: assessment, management and support (2018)",
+     "text": "For distress or agitation in dementia, look first for unmet needs such as pain, infection, hunger, or environment, and try non-drug approaches before medication."},
+    {"id": "G8", "source": "Alzheimer's Society: Sundowning and changes in behaviour (clinician and carer guidance)",
+     "text": "Changes in agitation or night-time wakefulness can follow infection, pain or medication change and are worth reporting to the care team."}
+  ],
+  "routine_change": [
+    {"id": "G9", "source": "NICE NG97 Dementia: assessment, management and support (2018)",
+     "text": "A sustained change in sleep, activity or toileting pattern should prompt a review for physical illness, medication effects and unmet needs."}
+  ],
+  "weight": [
+    {"id": "G10", "source": "General clinical practice note (not a formal guideline)",
+     "text": "Where fluid retention is a concern, a steady rise in weight over a few days is something to report to the clinical team."}
+  ],
+  "data_gap": [
+    {"id": "G11", "source": "ECHOS project note",
+     "text": "Missing readings are not evidence of normal values; the status for days without readings reflects only the data that was available."}
+  ]
+}
