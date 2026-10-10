@@ -1,0 +1,24 @@
+{
+  "killed_agent": "fall",
+  "events": 144,
+  "outputs_ref/kill": [
+    189,
+    189
+  ],
+  "cases_ref/kill": [
+    45,
+    45
+  ],
+  "alerts_ref/kill": [
+    9,
+    9
+  ],
+  "lost_alerts": 0,
+  "extra_alerts": 0,
+  "duplicate_alerts": 0,
+  "injected_falls_alerted_(kill run)": "9/9",
+  "killed_at_outputs": 41,
+  "detect_s": 2.84,
+  "recover_s": 3.87,
+  "restart_to_first_output_s": 1.01
+}

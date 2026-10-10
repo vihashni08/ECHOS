@@ -1,0 +1,66 @@
+{
+  "fall_operating_points_oof": [
+    {
+      "T": 0.5,
+      "needs_inactivity": false,
+      "sensitivity": 0.9794101279910963,
+      "false_alarms_per_hour": 1.8620304407495014
+    },
+    {
+      "T": 0.5,
+      "needs_inactivity": true,
+      "sensitivity": 0.9421257651641625,
+      "false_alarms_per_hour": 0.8965331751756859
+    },
+    {
+      "T": 0.7,
+      "needs_inactivity": false,
+      "sensitivity": 0.9654980523094046,
+      "false_alarms_per_hour": 1.1034254463700748
+    },
+    {
+      "T": 0.7,
+      "needs_inactivity": true,
+      "sensitivity": 0.9282136894824707,
+      "false_alarms_per_hour": 0.4137845423887781
+    },
+    {
+      "T": 0.8,
+      "needs_inactivity": false,
+      "sensitivity": 0.9515859766277128,
+      "false_alarms_per_hour": 0.7586049943794265
+    },
+    {
+      "T": 0.8,
+      "needs_inactivity": true,
+      "sensitivity": 0.9148580968280468,
+      "false_alarms_per_hour": 0.2758563615925187
+    },
+    {
+      "T": 0.9,
+      "needs_inactivity": false,
+      "sensitivity": 0.9048414023372288,
+      "false_alarms_per_hour": 0.4137845423887781
+    },
+    {
+      "T": 0.9,
+      "needs_inactivity": true,
+      "sensitivity": 0.8697829716193656,
+      "false_alarms_per_hour": 0.20689227119438905
+    },
+    {
+      "T": 0.95,
+      "needs_inactivity": false,
+      "sensitivity": 0.857540345019477,
+      "false_alarms_per_hour": 0.20689227119438905
+    },
+    {
+      "T": 0.95,
+      "needs_inactivity": true,
+      "sensitivity": 0.8252643294379521,
+      "false_alarms_per_hour": 0.20689227119438905
+    }
+  ],
+  "agent1_threshold_1_per_patient_week": 0.46072307229042053,
+  "agent2_threshold_1_per_patient_week": 0.5374414324760437
+}

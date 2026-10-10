@@ -131,12 +131,18 @@ def evaluate() -> dict:
 _cache: dict = {}
 
 
+def use_model(path) -> None:
+    """Load a specific model file (e.g. the held-out-subject replay model) for predict_window."""
+    _cache.clear()
+    _cache.update(joblib.load(path))
+
+
 def predict_window(window: np.ndarray, fs: int = 200, following: np.ndarray | None = None,
                    patient_id: str = "unknown", day: date | None = None) -> AgentResult:
     """window: (n, 3) first accelerometer in g (use sisfall.load_file). `following`: optional (m, 3) g samples after
     the impact for the post-fall inactivity check; without it only the tail of the window is used."""
     if not _cache:
-        _cache.update(joblib.load(MODEL_PATH))
+        use_model(MODEL_PATH)
     f = window_features(window, fs)
     prob = float(_cache["model"].predict_proba(pd.DataFrame([f])[_cache["features"]])[:, 1][0])
     pk = int(np.argmax(sf.svm(window)))

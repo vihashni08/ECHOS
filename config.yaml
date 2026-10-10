@@ -22,3 +22,27 @@ agent3:
   stride_s: 1.25
   inactivity: {seconds: 3.0, std_g: 0.05}
   n_folds: 5
+db_path: data/echos.db
+checkpoint_db_path: data/langgraph_checkpoints.sqlite
+runtime:
+  heartbeat_s: 5
+  checkpoint_s: 60
+  poll_s: 0.2
+  batch: 50
+supervisor:
+  missed_heartbeats: 3
+  stall_s: 30        # last_event_id unchanged this long while events are pending -> dead
+  poll_s: 1.0
+replay:
+  holdout_subjects: [SA03, SA11, SA19, SE06]   # fall model for replay is trained WITHOUT these subjects
+  falls_per_patient: 3
+  adl_windows_per_day: 2
+triage:
+  # chosen from reports/metrics/{agent1,agent2,triage_thresholds}.json (see docs in orchestrator/triage.py)
+  vitals_prob: 0.46        # agent1 OOF threshold at 1 alert / patient-week
+  agitation_prob: 0.54     # agent2 OOF threshold at 1 alert / patient-week
+  drift_score: 0.5         # = CUSUM h (any feature past its decision limit)
+  fall_prob_high: 0.90     # OOF: sens 0.905, 0.41 false alarms/h (no inactivity needed)
+  fall_prob: 0.50          # with post_fall_inactive: sens 0.942, 0.90 FA/h; without -> MONITOR only
+  critical_vitals: {sys_high: 180, sys_low: 85, dia_high: 120, hr_high: 130, hr_low: 40}
+  max_vitals_gap_days: 7   # readings exist on ~62% of days; >7 days silent -> data_gap

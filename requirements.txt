@@ -10,3 +10,4 @@ sqlalchemy
 pytest
 pyyaml
 joblib
+langgraph-checkpoint-sqlite
