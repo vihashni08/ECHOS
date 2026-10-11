@@ -43,6 +43,13 @@ fall), writes heartbeats to SQLite and restarts dead ones.
 - Tests never use the real LLM (fake LLM objects only). Models train only on real data: every training table has a
   `source` column (tihm / sisfall) and trainers call echos.data.guard.assert_real_source.
 
+## API and live runtime
+- echos/api (FastAPI, `scripts/run_api.sh [--dry] [--no-llm]`): bound to 127.0.0.1, CORS for http://localhost:5173 only, NO authentication (demo). The API process never
+  loads xgboost/torch/models: it reads SQLite + saved reports + reports/metrics/*.json and sends commands (play/pause/speed/reset, inject_fall) through the
+  `sim_command` table to echos/sim/controller.py (the runtime: supervisor workers + orchestrator + controller). SSE /api/events reads `event_feed`, filled by SQLite
+  triggers. Never returns raw secrets or full e-mail addresses (masked `ab***@domain`); `api.allow_kill` (default false) guards POST /api/agents/{name}/kill.
+  Injected falls are synthetic SisFall windows; the response states whether the subject was in the training set of the Fall worker's model / the final model.
+
 ## Rules
 - Python 3.11, pydantic, pandas, scikit-learn, xgboost, shap, langgraph, streamlit, sqlalchemy/sqlite, pytest.
 - Split by PATIENT (GroupKFold) for TIHM and by SUBJECT for SisFall. Never random rows.

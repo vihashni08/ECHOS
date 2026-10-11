@@ -95,4 +95,6 @@ class SMTPMailer(Mailer):
 
 def make_mailer(cfg: dict | None = None) -> Mailer:
     a = (cfg or load_config()).get("alerts", {})
+    if os.environ.get("ECHOS_DRY_RUN") == "1":    # scripts/run_api.sh --dry: nothing leaves the machine whatever the config says
+        return DryRunMailer()
     return SMTPMailer() if a.get("send_real", False) else DryRunMailer()

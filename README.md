@@ -86,6 +86,14 @@ PYTHONPATH=. python3 scripts/evaluate.py
 python3 -m pytest -q
 ```
 
+## API (demo)
+```bash
+scripts/run_api.sh --dry --no-llm      # runtime (workers + orchestrator + simulation controller) + API on http://127.0.0.1:8000, docs at /docs
+scripts/run_api.sh --no-runtime        # API only, reads the existing data/echos.db
+```
+`--dry` forces DryRun mail (outbox rows only). The API has **no authentication** (local demo, bound to 127.0.0.1, CORS for http://localhost:5173) and never loads models:
+it reads SQLite / reports / `reports/metrics/*.json` and sends commands to the runtime through the database. See `docs/API.md` for the endpoint list.
+
 ## Dashboard
 
 After step 4 (or any run that fills `data/echos.db`):

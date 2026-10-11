@@ -1,0 +1,321 @@
+"""Response models of the ECHOS API. Nothing here carries an agitation or vitals probability, a full e-mail address or a secret."""
+from __future__ import annotations
+
+from typing import Any, Generic, Literal, Optional, TypeVar
+
+from pydantic import BaseModel, Field
+
+T = TypeVar("T")
+
+
+class Page(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    limit: int
+    offset: int
+
+
+class ErrorBody(BaseModel):
+    status: int
+    message: str
+
+
+class ErrorOut(BaseModel):
+    error: ErrorBody
+
+
+class Completeness(BaseModel):
+    days: int = 0
+    days_with_activity: int = 0
+    days_with_vitals: int = 0
+    sensor_gap_days: int = 0
+
+
+class PatientOut(BaseModel):
+    patient_id: str
+    age_band: str
+    sex: str
+    latest_status: Optional[str] = None
+    latest_day: Optional[str] = None
+    last_alert_time: Optional[str] = None
+    last_alert_type: Optional[str] = None
+    completeness: Completeness
+
+
+class SummaryOut(BaseModel):
+    patient_id: str
+    day: str
+    status: str
+    status_text: str
+    reasons: list[str]
+    alerts: list[str] = []
+    data_note: Optional[str] = None
+
+
+class DayStatus(BaseModel):
+    day: str
+    status: str
+    reasons: list[str]
+
+
+class VitalPoint(BaseModel):
+    t: str
+    value: float
+    flagged: bool
+    base: Optional[float] = None
+    lo: Optional[float] = None
+    hi: Optional[float] = None
+
+
+class DayBand(BaseModel):
+    day: str
+    lo: float
+    hi: float
+    base: float
+
+
+class VitalSeries(BaseModel):
+    name: str
+    unit: str
+    baseline_established: bool
+    baseline_note: Optional[str] = None
+    points: list[VitalPoint]
+    bands: list[DayBand]
+
+
+class VitalsOut(BaseModel):
+    patient_id: str
+    start: str
+    end: str
+    min_history_readings: int
+    series: dict[str, VitalSeries]
+
+
+class RoutineMetric(BaseModel):
+    value: Optional[float] = None
+    lo: Optional[float] = None
+    hi: Optional[float] = None
+    base: Optional[float] = None
+    z: Optional[float] = None
+
+
+class RoutineDay(BaseModel):
+    day: str
+    has_activity: bool
+    metrics: dict[str, RoutineMetric]
+
+
+class RoutineOut(BaseModel):
+    patient_id: str
+    start: str
+    end: str
+    rooms: list[str]
+    hours: list[int]
+    counts: list[list[int]]          # counts[room][hour]
+    days: list[RoutineDay]
+    min_history_days: int
+    baseline_note: str
+
+
+class Provenance(BaseModel):
+    model: str = "template"
+    mode: str = "template"
+    cache_hit: bool = False
+    tools: list[dict[str, Any]] = []
+    sources_retrieved: list[dict[str, Any]] = []
+    sources_cited: list[str] = []
+    validator: Optional[dict[str, Any]] = None
+    fallback_reason: Optional[str] = None
+    requests: int = 0
+    tokens: dict[str, int] = {}
+    models_tried: list[str] = []
+    events: list[dict[str, Any]] = []
+    retrieval_events: list[str] = []
+    pubmed_failure: Optional[str] = None
+
+
+class DailyReportOut(BaseModel):
+    patient_id: str
+    day: str
+    mode: str
+    text: str
+    created_ts: Optional[float] = None
+    validation: Optional[dict[str, Any]] = None
+    provenance: Optional[Provenance] = None      # 'How this report was made'
+
+
+class WeeklyReportOut(BaseModel):
+    patient_id: str
+    week: str
+    week_start: str
+    week_end: str
+    mode: str
+    narrative: Optional[str] = None
+    provenance: Optional[dict[str, Any]] = None
+    validation: Optional[dict[str, Any]] = None
+    pdf_available: bool
+    pdf_pages: Optional[int] = None
+    data: Optional[dict[str, Any]] = None
+
+
+class AlertOut(BaseModel):
+    alert_id: str
+    patient_id: str
+    type: str
+    status: str
+    event_id: Optional[int] = None
+    event_time: Optional[str] = None
+    time: Optional[float] = None
+
+
+class OutboxOut(BaseModel):
+    outbox_id: int
+    alert_id: str
+    recipient_role: str
+    address: str                                   # masked: ab***@domain
+    channel: Optional[str] = None
+    subject: Optional[str] = None
+    status: str
+    attempts: int = 0
+    error: Optional[str] = None
+    event_time: Optional[str] = None
+    queued_time: Optional[float] = None
+    sent_time: Optional[float] = None
+    attachment_name: Optional[str] = None
+
+
+class WeeklySendIn(BaseModel):
+    force: bool = False
+
+
+class WeeklySendOut(BaseModel):
+    patient_id: str
+    week: str
+    queued: bool
+    deduplicated: bool
+    alert_id: Optional[str] = None
+    send_real: bool
+    mode: str
+    outbox: list[OutboxOut]
+
+
+class FallItem(BaseModel):
+    id: int
+    patient_id: str
+    day: str
+    ts: str
+    sisfall_subject: Optional[str] = None
+    probability: float
+    probability_text: str
+    peak_g: Optional[float] = None
+    inactivity: bool
+    day_status: Optional[str] = None
+    alert_status: Optional[str] = None
+
+
+class Waveform(BaseModel):
+    fs_hz: int
+    downsample_stride: int
+    t_s: list[float]
+    x_g: list[float]
+    y_g: list[float]
+    z_g: list[float]
+    magnitude_g: list[float]
+    impact_index: int            # index into the downsampled arrays
+    impact_time_s: float
+
+
+class FallDetail(FallItem):
+    inactivity_observed_s: Optional[float] = None
+    inactivity_required_s: Optional[float] = None
+    threshold: Optional[float] = None
+    injected: bool = False
+    in_training_set_of_worker_model: Optional[bool] = None
+    in_training_set_of_final_model: Optional[bool] = None
+    waveform: Optional[Waveform] = None
+    alert: Optional[AlertOut] = None
+    outbox: list[OutboxOut] = []
+
+
+class SimFallIn(BaseModel):
+    patient_id: str
+    subject: Optional[str] = Field(None, description="optional held-out SisFall subject (SA03, SA11, SA19, SE06)")
+
+
+class SimFallOut(BaseModel):
+    command_id: int
+    status: Literal["DONE", "QUEUED"]
+    patient_id: str
+    day: Optional[str] = None
+    event_id: Optional[int] = None
+    sisfall_subject: str
+    activity: str
+    file: str
+    in_training_set_of_worker_model: bool
+    in_training_set_of_final_model: bool
+    note: str
+
+
+class SimStateOut(BaseModel):
+    status: str
+    speed: Optional[float] = None
+    cursor: Optional[int] = None
+    total: Optional[int] = None
+    sim_time: Optional[str] = None
+    message: str = ""
+    runtime_alive: bool
+
+
+class SimControlIn(BaseModel):
+    action: Literal["play", "pause", "speed", "reset"]
+    speed: Optional[float] = Field(None, description="events per second, for action=speed")
+
+
+class AgentHealth(BaseModel):
+    agent: str
+    status: str
+    alive: bool
+    heartbeat_age_s: Optional[float] = None
+    last_event_id: Optional[int] = None
+    pid: Optional[int] = None
+    restarts: int = 0
+
+
+class KillOut(BaseModel):
+    agent: str
+    killed_pid: int
+    recovered: bool
+    recovery_s: Optional[float] = None
+
+
+class LimitationsOut(BaseModel):
+    source: str
+    text: str
+
+
+class ModelBudget(BaseModel):
+    model: str
+    rpm_limit: Optional[float] = None
+    effective_rpm_cap: Optional[int] = None
+    requests_last_minute: int
+    requests_last_24h: int
+    cooldown_remaining_s: float
+    failures_last_24h: int
+
+
+class LLMBudgetOut(BaseModel):
+    models: list[ModelBudget]
+    cache_hits: int
+    model_requests: int
+    cache_hit_rate: Optional[float] = None
+    recent_events: list[dict[str, Any]]
+
+
+class MetricsOut(BaseModel):
+    available: list[str]
+    files: dict[str, Any]
+
+
+class QualityOut(BaseModel):
+    live: dict[str, Any]
+    static: Optional[dict[str, Any]] = None

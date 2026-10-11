@@ -104,3 +104,8 @@ reports:
   daily_dir: reports/daily
   weekly_dir: reports/weekly
   samples_dir: reports/samples
+api:   # echos/api (FastAPI): bound to 127.0.0.1, NO authentication (demo only), CORS for the local UI only
+  host: 127.0.0.1
+  port: 8000
+  cors_origin: http://localhost:5173
+  allow_kill: false      # POST /api/agents/{name}/kill is refused unless true

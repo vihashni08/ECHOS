@@ -67,6 +67,8 @@ def get_engine(path=None):
         c.close()
 
     md.create_all(eng)
+    with eng.begin() as c:
+        create_feed_triggers(c)
     with eng.begin() as c:   # databases created before these columns existed
         for table, col in (("reports", "provenance"), ("outbox", "attachment_name"), ("outbox", "attachment_path")):
             if col not in {r[1] for r in c.execute(text(f"PRAGMA table_info({table})"))}:
@@ -98,3 +100,33 @@ reports = Table("reports", md, Column("patient_id", String, primary_key=True), C
                 Column("kind", String, primary_key=True), Column("mode", String), Column("path", String),
                 Column("validation", Text), Column("created_ts", Float),
                 Column("provenance", Text))   # JSON: model / cache hit / tools / sources / validator / fallback reason / request counts ("How this report was made")
+
+
+# ---- live control + change feed (API <-> runtime). The API never loads models: it writes commands here and reads state/feed.
+sim_state = Table("sim_state", md, Column("key", String, primary_key=True), Column("value", Text))          # status / speed / cursor / total / sim_time / message
+sim_command = Table("sim_command", md, Column("id", Integer, primary_key=True, autoincrement=True), Column("ts", Float), Column("cmd", String),
+                    Column("args", Text), Column("status", String, default="NEW"), Column("result", Text))  # NEW -> DONE | ERROR (consumed by echos.sim.controller)
+event_feed = Table("event_feed", md, Column("id", Integer, primary_key=True, autoincrement=True), Column("ts", Float), Column("kind", String),
+                   Column("data", Text))                                                                      # server-sent events: filled by triggers below
+
+_TRIGGERS = [
+    ("feed_alert", "AFTER INSERT ON alerts", "", "'alert'", "json_object('alert_id', NEW.alert_id, 'patient_id', NEW.patient_id, 'type', NEW.type, 'event_time', NEW.event_time)"),
+    ("feed_day_ins", "AFTER INSERT ON case_state", "", "'day_status'", "json_object('patient_id', NEW.patient_id, 'day', NEW.day, 'status', NEW.status)"),
+    ("feed_day_upd", "AFTER UPDATE OF status ON case_state", "WHEN OLD.status IS NOT NEW.status", "'day_status'",
+     "json_object('patient_id', NEW.patient_id, 'day', NEW.day, 'status', NEW.status, 'previous', OLD.status)"),
+    ("feed_report_ins", "AFTER INSERT ON reports", "", "'report_ready'", "json_object('patient_id', NEW.patient_id, 'day', NEW.day, 'kind', NEW.kind, 'mode', NEW.mode)"),
+    ("feed_report_upd", "AFTER UPDATE ON reports", "", "'report_ready'", "json_object('patient_id', NEW.patient_id, 'day', NEW.day, 'kind', NEW.kind, 'mode', NEW.mode)"),
+    ("feed_outbox_ins", "AFTER INSERT ON outbox", "", "'outbox_status'",
+     "json_object('outbox_id', NEW.outbox_id, 'alert_id', NEW.alert_id, 'role', NEW.recipient_role, 'status', NEW.status)"),
+    ("feed_outbox_upd", "AFTER UPDATE OF status ON outbox", "WHEN OLD.status IS NOT NEW.status", "'outbox_status'",
+     "json_object('outbox_id', NEW.outbox_id, 'alert_id', NEW.alert_id, 'role', NEW.recipient_role, 'status', NEW.status)"),
+    ("feed_agent_status", "AFTER UPDATE OF status ON agent_heartbeat", "WHEN OLD.status IS NOT NEW.status", "'agent_health'",
+     "json_object('agent', NEW.agent_id, 'status', NEW.status, 'alive', 1)"),
+]
+
+
+def create_feed_triggers(conn) -> None:
+    """Every write by ANY process to alerts / case_state / reports / outbox / agent_heartbeat adds a row to event_feed."""
+    for name, when, cond, kind, data in _TRIGGERS:
+        conn.execute(text(f"CREATE TRIGGER IF NOT EXISTS {name} {when} {cond} BEGIN INSERT INTO event_feed (ts, kind, data) "
+                          f"VALUES (strftime('%s','now') + 0.0, {kind}, {data}); END"))

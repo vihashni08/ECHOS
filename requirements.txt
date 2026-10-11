@@ -19,3 +19,5 @@ pypdf
 chromadb
 sentence-transformers
 reportlab
+fastapi
+uvicorn
