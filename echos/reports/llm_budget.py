@@ -258,7 +258,7 @@ def make_budget(cfg: Optional[dict] = None, cache_path=None) -> Optional[LLMBudg
     """Budget over [primary, fallback] Gemini models from config.yaml. None when no model or no API key is configured (template mode)."""
     cfg = cfg or load_config()
     lc = cfg.get("llm") or {}
-    if not lc.get("model"):
+    if not lc.get("model") or os.environ.get("ECHOS_REPORT_LLM") == "off":     # run_api.sh --no-llm: never build a real client, whatever is in .env
         return None
     try:
         from dotenv import load_dotenv

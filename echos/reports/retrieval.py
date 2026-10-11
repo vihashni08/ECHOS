@@ -4,6 +4,7 @@ failure reason is recorded. Returned sources share one shape: {id, title, source
 from __future__ import annotations
 
 import logging
+import re
 from typing import Callable, Optional
 
 from echos.knowledge.pubmed import PubMedClient, PubMedError
@@ -12,14 +13,22 @@ log = logging.getLogger("echos.retrieval")
 GATED_STATUSES = ("MONITOR", "URGENT")
 
 
+def excerpt(text: str, n: int = 40) -> str:
+    """At most n words (local guideline chunks only; PubMed abstracts are never shown)."""
+    w = text.split()
+    return " ".join(w[:n]) + (" ..." if len(w) > n else "")
+
+
 def _norm_local(c: dict) -> dict:
-    return {"id": c["id"], "title": c.get("title", ""), "source": f"{c.get('source', '')}, page {c.get('page', '')}".strip(", "),
+    m = re.search(r"\b(19|20)\d{2}\b", " ".join(str(c.get(k, "")) for k in ("source", "title")))
+    return {"id": c["id"], "title": c.get("title", ""), "source": f"{c.get('source', '')}, page {c.get('page', '')}".strip(", "), "publisher": c.get("source", ""),
+            "year": m.group(0) if m else None, "page": str(c.get("page", "")), "journal": None, "url": None, "excerpt": excerpt(c["text"]),
             "text": c["text"], "origin": "local", "finding_type": c.get("finding_type")}
 
 
 def _norm_pm(s: dict) -> dict:
-    return {"id": s["id"], "title": s["title"], "source": f"{s['journal']}, {s['year']}".strip(", "), "text": s["text"], "origin": "pubmed",
-            "url": s["url"], "finding_type": s.get("finding_type")}
+    return {"id": s["id"], "title": s["title"], "source": f"{s['journal']}, {s['year']}".strip(", "), "publisher": "PubMed", "year": s.get("year") or None, "page": None,
+            "journal": s.get("journal"), "url": s["url"], "excerpt": None, "text": s["text"], "origin": "pubmed", "finding_type": s.get("finding_type")}
 
 
 class GatedRetriever:

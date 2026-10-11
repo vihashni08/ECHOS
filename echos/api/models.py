@@ -139,6 +139,11 @@ class DailyReportOut(BaseModel):
     day: str
     mode: str
     text: str
+    status: Optional[str] = None
+    alerts: list[str] = []
+    changes: list[str] = []
+    monitor: list[str] = []
+    data_note: Optional[str] = None
     created_ts: Optional[float] = None
     validation: Optional[dict[str, Any]] = None
     provenance: Optional[Provenance] = None      # 'How this report was made'
@@ -182,6 +187,8 @@ class OutboxOut(BaseModel):
     queued_time: Optional[float] = None
     sent_time: Optional[float] = None
     attachment_name: Optional[str] = None
+    kind: str = "alert"                            # alert | weekly
+    delivery: str = "dry_run"                      # dry_run (nothing leaves the machine) | email (real SMTP)
     body: Optional[str] = None                     # message text; only on /falls/{id} (fixed template, de-identified)
 
 
@@ -324,6 +331,19 @@ class QualityOut(BaseModel):
 
 
 class SystemConfigOut(BaseModel):
+    demo: bool = False
     allow_kill: bool
     dry_run_mail: bool
     llm_enabled: bool
+
+
+class SourceOut(BaseModel):
+    id: str
+    origin: str                     # local | pubmed
+    title: str
+    source: str                     # publisher (local guideline) or "PubMed"
+    year: Optional[str] = None
+    page: Optional[str] = None      # local guidelines
+    journal: Optional[str] = None   # PubMed
+    url: Optional[str] = None       # PubMed link when one exists
+    excerpt: Optional[str] = None   # at most 40 words, local guidelines only (never PubMed abstract text)

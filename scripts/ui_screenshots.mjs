@@ -13,12 +13,23 @@ mkdirSync(OUT, { recursive: true })
 
 const patients = (await (await fetch(`${API}/patients`)).json()).items
 const pid = patients.find((p) => p.last_alert_type)?.patient_id ?? patients[0]?.patient_id
+const withFall = patients.find((p) => p.last_alert_type)
+const wk = "2019-W20"
+// [name, path, action(page)]
 const pages = [
   ["dashboard", "/"],
   ["falls", `/falls?patient=${pid}`],
   ["patient-vitals", `/patients/${pid}`],
-  ["patient-routine", `/patients/${pid}`, "routine"],
-  ["caregiver", "/caregiver"],
+  ["patient-routine", `/patients/${pid}`, async (p) => p.getByRole("tab", { name: /routine/i }).click()],
+  ["caregiver", `/caregiver?patient=${withFall?.patient_id ?? pid}&day=${withFall?.last_alert_time?.slice(0, 10) ?? ""}`],
+  ["caregiver-how-made", `/caregiver?patient=${withFall?.patient_id ?? pid}`, async (p) => p.getByTestId("provenance").locator("summary").click()],
+  ["clinician", `/clinician?patient=201d8&week=${wk}`, async (p) => p.getByTestId("narrative").waitFor({ timeout: 120000 })],
+  ["clinician-source", `/clinician?patient=201d8&week=${wk}`, async (p) => { await p.getByTestId("references").locator("button").first().click(); await p.getByTestId("source-panel").waitFor() }],
+  ["system-health", "/system"],
+  ["system-quality", "/system", async (p) => p.getByRole("tab", { name: "Data quality" }).click()],
+  ["system-models", "/system", async (p) => p.getByRole("tab", { name: "Models" }).click()],
+  ["system-limitations", "/system", async (p) => p.getByRole("tab", { name: "Limitations" }).click()],
+  ["demo-guide", "/", async (p) => p.getByTestId("demo-guide-button").click()],
 ]
 const browser = await chromium.launch()
 const files = []
@@ -29,9 +40,9 @@ for (const [theme, vp] of [["light", [1440, 900]], ["dark", [1440, 900]], ["ligh
   const errors = []
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()))
   page.on("pageerror", (e) => errors.push(String(e)))
-  for (const [name, path, tab] of pages) {
+  for (const [name, path, act] of pages) {
     await page.goto(BASE + path, { waitUntil: "networkidle" })
-    if (tab) await page.getByRole("tab", { name: new RegExp(tab, "i") }).click()
+    if (act) await act(page)
     if (name === "falls") await page.waitForSelector('[data-testid="fall-detail"]', { timeout: 15000 }).catch(() => {})
     await page.waitForTimeout(1800)
     const f = `${name}-${theme}-${vp[0]}.png`

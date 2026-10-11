@@ -50,12 +50,12 @@ fall), writes heartbeats to SQLite and restarts dead ones.
   triggers. Never returns raw secrets or full e-mail addresses (masked `ab***@domain`); `api.allow_kill` (default false) guards POST /api/agents/{name}/kill.
   Injected falls are synthetic SisFall windows; the response states whether the subject was in the training set of the Fall worker's model / the final model.
 
-## Web app (web/)
+## Web app (web/) — pages: Dashboard, Fall Monitor, Patient, Caregiver, Clinician, System, Demo guide drawer (demo mode only)
 - Vite + React + TypeScript + Tailwind v4 + shadcn/ui + Recharts + React Router + TanStack Query; fonts self-hosted (@fontsource), no runtime CDN. Typed client from the
   FastAPI schema: `cd web && npm run gen:api`. Dev: backend `scripts/run_api.sh --dry --no-llm [--demo] --db data/echos_ui_dev.db` (copy made by
   `scripts/make_ui_dev_copy.sh`; never develop against data/echos.db), then `cd web && npm run dev` -> http://localhost:5173 (the API allows CORS for exactly that origin).
-  Checks: `npm run build`, `npx tsc -b`, `node contrast.mjs` (WCAG AA tokens), `npx playwright test` (assumes both servers running; its Simulate-fall test RESETS the dev DB),
-  `node scripts/ui_screenshots.mjs` -> web/screenshots/. `--demo` enables agent kill (api.allow_kill stays false by default).
+  Checks: `npm run build`, `npx tsc -b`, `node contrast.mjs` (WCAG AA tokens), `npx playwright test` (starts its OWN stack: API :8010 + Vite :5180 on a throw-away copy data/echos_e2e.db made from the UI dev copy; incl. axe-core checks, no serious violations allowed),
+  `node scripts/ui_screenshots.mjs` -> web/screenshots/. `--demo` = demo mode (agent kill + Demo guide; api.allow_kill stays false by default); `--no-llm` also switches live PubMed off (ECHOS_PUBMED=off). The Clinician page builds a missing weekly report on first visit (nothing is emailed); Send to clinician states dry run vs real email and asks twice to resend.
 
 ## Rules
 - Python 3.11, pydantic, pandas, scikit-learn, xgboost, shap, langgraph, streamlit, sqlalchemy/sqlite, pytest.

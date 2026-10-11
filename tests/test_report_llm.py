@@ -347,3 +347,13 @@ def test_outbound_calls_to_gemini_and_ncbi_are_blocked():
             socket.getaddrinfo(host, 443)
     assert len(conftest.ATTEMPTS) == 2
     conftest.ATTEMPTS.clear()      # expected here; every other test must end with none
+
+
+def test_no_llm_switch_blocks_every_real_client_even_with_a_key(monkeypatch):
+    from echos.reports.llm import make_llm
+    from echos.reports.llm_budget import make_budget
+    monkeypatch.setenv("ECHOS_LLM_API_KEY", "dummy-key-not-real")
+    monkeypatch.setenv("ECHOS_REPORT_LLM", "off")                 # what scripts/run_api.sh --no-llm sets
+    assert make_budget() is None and make_llm() is None
+    monkeypatch.delenv("ECHOS_REPORT_LLM")
+    assert make_budget() is not None                              # constructing a client makes no request

@@ -94,7 +94,7 @@ def test_every_endpoint_returns_200_and_validates(api):
         assert len(w.t_s) == len(w.magnitude_g) <= 260 and w.magnitude_g[w.impact_index] == max(w.magnitude_g)
     assert f.outbox[0].body == "b" and c.get("/api/outbox").json()["items"][0]["body"] is None
     cfg = c.get("/api/system/config").json()
-    assert cfg == {"allow_kill": False, "dry_run_mail": True, "llm_enabled": True}
+    assert cfg == {"demo": False, "allow_kill": False, "dry_run_mail": True, "llm_enabled": True}
     assert c.get("/api/system/limitations").json()["text"].startswith("- TIHM has no falls")
     assert c.get("/openapi.json").status_code == 200 and c.get("/docs").status_code == 200
 
@@ -334,3 +334,56 @@ def test_api_process_never_imports_torch_or_xgboost(tmp_path):
     r = subprocess.run([sys.executable, "-W", "ignore", "-c", code], capture_output=True, text=True, cwd=ROOT, env={**os.environ, "PYTHONPATH": str(ROOT)}, timeout=170)
     assert r.returncode == 0, r.stderr[-800:]
     assert "BAD []" in r.stdout
+
+
+
+# ------------------------------------------------------------------ UI needs: structured daily report, cited sources, weekly build, outbox kind
+def test_daily_report_is_structured_without_citation_tags_or_probabilities(api):
+    c, ctx = api
+    md = ("# Daily report for pw - 2019-05-07\n\n**Status: MONITOR** - Changes noticed\n\n## Alerts\n\n- Possible fall at 14:02 (likelihood 0.93); little movement afterwards.\n\n"
+          "## What changed compared with their usual pattern\n\n- Systolic blood pressure 162 was above this person's usual range (usual 130). [F1]\n\n"
+          "## What to monitor today\n\n- Repeat the blood pressure later today.\n- Keep drinking fluids.\n\n## Data note\nNo vitals reading for 2 days.\n\n---\n_Decision-support only._\n")
+    (ctx.report_root / "reports/daily/pw_2019-05-07.md").write_text(md)
+    d = M.DailyReportOut.model_validate(c.get(f"/api/patients/{PID}/reports/daily?day=2019-05-07").json())
+    assert d.status == "MONITOR" and d.alerts[0].startswith("Possible fall at 14:02") and d.changes == ["Systolic blood pressure 162 was above this person's usual range (usual 130)."]
+    assert d.monitor == ["Repeat the blood pressure later today.", "Keep drinking fluids."] and d.data_note == "No vitals reading for 2 days."
+
+
+def test_sources_local_pubmed_and_unknown(api, monkeypatch):
+    c, ctx = api
+    long = " ".join(f"w{i}" for i in range(100))
+    monkeypatch.setattr(V, "_chroma_get", lambda ctx_, sid: {"title": "Hypertension in adults", "publisher": "NICE NG136 (2019)", "page": "5", "text": long, "file": "x.pdf"} if sid == "KB-7" else None)
+    k = M.SourceOut.model_validate(c.get("/api/sources/KB-7").json())
+    assert (k.origin, k.title, k.source, k.year, k.page, k.url) == ("local", "Hypertension in adults", "NICE NG136 (2019)", "2019", "5", None) and len(k.excerpt.split()) <= 41 and k.excerpt.endswith("...")
+    # PubMed: from the SQLite cache; never any abstract text
+    import sqlite3
+    from echos.knowledge.pubmed import PubMedClient
+    pm = PubMedClient(http_get=lambda *a: b"", cache_path=ctx.root / "data/pubmed_cache.sqlite")
+    cn = sqlite3.connect(pm.cache_path)
+    cn.execute("INSERT INTO pubmed_cache VALUES (?,?,?,?)", ("k", "q", json.dumps({"sources": [{"id": "PM-12345678", "title": "Home BP in older adults", "journal": "Age and Ageing", "year": "2021",
+                                                                                              "url": "https://pubmed.ncbi.nlm.nih.gov/12345678/", "text": "SECRET ABSTRACT TEXT"}]}), 1.0))
+    cn.commit(); cn.close()
+    r = c.get("/api/sources/PM-12345678")
+    j = r.json()
+    assert (j["origin"], j["journal"], j["year"], j["url"], j["excerpt"]) == ("pubmed", "Age and Ageing", "2021", "https://pubmed.ncbi.nlm.nih.gov/12345678/", None) and "SECRET" not in r.text
+    assert c.get("/api/sources/KB-999").status_code == 404 and c.get("/api/sources/XX-1").status_code == 404
+
+
+def test_weekly_build_stores_a_report_without_emailing_and_outbox_has_kind_and_delivery(api):
+    c, ctx = api
+    r = c.post(f"/api/patients/{PID}/reports/weekly/build?week={WEEK}")
+    assert r.status_code == 200 and r.json()["pdf_available"] and r.json()["week"] == WEEK
+    assert c.get("/api/outbox?limit=500").json()["total"] == 2          # the two fixture fall rows only: building sends nothing
+    c.post(f"/api/patients/{PID}/reports/weekly/send?week={WEEK}", json={})
+    rows = c.get("/api/outbox?limit=500").json()["items"]
+    wk = next(o for o in rows if o["kind"] == "weekly")
+    assert wk["delivery"] == "dry_run" and wk["attachment_name"] == f"{PID}_{WEEK}.pdf" and wk["status"] == "SENT"
+    assert {o["kind"] for o in rows} == {"alert", "weekly"}
+
+
+def test_weekly_available_lists_stored_weeks_only(api):
+    c, _ = api
+    assert c.get(f"/api/patients/{PID}/reports/weekly-available").json() == []
+    c.post(f"/api/patients/{PID}/reports/weekly/build?week={WEEK}")
+    assert c.get(f"/api/patients/{PID}/reports/weekly-available").json() == [WEEK]
+    assert c.get("/api/patients/nope/reports/weekly-available").status_code == 404

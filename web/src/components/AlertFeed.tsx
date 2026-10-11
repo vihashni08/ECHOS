@@ -22,7 +22,8 @@ export default function AlertFeed() {
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? <Empty title="No alerts yet">Alerts appear here the moment they are raised.</Empty> : (
-          <ol className="flex max-h-96 flex-col gap-2 overflow-y-auto" role="log" aria-live="polite" aria-label="Alerts, newest first" data-testid="alert-feed">
+          <div role="log" aria-live="polite" aria-label="Alerts, newest first" tabIndex={0} className="max-h-96 overflow-y-auto" data-testid="alert-feed">
+          <ol className="flex flex-col gap-2">
             {rows.map((r) => (
               <li key={r.id} data-testid="alert-item" className="flex items-start gap-2.5 rounded-lg border border-urgent-line bg-urgent-bg px-3 py-2 text-urgent-fg">
                 <Siren className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
@@ -33,6 +34,7 @@ export default function AlertFeed() {
               </li>
             ))}
           </ol>
+          </div>
         )}
       </CardContent>
     </Card>

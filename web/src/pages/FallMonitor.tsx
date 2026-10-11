@@ -36,7 +36,7 @@ function AlertPanel({ d }: { d: FallDetail }) {
             {d.outbox[0] && (
               <div className="flex flex-col gap-1">
                 <div><span className="text-muted-foreground">Subject: </span><span className="font-medium">{d.outbox[0].subject}</span></div>
-                <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-md border bg-muted p-3 font-mono text-xs leading-relaxed">{d.outbox[0].body}</pre>
+                <pre tabIndex={0} aria-label="Message body" className="max-h-56 overflow-auto whitespace-pre-wrap rounded-md border bg-muted p-3 font-mono text-xs leading-relaxed">{d.outbox[0].body}</pre>
               </div>
             )}
           </>
@@ -132,7 +132,7 @@ export default function FallMonitor() {
             <SelectContent><SelectItem value="all">All patients</SelectItem>{ids.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent></Select>
           {falls.isLoading ? <Skeleton className="h-40 w-full" /> : falls.isError ? <ErrorNote error={falls.error} />
             : mine.length === 0 ? <Empty title="No falls yet">Press Simulate fall to inject one.</Empty> : (
-              <ul className="flex max-h-[32rem] flex-col gap-1.5 overflow-y-auto" aria-label="Falls" data-testid="fall-list">
+              <ul className="flex max-h-[32rem] flex-col gap-1.5 overflow-y-auto" aria-label="Falls" tabIndex={0} data-testid="fall-list">
                 {mine.map((f) => (
                   <li key={f.id}><button onClick={() => setSp({ ...(pid ? { patient: pid } : {}), fall: String(f.id) })} aria-current={f.id === fid}
                     className={`w-full rounded-lg border p-2.5 text-left text-sm transition-colors hover:bg-secondary ${f.id === fid ? "border-primary bg-accent" : "bg-card"}`}>

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePatients, useSimControl, useSimState } from "@/lib/queries"
 
 const SPEEDS = [0.5, 1, 5, 20, 100]
+export const RESET_TEXT = "This clears the simulation tables of the database the API was started with: events, agent outputs, day statuses, alerts, outbox rows, daily facts and reports. Patient demographics, models and report files on disk are kept."
 
 export default function SimControls() {
   const sim = useSimState()
@@ -20,7 +21,7 @@ export default function SimControls() {
   const storeHasData = (patients.data?.items ?? []).some((p) => p.latest_day)
   const run = (body: Parameters<typeof ctl.mutate>[0]) => { setMsg(""); ctl.mutate(body, { onError: (e) => setMsg((e as Error).message) }) }
   const onPlay = () => (s?.status === "idle" && (s.cursor ?? 0) === 0 && storeHasData ? setNeedReset(true) : run({ action: "play" }))
-  const resetText = "This clears the simulation tables of the database the API was started with: events, agent outputs, day statuses, alerts, outbox rows, daily facts and reports. Patient demographics, models and report files on disk are kept."
+  const resetText = RESET_TEXT
   return (
     <Card>
       <CardHeader><CardTitle>Simulation</CardTitle></CardHeader>

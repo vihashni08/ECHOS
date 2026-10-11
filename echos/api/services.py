@@ -59,7 +59,7 @@ class Ctx:
     def __post_init__(self):
         import threading
         self.lock = threading.Lock()
-        self.report_root = Path(self.report_root) if self.report_root else self.root
+        self.report_root = Path(self.report_root).resolve() if self.report_root else self.root
         self.metrics_dir = Path(self.metrics_dir) if self.metrics_dir else self.root / self.cfg["paths"]["metrics"]
 
     # lazily loaded frames (cached for the process)
@@ -271,6 +271,27 @@ def _inside(ctx: Ctx, rel: str) -> Path:
     return p
 
 
+_CITE = re.compile(r"\s*\[(?:F\d+|E\d+)(?:, (?:F\d+|E\d+))*\]")
+
+
+def parse_daily(text: str) -> dict:
+    """Structured view of the stored markdown daily report: status, alerts, changes, monitor items, data note (citation tags removed)."""
+    secs: dict = {}
+    cur = None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            cur = line[3:].strip().lower()
+            secs[cur] = []
+        elif line.startswith("---"):
+            cur = None
+        elif cur is not None and line.strip():
+            secs[cur].append(_CITE.sub("", line.strip().removeprefix("- ")).strip())
+    pick = lambda prefix: next((v for k, v in secs.items() if k.startswith(prefix)), [])  # noqa: E731
+    m = re.search(r"\*\*Status: (\w+)\*\*", text)
+    note = " ".join(pick("data note"))
+    return {"status": m.group(1) if m else None, "alerts": pick("alerts"), "changes": pick("what changed"), "monitor": pick("what to monitor"), "data_note": note or None}
+
+
 def daily_report(ctx: Ctx, pid: str, day: Optional[str]) -> dict:
     require_patient(ctx, pid)
     day = day or latest_day(ctx, pid)
@@ -279,7 +300,8 @@ def daily_report(ctx: Ctx, pid: str, day: Optional[str]) -> dict:
     if r is None:
         raise NotFound(f"no daily report for {pid} on {day}")
     p = _inside(ctx, r.path)
-    return {"patient_id": pid, "day": day, "mode": r.mode, "text": p.read_text() if p.exists() else "", "created_ts": r.created_ts,
+    text = p.read_text() if p.exists() else ""
+    return {"patient_id": pid, "day": day, "mode": r.mode, "text": text, **parse_daily(text), "created_ts": r.created_ts,
             "validation": json.loads(r.validation) if r.validation else None, "provenance": json.loads(r.provenance) if r.provenance else None}
 
 
@@ -304,6 +326,20 @@ def weekly_row(ctx: Ctx, pid: str, week: Optional[str]):
     return wk, mon, sun, r
 
 
+def weekly_weeks(ctx: Ctx, pid: str) -> list[str]:
+    require_patient(ctx, pid)
+    with ctx.eng.begin() as c:
+        days = [r[0] for r in c.execute(select(S.reports.c.day).where((S.reports.c.patient_id == pid) & (S.reports.c.kind == "weekly_pdf")).order_by(S.reports.c.day))]
+    return [WD.iso_week(d) for d in days]
+
+
+def _pdf_exists(ctx: Ctx, path: Optional[str]) -> bool:
+    try:
+        return bool(path) and _inside(ctx, path).exists()
+    except NotFound:       # a report row copied from another database may point outside this one's files
+        return False
+
+
 def weekly_report(ctx: Ctx, pid: str, week: Optional[str]) -> dict:
     wk, mon, sun, r = weekly_row(ctx, pid, week)
     if r is None:
@@ -316,7 +352,7 @@ def weekly_report(ctx: Ctx, pid: str, week: Optional[str]) -> dict:
     except Exception:  # noqa: BLE001 - data is a convenience; the stored report stands without it
         pass
     return {"patient_id": pid, "week": wk, "week_start": mon, "week_end": sun, "mode": r.mode, "narrative": prov.get("narrative"), "provenance": prov,
-            "validation": json.loads(r.validation) if r.validation else None, "pdf_available": _inside(ctx, r.path).exists() if r.path else False,
+            "validation": json.loads(r.validation) if r.validation else None, "pdf_available": _pdf_exists(ctx, r.path),
             "pdf_pages": (prov.get("pdf") or {}).get("pages"), "data": data}
 
 
@@ -326,7 +362,7 @@ def alert_out(r) -> dict:
 
 
 def outbox_out(r) -> dict:
-    return {"outbox_id": r.outbox_id, "alert_id": r.alert_id, "recipient_role": r.recipient_role, "address": mask_email(r.address), "channel": r.channel,
+    return {"kind": "weekly" if str(r.alert_id).startswith("weekly|") else "alert", "delivery": "email" if r.channel == "smtp" else "dry_run", "outbox_id": r.outbox_id, "alert_id": r.alert_id, "recipient_role": r.recipient_role, "address": mask_email(r.address), "channel": r.channel,
             "subject": r.subject, "status": r.status, "attempts": r.attempts or 0, "error": scrub(r.error), "event_time": r.event_time, "queued_time": r.queued_time,
             "sent_time": r.sent_time, "attachment_name": r.attachment_name}
 
@@ -526,3 +562,69 @@ def limitations(ctx: Ctx) -> dict:
     if not m:
         raise NotFound("no Limitations section in reports/RESULTS.md")
     return {"source": "reports/RESULTS.md (## Limitations)", "text": m.group(1).strip()}
+
+
+# ------------------------------------------------------------------ cited sources
+def _stored_source(ctx: Ctx, sid: str) -> Optional[dict]:
+    with ctx.eng.begin() as c:
+        rows = c.execute(select(S.reports.c.provenance).where(S.reports.c.provenance.like(f"%{sid}%"))).fetchall()
+    for (pv,) in rows:
+        for s in (json.loads(pv).get("sources_retrieved") or []):
+            if s.get("id") == sid:
+                return s
+    return None
+
+
+def _pubmed_cached(ctx: Ctx, sid: str) -> Optional[dict]:
+    import sqlite3
+    path = ctx.root / ctx.cfg.get("pubmed", {}).get("cache_path", "data/pubmed_cache.sqlite")
+    if not path.exists():
+        return None
+    c = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        for (v,) in c.execute("SELECT value FROM pubmed_cache"):
+            for s in json.loads(v).get("sources", []):
+                if s.get("id") == sid:
+                    return s
+    except sqlite3.Error:
+        pass
+    finally:
+        c.close()
+    return None
+
+
+def _chroma_get(ctx: Ctx, sid: str) -> Optional[dict]:
+    """A guideline chunk by id (no embeddings needed: the API never loads a model)."""
+    try:
+        import chromadb
+        from echos.knowledge.ingest import COLLECTION, rag_dir
+        r = chromadb.PersistentClient(path=str(rag_dir())).get_collection(COLLECTION).get(ids=[sid])
+    except Exception:  # noqa: BLE001 - index missing
+        return None
+    if not r["ids"]:
+        return None
+    m = r["metadatas"][0]
+    pg = m["page_start"] if m["page_start"] == m["page_end"] else f"{m['page_start']}-{m['page_end']}"
+    return {"title": m["title"], "publisher": m["source"], "page": str(pg), "text": r["documents"][0], "file": m.get("file", "")}
+
+
+def source_detail(ctx: Ctx, sid: str) -> dict:
+    """Title, publisher/journal, year, page, link and a SHORT excerpt for a cited source ([KB-n] local, [PM-id] PubMed). PubMed: no abstract text."""
+    from echos.reports.retrieval import excerpt
+    if sid.startswith("PM-"):
+        s = _pubmed_cached(ctx, sid) or _stored_source(ctx, sid)
+        if s is None:
+            raise NotFound(f"unknown source {sid!r}")
+        return {"id": sid, "origin": "pubmed", "title": s.get("title", ""), "source": "PubMed", "year": s.get("year") or None, "page": None,
+                "journal": s.get("journal") or (s.get("source") or "").split(",")[0] or None, "url": s.get("url") or f"https://pubmed.ncbi.nlm.nih.gov/{sid[3:]}/", "excerpt": None}
+    if sid.startswith("KB-"):
+        s = _chroma_get(ctx, sid)
+        if s is not None:
+            y = re.search(r"\b(19|20)\d{2}\b", f"{s['publisher']} {s['title']} {s['file']}")
+            return {"id": sid, "origin": "local", "title": s["title"], "source": s["publisher"], "year": y.group(0) if y else None, "page": s["page"], "journal": None,
+                    "url": None, "excerpt": excerpt(s["text"])}
+        st = _stored_source(ctx, sid)
+        if st is not None:
+            return {"id": sid, "origin": "local", "title": st.get("title", ""), "source": st.get("publisher") or st.get("source", ""), "year": st.get("year"), "page": st.get("page"),
+                    "journal": None, "url": None, "excerpt": st.get("excerpt")}
+    raise NotFound(f"unknown source {sid!r}")

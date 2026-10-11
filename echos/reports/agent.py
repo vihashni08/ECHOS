@@ -35,6 +35,7 @@ def _safe_retrieve(*a, **k) -> list:
 from echos.reports.llm import LLMAPIError
 from echos.reports.llm_budget import Backend, Cache, GenerationFailed, LLMBudget, make_budget, make_key
 from echos.reports.retrieval import GatedRetriever
+from echos.reports.weekly_data import fmt_prob
 from echos.reports.validator import validate_report
 
 TPL = jinja2.Environment(loader=jinja2.FileSystemLoader(str(Path(__file__).parent / "templates")), autoescape=False,
@@ -201,7 +202,7 @@ def daily_template_items(facts: dict) -> dict:
 def daily_alerts(facts: dict) -> list:
     out = []
     for f in facts["falls"]:
-        out.append(f"Possible fall at {f['time'] or 'unknown time'} (likelihood {f['prob']:.2f})"
+        out.append(f"Possible fall at {f['time'] or 'unknown time'} (likelihood {fmt_prob(f['prob'])})"
                    + ("; little movement afterwards." if f["post_fall_inactive"] else "."))
     for f in facts["flags"]:
         if f["evidence"].get("kind") == "critical":
@@ -608,7 +609,7 @@ class ReportAgent:
                 items, sources, mode = val["items"], val["sources"], "llm"
                 v = self._check(items, facts, view, {"sources": sources, "last7": val["last7"]})
                 prov.update(model=res.model, mode="llm", cache_hit=res.cache_hit, tools=val["tools"], validator=v, fallback_reason=None,
-                            sources_retrieved=[{k: s.get(k) for k in ("id", "origin", "title", "source", "url")} for s in sources.values()],
+                            sources_retrieved=[{k: s.get(k) for k in ("id", "origin", "title", "source", "publisher", "year", "page", "journal", "url", "excerpt")} for s in sources.values()],
                             retrieval_events=val["retrieval_events"], pubmed_failure=val.get("pubmed_failure"))
             else:
                 prov["fallback_reason"] = res.fallback_reason

@@ -3,7 +3,9 @@ import Layout from "@/components/Layout"
 import Dashboard from "@/pages/Dashboard"
 import FallMonitor from "@/pages/FallMonitor"
 import PatientPage, { PatientRedirect } from "@/pages/PatientPage"
-import Placeholder from "@/pages/Placeholder"
+import Caregiver from "@/pages/Caregiver"
+import Clinician from "@/pages/Clinician"
+import System from "@/pages/System"
 
 export default function App() {
   return (
@@ -13,9 +15,9 @@ export default function App() {
         <Route path="falls" element={<FallMonitor />} />
         <Route path="patient" element={<PatientRedirect />} />
         <Route path="patients/:id" element={<PatientPage />} />
-        <Route path="caregiver" element={<Placeholder title="Caregiver" />} />
-        <Route path="clinician" element={<Placeholder title="Clinician" />} />
-        <Route path="system" element={<Placeholder title="System" />} />
+        <Route path="caregiver" element={<Caregiver />} />
+        <Route path="clinician" element={<Clinician />} />
+        <Route path="system" element={<System />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

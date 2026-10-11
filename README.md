@@ -100,7 +100,9 @@ scripts/make_ui_dev_copy.sh                                   # data/echos_ui_de
 scripts/run_api.sh --dry --no-llm --demo --db data/echos_ui_dev.db   # API on http://127.0.0.1:8000 (dry mail, no Gemini, agent kill enabled)
 cd web && npm install && npm run dev                          # UI on http://localhost:5173 (open it via localhost, CORS allows only that origin)
 ```
-`npm run build` / `npx tsc -b` verify the app; `npx playwright test` (servers running) runs the smoke tests; `npm run gen:api` regenerates the typed API client.
+`npm run build` / `npx tsc -b` verify the app; `npx playwright test` starts its own throw-away stack (API on :8010, Vite on :5180, database copy data/echos_e2e.db) and runs the smoke, axe and action tests; `npm run gen:api` regenerates the typed API client.
+
+Pages: Dashboard (patients, live alert feed, agents, simulation), Fall Monitor, Patient (vitals/routine), Caregiver (today's report + 7-day strip + 'How this report was made'), Clinician (weekly report, references, PDF, send, outbox), System (health, data quality, models, limitations) and, in demo mode, a Demo guide drawer.
 
 ## Dashboard
 

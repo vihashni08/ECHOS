@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
-# Copy data/echos.db to data/echos_ui_dev.db (+ its report files) so UI work never touches the original. Usage: scripts/make_ui_dev_copy.sh
+# Copy a database (default data/echos.db) to data/<NAME>.db (default echos_ui_dev) with its report files, so UI work and e2e tests never touch the original.
+#   scripts/make_ui_dev_copy.sh [SRC_DB] [NAME]       e.g.  scripts/make_ui_dev_copy.sh data/echos_ui_dev.db echos_e2e
 set -euo pipefail
 cd "$(dirname "$0")/.."
-rm -f data/echos_ui_dev.db data/echos_ui_dev.db-wal data/echos_ui_dev.db-shm data/echos_ui_dev.cp.sqlite
-sqlite3 data/echos.db ".backup 'data/echos_ui_dev.db'"
-rm -rf data/echos_ui_dev_files && mkdir -p data/echos_ui_dev_files/reports
-for d in daily weekly; do [ -d reports/$d ] && cp -R reports/$d data/echos_ui_dev_files/reports/ || true; done
-echo "created data/echos_ui_dev.db; run: scripts/run_api.sh --dry --no-llm --demo --db data/echos_ui_dev.db"
+SRC="${1:-data/echos.db}"; NAME="${2:-echos_ui_dev}"
+DEST="data/$NAME.db"
+[ "$SRC" = "$DEST" ] && { echo "source and destination are the same"; exit 2; }
+rm -f "$DEST" "$DEST-wal" "$DEST-shm" "data/$NAME.cp.sqlite"
+sqlite3 "$SRC" ".backup '$DEST'"
+rm -rf "data/${NAME}_files" && mkdir -p "data/${NAME}_files/reports"
+SRC_FILES="${SRC%.db}_files"
+if [ -d "$SRC_FILES" ]; then cp -R "$SRC_FILES/." "data/${NAME}_files/"; else
+  for d in daily weekly; do [ -d "reports/$d" ] && cp -R "reports/$d" "data/${NAME}_files/reports/" || true; done; fi
+# stored report paths can be absolute (weekly PDFs): point them at the copy's own files directory
+sqlite3 "$DEST" "UPDATE reports SET path = replace(path, '/$(basename "$SRC_FILES")/', '/${NAME}_files/') WHERE path LIKE '%/$(basename "$SRC_FILES")/%'"
+echo "created $DEST; run: scripts/run_api.sh --dry --no-llm --demo --db $DEST"

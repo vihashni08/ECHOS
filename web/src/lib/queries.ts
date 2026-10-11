@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { call, client } from "./api"
+import { ApiError, call, client } from "./api"
 
 const poll = (ms: number) => ({ refetchInterval: ms, retry: 1 })
 
@@ -12,9 +12,9 @@ export const useFalls = () => useQuery({ queryKey: ["falls"], queryFn: () => cal
 export const useFall = (id: number | undefined, poll_ = false) =>
   useQuery({ queryKey: ["fall", id], enabled: id !== undefined, retry: false, refetchInterval: poll_ ? 1500 : false,
     queryFn: () => call(client.GET("/api/falls/{fid}", { params: { path: { fid: id! } } })) })
-export const useSummary = (pid: string) => useQuery({ queryKey: ["summary", pid], queryFn: () => call(client.GET("/api/patients/{pid}/summary", { params: { path: { pid } } })), retry: 1 })
+export const useSummary = (pid: string, day?: string) => useQuery({ queryKey: ["summary", pid, day], enabled: !!pid, queryFn: () => call(client.GET("/api/patients/{pid}/summary", { params: { path: { pid }, query: { day } } })), retry: 1 })
 export const useStatuses = (pid: string, days = 120) =>
-  useQuery({ queryKey: ["statuses", pid, days], queryFn: () => call(client.GET("/api/patients/{pid}/statuses", { params: { path: { pid }, query: { days } } })), retry: 1 })
+  useQuery({ queryKey: ["statuses", pid, days], enabled: !!pid, queryFn: () => call(client.GET("/api/patients/{pid}/statuses", { params: { path: { pid }, query: { days } } })), retry: 1 })
 export const useVitals = (pid: string, from?: string, to?: string) =>
   useQuery({ queryKey: ["vitals", pid, from, to], enabled: !!from && !!to, retry: 1,
     queryFn: () => call(client.GET("/api/patients/{pid}/vitals", { params: { path: { pid }, query: { from, to } } })) })
@@ -32,7 +32,7 @@ export function useSimControl() {
 export function useSimFall() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: { patient_id: string }) => call(client.POST("/api/sim/fall", { body })),
+    mutationFn: (body: { patient_id: string; activity?: string; subject?: string }) => call(client.POST("/api/sim/fall", { body })),
     onSettled: () => qc.invalidateQueries(),
   })
 }
@@ -43,3 +43,36 @@ export function useKill() {
     onSettled: () => qc.invalidateQueries({ queryKey: ["agents"] }),
   })
 }
+
+// ---- reports, sources, system
+const nullOn404 = async <T,>(p: Promise<T>): Promise<T | null> => { try { return await p } catch (e) { if (e instanceof ApiError && e.status === 404) return null; throw e } }
+export const useDaily = (pid: string, day?: string) =>
+  useQuery({ queryKey: ["daily", pid, day], enabled: !!pid && !!day, retry: false,
+    queryFn: () => nullOn404(call(client.GET("/api/patients/{pid}/reports/daily", { params: { path: { pid }, query: { day } } }))) })
+export const useWeekly = (pid: string, week?: string, enabled = true) =>
+  useQuery({ queryKey: ["weekly", pid, week], enabled: !!pid && !!week && enabled, retry: false,
+    queryFn: () => nullOn404(call(client.GET("/api/patients/{pid}/reports/weekly", { params: { path: { pid }, query: { week } } }))) })
+export const useWeeklyAvailable = (pid: string) =>
+  useQuery({ queryKey: ["weekly-available", pid], enabled: !!pid, retry: false, queryFn: () => call(client.GET("/api/patients/{pid}/reports/weekly-available", { params: { path: { pid } } })) })
+export function useBuildWeekly() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { pid: string; week: string }) => call(client.POST("/api/patients/{pid}/reports/weekly/build", { params: { path: { pid: v.pid }, query: { week: v.week } } })),
+    onSuccess: (_d, v) => { qc.invalidateQueries({ queryKey: ["weekly", v.pid, v.week] }); qc.invalidateQueries({ queryKey: ["weekly-available", v.pid] }) },
+  })
+}
+export function useSendWeekly() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { pid: string; week: string; force: boolean }) =>
+      call(client.POST("/api/patients/{pid}/reports/weekly/send", { params: { path: { pid: v.pid }, query: { week: v.week } }, body: { force: v.force } })),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["outbox"] }); qc.invalidateQueries({ queryKey: ["weekly"] }) },
+  })
+}
+export const useOutbox = (limit = 15) => useQuery({ queryKey: ["outbox", limit], queryFn: () => call(client.GET("/api/outbox", { params: { query: { limit } } })), refetchInterval: 5000, retry: 1 })
+export const useSource = (id?: string) =>
+  useQuery({ queryKey: ["source", id], enabled: !!id, retry: false, queryFn: () => call(client.GET("/api/sources/{sid}", { params: { path: { sid: id! } } })) })
+export const useQuality = () => useQuery({ queryKey: ["quality"], queryFn: () => call(client.GET("/api/system/quality")), retry: 1 })
+export const useMetrics = () => useQuery({ queryKey: ["metrics"], queryFn: () => call(client.GET("/api/system/metrics")), staleTime: 60000, retry: 1 })
+export const useBudget = () => useQuery({ queryKey: ["budget"], queryFn: () => call(client.GET("/api/system/llm-budget")), refetchInterval: 10000, retry: 1 })
+export const useLimitations = () => useQuery({ queryKey: ["limits"], queryFn: () => call(client.GET("/api/system/limitations")), staleTime: 60000, retry: 1 })

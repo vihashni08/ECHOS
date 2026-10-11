@@ -183,7 +183,7 @@ def make_llm(cfg: dict | None = None):
     cfg = cfg or load_config()
     lc = cfg.get("llm") or {}
     model = lc.get("model")
-    if not model:
+    if not model or os.environ.get("ECHOS_REPORT_LLM") == "off":
         return None
     try:
         from dotenv import load_dotenv

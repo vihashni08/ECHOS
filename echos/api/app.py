@@ -21,7 +21,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from echos.api import services as V
 from echos.api.models import (AgentHealth, AlertOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
-                              Page, PatientOut, QualityOut, RoutineOut, SystemConfigOut, SimControlIn, SimFallIn, SimFallOut, SimStateOut, SummaryOut, VitalsOut, WeeklyReportOut,
+                              Page, PatientOut, QualityOut, RoutineOut, SourceOut, SystemConfigOut, SimControlIn, SimFallIn, SimFallOut, SimStateOut, SummaryOut, VitalsOut, WeeklyReportOut,
                               WeeklySendIn, WeeklySendOut)
 from echos.config import load_config
 from echos.orchestrator import state as S
@@ -41,7 +41,7 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
     app = FastAPI(title="ECHOS API", version="1.0", description=DESCRIPTION)
     app.state.ctx = ctx or V.Ctx(eng=S.get_engine(os.environ.get("ECHOS_DB")), cfg=cfg, allow_kill=bool(cfg.get("api", {}).get("allow_kill", False)) or os.environ.get("ECHOS_ALLOW_KILL") == "1",
         report_root=os.environ.get("ECHOS_REPORT_ROOT") or None)
-    app.add_middleware(CORSMiddleware, allow_origins=[cfg.get("api", {}).get("cors_origin", "http://localhost:5173")], allow_methods=["GET", "POST"], allow_headers=["*"])
+    app.add_middleware(CORSMiddleware, allow_origins=[os.environ.get("ECHOS_CORS_ORIGIN") or cfg.get("api", {}).get("cors_origin", "http://localhost:5173")], allow_methods=["GET", "POST"], allow_headers=["*"])
 
     def err(status: int, msg: str) -> JSONResponse:
         return JSONResponse({"error": {"status": status, "message": msg}}, status_code=status)
@@ -95,6 +95,11 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
     def weekly(request: Request, pid: str, week: Optional[str] = Query(None, description="ISO week, e.g. 2019-W19")):
         return V.weekly_report(ctx_of(request), pid, week)
 
+    @r.get("/patients/{pid}/reports/weekly-available", response_model=list[str], tags=["reports"])
+    def weekly_available(request: Request, pid: str):
+        """ISO weeks with a stored weekly report for this patient (the UI builds a missing one instead of probing for a 404)."""
+        return V.weekly_weeks(ctx_of(request), pid)
+
     @r.get("/patients/{pid}/reports/weekly/pdf", tags=["reports"], response_class=FileResponse)
     def weekly_pdf(request: Request, pid: str, week: Optional[str] = None):
         ctx = ctx_of(request)
@@ -102,6 +107,24 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         if row is None or not V._inside(ctx, row.path).exists():
             raise V.NotFound(f"no weekly PDF for {pid} in {wk}")
         return FileResponse(V._inside(ctx, row.path), media_type="application/pdf", filename=f"{pid}_{wk}.pdf")
+
+    @r.post("/patients/{pid}/reports/weekly/build", response_model=WeeklyReportOut, tags=["reports"])
+    def weekly_build(request: Request, pid: str, week: Optional[str] = None):
+        """Build (or rebuild) the weekly PDF and store it; nothing is emailed."""
+        ctx = ctx_of(request)
+        V.require_patient(ctx, pid)
+        wk, _, _ = V.week_end_of(week, ctx, pid)
+        from echos.reports import weekly_report as WR
+        kw = {"budget": None, "retriever": None, "root": ctx.report_root, **{k: v for k, v in {"pdy": ctx.pdy, "phys": ctx.phys, "demo": ctx.demo}.items() if v is not None}, **ctx.weekly_kwargs}
+        if kw.get("retriever") is None:
+            from echos.reports.agent import ReportAgent
+            kw["retriever"] = ReportAgent(ctx.eng, None, root=ctx.report_root).retriever
+        WR.make_weekly(ctx.eng, pid, wk, None, send=False, **kw)
+        return V.weekly_report(ctx, pid, wk)
+
+    @r.get("/sources/{sid}", response_model=SourceOut, tags=["reports"])
+    def source(request: Request, sid: str):
+        return V.source_detail(ctx_of(request), sid)
 
     @r.post("/patients/{pid}/reports/weekly/send", response_model=WeeklySendOut, tags=["reports"])
     def weekly_send(request: Request, pid: str, body: WeeklySendIn = WeeklySendIn(), week: Optional[str] = None):
@@ -262,7 +285,7 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         """Flags the UI needs: whether agent kill is enabled and whether mail is real (never secrets)."""
         ctx = ctx_of(request)
         return {"allow_kill": ctx.allow_kill, "dry_run_mail": os.environ.get("ECHOS_DRY_RUN") == "1" or not ctx.cfg.get("alerts", {}).get("send_real", False),
-                "llm_enabled": os.environ.get("ECHOS_REPORT_LLM") != "off"}
+                "llm_enabled": os.environ.get("ECHOS_REPORT_LLM") != "off", "demo": os.environ.get("ECHOS_DEMO") == "1"}
 
     @r.get("/system/quality", response_model=QualityOut, tags=["system"])
     def sys_quality(request: Request):

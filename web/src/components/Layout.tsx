@@ -1,6 +1,8 @@
 import { Activity, HeartPulse, LayoutDashboard, Moon, Radio, Settings2, Stethoscope, Sun, User, Users, WifiOff } from "lucide-react"
-import { NavLink, Outlet } from "react-router-dom"
+import { NavLink, Outlet, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import ErrorBoundary from "./ErrorBoundary"
+import { DemoGuideButton } from "./DemoGuide"
 import { useSimState } from "@/lib/queries"
 import { useEvents } from "@/lib/events"
 import { useTheme } from "@/lib/theme"
@@ -54,15 +56,16 @@ function TopBar() {
           <Radio className="size-4 text-muted-foreground" aria-hidden="true" />
           Simulation: {s ? s.status : sim.isError ? "unknown" : "loading"}
         </span>
-        {s && s.total != null && <span className="num text-muted-foreground">{s.cursor ?? 0}/{s.total} events</span>}
-        {s?.sim_time && <span className="num text-muted-foreground">{s.sim_time.replace("T", " ").slice(0, 16)}</span>}
-        {s && s.speed != null && <span className="num text-muted-foreground">{s.speed} ev/s</span>}
+        {s && s.total != null && <span className="num hidden text-muted-foreground sm:inline">{s.cursor ?? 0}/{s.total} events</span>}
+        {s?.sim_time && <span className="num hidden text-muted-foreground md:inline">{s.sim_time.replace("T", " ").slice(0, 16)}</span>}
+        {s && s.speed != null && <span className="num hidden text-muted-foreground md:inline">{s.speed} ev/s</span>}
         {s && !s.runtime_alive && <span className="text-destructive">runtime not running</span>}
       </div>
       <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground" data-testid="conn">
         {conn === "open" ? <span className="size-2 rounded-full bg-normal-line" aria-hidden="true" /> : <WifiOff className="size-4" aria-hidden="true" />}
-        {conn === "open" ? "Live" : conn === "reconnecting" ? "Reconnecting…" : "Connecting…"}
+        <span className="hidden sm:inline">{conn === "open" ? "Live" : conn === "reconnecting" ? "Reconnecting…" : "Connecting…"}</span><span className="sr-only sm:hidden">{conn === "open" ? "Live" : "Offline"}</span>
       </span>
+      <DemoGuideButton />
       <ThemeToggle />
     </header>
   )
@@ -80,8 +83,10 @@ export function ApiBanner() {
 }
 
 export default function Layout() {
+  const loc = useLocation()
   return (
     <div className="flex min-h-screen">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground">Skip to content</a>
       <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col gap-1 border-r bg-card p-3 md:flex" aria-label="Main navigation">
         <div className="mb-4 flex items-center gap-2 px-3 py-2">
           <HeartPulse className="size-6 text-primary" aria-hidden="true" />
@@ -93,7 +98,7 @@ export default function Layout() {
         <nav className="flex gap-1 overflow-x-auto border-b bg-card px-2 py-1.5 md:hidden" aria-label="Main navigation"><NavItems row /></nav>
         <TopBar />
         <ApiBanner />
-        <main className="mx-auto w-full max-w-6xl flex-1 p-4 md:p-6"><Outlet /></main>
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 p-4 outline-none md:p-6"><ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary></main>
       </div>
     </div>
   )

@@ -151,8 +151,8 @@ class PubMedClient:
 
     def search(self, finding_type: str, details: Optional[dict] = None) -> dict:
         """-> {"query", "filtered", "cache_hit", "requests", "sources": [...]}; raises PubMedError(reason) on any failure."""
-        if not self.enabled:
-            raise PubMedError("disabled in config")
+        if not self.enabled or os.environ.get("ECHOS_PUBMED") == "off":     # run_api.sh --no-llm: no external service at all
+            raise PubMedError("disabled")
         q = build_query(finding_type, details)
         if q is None:
             return {"query": None, "filtered": False, "cache_hit": False, "requests": 0, "sources": []}

@@ -123,6 +123,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/patients/{pid}/reports/weekly-available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Weekly Available
+         * @description ISO weeks with a stored weekly report for this patient (the UI builds a missing one instead of probing for a 404).
+         */
+        get: operations["weekly_available_api_patients__pid__reports_weekly_available_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/patients/{pid}/reports/weekly/pdf": {
         parameters: {
             query?: never;
@@ -132,6 +152,43 @@ export interface paths {
         };
         /** Weekly Pdf */
         get: operations["weekly_pdf_api_patients__pid__reports_weekly_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/patients/{pid}/reports/weekly/build": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Weekly Build
+         * @description Build (or rebuild) the weekly PDF and store it; nothing is emailed.
+         */
+        post: operations["weekly_build_api_patients__pid__reports_weekly_build_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sources/{sid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Source */
+        get: operations["source_api_sources__sid__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -503,6 +560,25 @@ export interface components {
             mode: string;
             /** Text */
             text: string;
+            /** Status */
+            status?: string | null;
+            /**
+             * Alerts
+             * @default []
+             */
+            alerts: string[];
+            /**
+             * Changes
+             * @default []
+             */
+            changes: string[];
+            /**
+             * Monitor
+             * @default []
+             */
+            monitor: string[];
+            /** Data Note */
+            data_note?: string | null;
             /** Created Ts */
             created_ts?: number | null;
             /** Validation */
@@ -704,6 +780,16 @@ export interface components {
             sent_time?: number | null;
             /** Attachment Name */
             attachment_name?: string | null;
+            /**
+             * Kind
+             * @default alert
+             */
+            kind: string;
+            /**
+             * Delivery
+             * @default dry_run
+             */
+            delivery: string;
             /** Body */
             body?: string | null;
         };
@@ -975,6 +1061,27 @@ export interface components {
             /** Runtime Alive */
             runtime_alive: boolean;
         };
+        /** SourceOut */
+        SourceOut: {
+            /** Id */
+            id: string;
+            /** Origin */
+            origin: string;
+            /** Title */
+            title: string;
+            /** Source */
+            source: string;
+            /** Year */
+            year?: string | null;
+            /** Page */
+            page?: string | null;
+            /** Journal */
+            journal?: string | null;
+            /** Url */
+            url?: string | null;
+            /** Excerpt */
+            excerpt?: string | null;
+        };
         /** SummaryOut */
         SummaryOut: {
             /** Patient Id */
@@ -997,6 +1104,11 @@ export interface components {
         };
         /** SystemConfigOut */
         SystemConfigOut: {
+            /**
+             * Demo
+             * @default false
+             */
+            demo: boolean;
             /** Allow Kill */
             allow_kill: boolean;
             /** Dry Run Mail */
@@ -1559,6 +1671,64 @@ export interface operations {
             };
         };
     };
+    weekly_available_api_patients__pid__reports_weekly_available_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
     weekly_pdf_api_patients__pid__reports_weekly_pdf_get: {
         parameters: {
             query?: {
@@ -1578,6 +1748,124 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    weekly_build_api_patients__pid__reports_weekly_build_post: {
+        parameters: {
+            query?: {
+                week?: string | null;
+            };
+            header?: never;
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyReportOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    source_api_sources__sid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceOut"];
+                };
             };
             /** @description Forbidden */
             403: {

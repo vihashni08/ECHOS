@@ -65,7 +65,7 @@ def make_weekly(eng, patient_id: str, week, dispatcher=None, budget=None, retrie
     nar = WN.make_narrative(d, sources, budget=budget, use_llm=use_llm)
     out = root / cfg["weekly"]["dir"] / f"{patient_id}_{d['week']}.pdf"
     pdf = WP.build_pdf(d, nar["text"], sources, out, max_pages=cfg["weekly"].get("max_pages", 3))
-    prov = {**nar["provenance"], "sources_retrieved": [{k: s.get(k) for k in ("id", "origin", "title", "source", "url")} for s in sources],
+    prov = {**nar["provenance"], "sources_retrieved": [{k: s.get(k) for k in ("id", "origin", "title", "source", "publisher", "year", "page", "journal", "url", "excerpt")} for s in sources],
             "retrieval_events": notes, "narrative": nar["text"], "pdf": {"path": str(out), "pages": pdf["pages"], "bytes": pdf["bytes"]}}
     with eng.begin() as c:
         S.upsert(c, S.reports, ["patient_id", "day", "kind"], patient_id=patient_id, day=d["week_end"], kind="weekly_pdf", mode=nar["mode"], path=str(out),
