@@ -3,6 +3,7 @@
 #   scripts/run_api.sh [--dry] [--no-llm] [--no-runtime] [--db PATH] [--patients N] [--days N]
 #   --dry         DryRun mail: nothing is ever emailed (outbox rows only), whatever alerts.send_real says
 #   --no-llm      template reports only: no Gemini calls and no live PubMed (local guideline index only)
+#   --no-pubmed   no live PubMed (--no-llm implies it)
 #   --demo        demo mode: enables POST /api/agents/{name}/kill and the UI's Demo guide (default off)
 #   --no-runtime  API only (read-only demo of an existing data/echos.db)
 # API: http://127.0.0.1:8000  (docs at /docs; port override: ECHOS_API_PORT, CORS origin override: ECHOS_CORS_ORIGIN). NO authentication: demo only. Stop with Ctrl-C.
@@ -14,6 +15,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --dry) export ECHOS_DRY_RUN=1 ;;
     --demo) export ECHOS_ALLOW_KILL=1 ECHOS_DEMO=1 ;;
+    --no-pubmed) export ECHOS_PUBMED=off ;;
     --no-llm) export ECHOS_REPORT_LLM=off ECHOS_PUBMED=off ;;
     --no-runtime) RT=0 ;;
     --db) export ECHOS_DB="$2"; shift ;;

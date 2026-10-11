@@ -77,6 +77,8 @@ class SMTPMailer(Mailer):
         return bool(self.host and self.user and self.password)
 
     def send(self, to, subject, body, body_html=None, attachments=None):
+        if os.environ.get("ECHOS_DRY_RUN") == "1":
+            raise RuntimeError("ECHOS_DRY_RUN=1: refusing to open an SMTP connection")
         if not self.configured():
             raise RuntimeError("SMTP not configured (ECHOS_SMTP_HOST/USER/PASSWORD)")
         m = EmailMessage()

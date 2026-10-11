@@ -1,0 +1,409 @@
+{
+ "patient_days": 2797,
+ "patient_weeks": 399.6,
+ "patients": 56,
+ "vitals_days_scored": 1733,
+ "vitals_positive_days": 315,
+ "behaviour_days_scored": 2236,
+ "agitation_positive_days": 110,
+ "agitation_patients": 27,
+ "tables": {
+  "vitals_labelled_days": {
+   "A's budget": {
+    "A fixed BP rule": {
+     "recall": 0.7587301587301587,
+     "recall_ci95": [
+      0.6114847560144947,
+      0.8838873575206735
+     ],
+     "false_alerts_per_pw": 1.4890954594208081,
+     "false_alerts_per_pw_ci95": [
+      1.1141913691141538,
+      1.8806166240867734
+     ],
+     "alerts_per_pw": 2.087236324633536,
+     "alert_days": 834,
+     "chance_recall": 0.4812463935372187,
+     "positives": 315
+    },
+    "B vitals sub-model only": {
+     "recall": 0.8952380952380953,
+     "recall_ci95": [
+      0.826519520851819,
+      0.9447342196213133
+     ],
+     "false_alerts_per_pw": 1.381480157311405,
+     "false_alerts_per_pw_ci95": [
+      0.9462552392533217,
+      1.7939782350570472
+     ],
+     "alerts_per_pw": 2.087236324633536,
+     "alert_days": 834,
+     "chance_recall": 0.4812463935372187,
+     "positives": 315
+    },
+    "C full system": {
+     "recall": 0.8952380952380953,
+     "recall_ci95": [
+      0.826519520851819,
+      0.9447342196213133
+     ],
+     "false_alerts_per_pw": 1.381480157311405,
+     "false_alerts_per_pw_ci95": [
+      0.9462552392533217,
+      1.7939782350570472
+     ],
+     "alerts_per_pw": 2.087236324633536,
+     "alert_days": 834,
+     "chance_recall": 0.4812463935372187,
+     "positives": 315
+    }
+   },
+   "0.5 / pt-wk": {
+    "B vitals sub-model only": {
+     "recall": 0.5015873015873016,
+     "recall_ci95": [
+      0.39845502728943255,
+      0.629483981092437
+     ],
+     "false_alerts_per_pw": 0.10511262066499821,
+     "false_alerts_per_pw_ci95": [
+      0.04377986661765478,
+      0.20226300922566595
+     ],
+     "alerts_per_pw": 0.5005362888809439,
+     "alert_days": 200,
+     "chance_recall": 0.1154068090017311,
+     "positives": 315
+    },
+    "C full system": {
+     "recall": 0.4984126984126984,
+     "recall_ci95": [
+      0.39688823431034576,
+      0.6278031120401902
+     ],
+     "false_alerts_per_pw": 0.10761530210940294,
+     "false_alerts_per_pw_ci95": [
+      0.043840193224936375,
+      0.20226300922566595
+     ],
+     "alerts_per_pw": 0.5005362888809439,
+     "alert_days": 200,
+     "chance_recall": 0.1154068090017311,
+     "positives": 315
+    }
+   },
+   "1.0 / pt-wk": {
+    "B vitals sub-model only": {
+     "recall": 0.7206349206349206,
+     "recall_ci95": [
+      0.6302174849267873,
+      0.8102209310931833
+     ],
+     "false_alerts_per_pw": 0.43296388988201645,
+     "false_alerts_per_pw_ci95": [
+      0.2619923399335164,
+      0.6042177394595933
+     ],
+     "alerts_per_pw": 1.0010725777618878,
+     "alert_days": 400,
+     "chance_recall": 0.2308136180034622,
+     "positives": 315
+    },
+    "C full system": {
+     "recall": 0.7206349206349206,
+     "recall_ci95": [
+      0.6302174849267873,
+      0.8102209310931833
+     ],
+     "false_alerts_per_pw": 0.43296388988201645,
+     "false_alerts_per_pw_ci95": [
+      0.2619923399335164,
+      0.6042177394595933
+     ],
+     "alerts_per_pw": 1.0010725777618878,
+     "alert_days": 400,
+     "chance_recall": 0.2308136180034622,
+     "positives": 315
+    }
+   },
+   "2.0 / pt-wk": {
+    "B vitals sub-model only": {
+     "recall": 0.8825396825396825,
+     "recall_ci95": [
+      0.8178974691758598,
+      0.937506079766537
+     ],
+     "false_alerts_per_pw": 1.303897032534859,
+     "false_alerts_per_pw_ci95": [
+      1.0114684454240697,
+      1.5148979567059624
+     ],
+     "alerts_per_pw": 1.9996424740793708,
+     "alert_days": 799,
+     "chance_recall": 0.46105020196191576,
+     "positives": 315
+    },
+    "C full system": {
+     "recall": 0.8825396825396825,
+     "recall_ci95": [
+      0.8178974691758598,
+      0.937506079766537
+     ],
+     "false_alerts_per_pw": 1.303897032534859,
+     "false_alerts_per_pw_ci95": [
+      1.0114684454240697,
+      1.5148979567059624
+     ],
+     "alerts_per_pw": 1.9996424740793708,
+     "alert_days": 799,
+     "chance_recall": 0.46105020196191576,
+     "positives": 315
+    }
+   }
+  },
+  "agitation_labelled_days": {
+   "A's budget": {
+    "A night-activity rule": {
+     "recall": 0.07272727272727272,
+     "recall_ci95": [
+      0.016803221288515406,
+      0.14815731573157315
+     ],
+     "false_alerts_per_pw": 0.30282445477297104,
+     "false_alerts_per_pw_ci95": [
+      0.23905698709310488,
+      0.3677867528638632
+     ],
+     "alerts_per_pw": 0.3228459063282088,
+     "alert_days": 129,
+     "chance_recall": 0.057692307692307696,
+     "positives": 110
+    },
+    "B vitals sub-model only": {
+     "recall": 0.08181818181818182,
+     "recall_ci95": [
+      0.007455975518092989,
+      0.17532834345431428
+     ],
+     "false_alerts_per_pw": 0.30032177332856635,
+     "false_alerts_per_pw_ci95": [
+      0.2368097053176909,
+      0.3711041737940472
+     ],
+     "alerts_per_pw": 0.3228459063282088,
+     "alert_days": 129,
+     "chance_recall": 0.057692307692307696,
+     "positives": 110
+    },
+    "C full system (behaviour path)": {
+     "recall": 0.2545454545454545,
+     "recall_ci95": [
+      0.1222749073468498,
+      0.4273809523809523
+     ],
+     "false_alerts_per_pw": 0.25277082588487665,
+     "false_alerts_per_pw_ci95": [
+      0.19121612446574848,
+      0.32119912048526833
+     ],
+     "alerts_per_pw": 0.3228459063282088,
+     "alert_days": 129,
+     "chance_recall": 0.057692307692307696,
+     "positives": 110
+    }
+   },
+   "0.5 / pt-wk": {
+    "B vitals sub-model only": {
+     "recall": 0.1,
+     "recall_ci95": [
+      0.01851427115188583,
+      0.21369047619047615
+     ],
+     "false_alerts_per_pw": 0.473006792992492,
+     "false_alerts_per_pw_ci95": [
+      0.4441607240397053,
+      0.4956970832487667
+     ],
+     "alerts_per_pw": 0.5005362888809439,
+     "alert_days": 200,
+     "chance_recall": 0.08944543828264759,
+     "positives": 110
+    },
+    "C full system (behaviour path)": {
+     "recall": 0.41818181818181815,
+     "recall_ci95": [
+      0.2446043165467626,
+      0.5806698485845951
+     ],
+     "false_alerts_per_pw": 0.3854129424383268,
+     "false_alerts_per_pw_ci95": [
+      0.3345308063859101,
+      0.4388595228781448
+     ],
+     "alerts_per_pw": 0.5005362888809439,
+     "alert_days": 200,
+     "chance_recall": 0.08944543828264759,
+     "positives": 110
+    }
+   },
+   "1.0 / pt-wk": {
+    "B vitals sub-model only": {
+     "recall": 0.19090909090909092,
+     "recall_ci95": [
+      0.0768987341772152,
+      0.34117880485527546
+     ],
+     "false_alerts_per_pw": 0.9485162674293887,
+     "false_alerts_per_pw_ci95": [
+      0.904739696713591,
+      0.9829934571970833
+     ],
+     "alerts_per_pw": 1.0010725777618878,
+     "alert_days": 400,
+     "chance_recall": 0.17889087656529518,
+     "positives": 110
+    },
+    "C full system (behaviour path)": {
+     "recall": 0.6636363636363637,
+     "recall_ci95": [
+      0.5179204819277109,
+      0.7927131819028114
+     ],
+     "false_alerts_per_pw": 0.8183768323203433,
+     "false_alerts_per_pw_ci95": [
+      0.7296802636551728,
+      0.8977778365661846
+     ],
+     "alerts_per_pw": 1.0010725777618878,
+     "alert_days": 400,
+     "chance_recall": 0.17889087656529518,
+     "positives": 110
+    }
+   },
+   "2.0 / pt-wk": {
+    "B vitals sub-model only": {
+     "recall": 0.3,
+     "recall_ci95": [
+      0.1413570487483531,
+      0.47061598224195333
+     ],
+     "false_alerts_per_pw": 1.917053986414015,
+     "false_alerts_per_pw_ci95": [
+      1.8556683161085397,
+      1.9695676784950187
+     ],
+     "alerts_per_pw": 1.9996424740793708,
+     "alert_days": 799,
+     "chance_recall": 0.3573345259391771,
+     "positives": 110
+    },
+    "C full system (behaviour path)": {
+     "recall": 0.9090909090909091,
+     "recall_ci95": [
+      0.8169709263015551,
+      0.974390243902439
+     ],
+     "false_alerts_per_pw": 1.7493743296388988,
+     "false_alerts_per_pw_ci95": [
+      1.6256396759579612,
+      1.8627751052504655
+     ],
+     "alerts_per_pw": 1.9996424740793708,
+     "alert_days": 799,
+     "chance_recall": 0.3573345259391771,
+     "positives": 110
+    }
+   }
+  },
+  "any_labelled_day": {
+   "A fixed rules (BP rule + night rule)": {
+    "recall": 0.6504854368932039,
+    "recall_ci95": [
+     0.5023967711981946,
+     0.7820739104677518
+    ],
+    "false_alerts_per_pw": 1.6367536646406866,
+    "false_alerts_per_pw_ci95": [
+     1.2801156983666113,
+     2.011782585946309
+    ],
+    "alerts_per_pw": 2.3074722917411514,
+    "alert_days": 922,
+    "chance_recall": 0.32963889882016445,
+    "positives": 412
+   },
+   "B vitals only, shipped threshold": {
+    "recall": 0.5776699029126213,
+    "recall_ci95": [
+     0.44076923076923075,
+     0.6878640835514199
+    ],
+    "false_alerts_per_pw": 0.4029317125491598,
+    "false_alerts_per_pw_ci95": [
+     0.25752387642548613,
+     0.5596251929611429
+    ],
+    "alerts_per_pw": 0.998569896317483,
+    "alert_days": 399,
+    "chance_recall": 0.142652842331069,
+    "positives": 412
+   },
+   "B vitals only, matched to C's budget": {
+    "recall": 0.6893203883495146,
+    "recall_ci95": [
+     0.571048482459598,
+     0.7844658287509819
+    ],
+    "false_alerts_per_pw": 0.8784411869860566,
+    "false_alerts_per_pw_ci95": [
+     0.5956018803369059,
+     1.2223907053972194
+    ],
+    "alerts_per_pw": 1.589202717196997,
+    "alert_days": 635,
+    "chance_recall": 0.22702895959957098,
+    "positives": 412
+   },
+   "C full system, shipped thresholds": {
+    "recall": 0.7014563106796117,
+    "recall_ci95": [
+     0.6091829085457272,
+     0.7804889685347235
+    ],
+    "false_alerts_per_pw": 0.8659277797640329,
+    "false_alerts_per_pw_ci95": [
+     0.601075871275124,
+     1.1913764766455146
+    ],
+    "alerts_per_pw": 1.589202717196997,
+    "alert_days": 635,
+    "chance_recall": 0.22702895959957098,
+    "positives": 412
+   }
+  }
+ },
+ "any_label_positives": 412,
+ "shipped_thresholds": {
+  "vitals_prob": 0.278,
+  "agitation_prob": 0.129
+ },
+ "notes": [
+  "OOF scores only; labels are TIHM clinical alerts (not adjudicated events); recall on labelled days of the scored population",
+  "budgets = alert days per patient-week over ALL patient-days / 7; 'A budget' = number of days the fixed rule fires",
+  "patient-level bootstrap (1000 resamples); budgets are recomputed inside each resample",
+  "C's vitals path is B plus the absolute critical-vitals limits, so C = B on vitals-labelled days up to those forced days",
+  "B on agitation days is the vitals score used as an agitation detector (a control: it has no behaviour input)",
+  "thresholds of the shipped system were chosen on these same OOF scores (mild optimism)"
+ ],
+ "verdicts": [
+  "vitals @ A's budget: C 0.90 vs B 0.90 -> no difference",
+  "vitals @ 0.5 / pt-wk: C 0.50 vs B 0.50 -> no difference",
+  "vitals @ 1.0 / pt-wk: C 0.72 vs B 0.72 -> no difference",
+  "vitals @ 2.0 / pt-wk: C 0.88 vs B 0.88 -> no difference",
+  "agitation @ A's budget: C 0.25 vs B 0.08 -> C higher, CIs overlap",
+  "agitation @ 0.5 / pt-wk: C 0.42 vs B 0.10 -> C clearly better (CIs do not overlap)",
+  "agitation @ 1.0 / pt-wk: C 0.66 vs B 0.19 -> C clearly better (CIs do not overlap)",
+  "agitation @ 2.0 / pt-wk: C 0.91 vs B 0.30 -> C clearly better (CIs do not overlap)"
+ ]
+}

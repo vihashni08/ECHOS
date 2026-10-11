@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 from sqlalchemy import select
 
+from echos.offline import force_offline  # noqa: E402
 from echos.alerts import payload as P
 from echos.alerts.dispatcher import AlertDispatcher
 from echos.alerts.mailer import FakeMailer
@@ -53,6 +54,7 @@ def measure(n_alerts: int = 40, load_threads: int = 4, mailer_delay_s: float = 0
 
 
 if __name__ == "__main__":
+    force_offline()   # this stage: no Gemini, no PubMed, no real SMTP (only when run as a script: importing this module changes nothing)
     r = {"no_load": measure(load_threads=0), "load_4_busy_threads": measure(load_threads=4)}
     (ROOT / "reports/metrics/alert_latency.json").write_text(json.dumps(r, indent=2))
     print(json.dumps(r))

@@ -116,12 +116,11 @@ def build() -> str:
                 ["Injected falls", e["injected_falls"]],
                 ["Fall detection rate (URGENT, fall reason)", f(e["fall_detection_rate"], e["falls_detected_pct_ci95_wilson"]) + f" ({e['falls_detected_as_urgent']}/{e['injected_falls']})"],
                 ["Detection delay, simulated (fall -> end of day), median / max", f"{e['detection_delay_sim_hours_median']} h / {e['detection_delay_sim_hours_max']} h"],
-                ["Pipeline latency after last agent output, median", f"{e['pipeline_latency_s_median_after_last_agent_output']} s"],
                 ["False fall alerts per patient-week", f"{e['false_fall_alerts_per_patient_week']} ({e['false_fall_alerts']} alerts)"],
                 ["URGENT days from critical vitals (real TIHM readings)", e["urgent_critical_vitals_days"]],
                 ["All URGENT alerts per patient-week", e["urgent_alerts_per_patient_week"]],
                 ["Days Normal / Monitor / Urgent", " / ".join(f"{e['status_share'].get(k, 0):.1%}" for k in ("NORMAL", "MONITOR", "URGENT"))],
-                ["Days with a data gap", f"{e['data_gap_share']:.1%}"], ["Duplicate alerts", e["duplicate_alerts"]]]
+                ["Days with a data gap (any status)", f"{e['data_gap_share_any_status']:.1%}"], ["Duplicate alerts", e["duplicate_alerts"]]]
         for r_ in body:
             add("e2e", r_[0], "value", None, None, str(r_[1]))
         out += ["### End-to-end replay (systems run, full period, injected falls)", table(["Measure", "Value"], body)]
@@ -129,7 +128,7 @@ def build() -> str:
             nm = sum(e["monitor_days_by_reason"].values())
             out += [f"MONITOR days by reason ({nm} days)", table(["Reason", "Days", "Share of MONITOR days"],
                     [[k, v, f"{v / nm:.1%}"] for k, v in e["monitor_days_by_reason"].items()]),
-                    "DATA_GAP causes on MONITOR days (a day can have several)", table(["Cause", "Days"], [[k, v] for k, v in e["data_gap_days_by_cause_monitor_days"].items()])]
+                    "DATA_GAP causes, all statuses (a day can have several)", table(["Cause", "Days"], [[k, v] for k, v in e["data_gap_days_by_cause"].items()])]
     mt = load("monitor_thresholds")
     if mt:
         o, n = mt["old"], mt["new"]
@@ -142,21 +141,6 @@ def build() -> str:
                        ["Vitals recall (BP/pulse/water labels)", f"{o['vitals_recall']:.3f}", f"{n['vitals_recall']:.3f}"],
                        ["Behaviour Monitor days, share of patient-days", f"{o['behaviour_monitor_share_of_patient_days']:.1%}", f"{n['behaviour_monitor_share_of_patient_days']:.1%}"],
                        ["Agitation recall of behaviour Monitor", f"{o['behaviour_monitor_recall']:.3f}", f"{n['behaviour_monitor_recall']:.3f}"]])]
-    fi = load("fault_injection")
-    if fi:
-        body = [[r["scenario"], r["lost_alerts"], r["extra_alerts"], r["duplicate_alerts"], r["falls_alerted"],
-                 f(r["detect_s"], d=1) if r["detect_s"] is not None else "-", f(r["recover_s"], d=1) if r["recover_s"] is not None else "-",
-                 r["cases_identical_to_clean_run"], r.get("cases_differing_only_in_quality_flag", 0), r.get("cases_differing_other", 0),
-                 f(r["passthrough_after_s"], d=1) if r.get("passthrough_after_s") is not None else "-",
-                 r.get("agents12_outputs_without_quality", 0), ",".join(f"{k}:{v}" for k, v in r["report_modes"].items()), r["wall_overhead_s"]]
-                for r in fi["rows"]]
-        for r in fi["rows"]:
-            add("fault", r["scenario"], "lost_alerts", r["lost_alerts"], None, f"dup={r['duplicate_alerts']} cases_same={r['cases_identical_to_clean_run']}")
-        c = fi["config"]
-        out += [f"### Fault injection ({c['patients']} patients x {c['days_each']} days; clean run {c['ref_wall_s']} s)",
-                table(["Fault", "Lost alerts", "Extra alerts", "Duplicates", "Falls alerted", "Detect (s)", "Recover (s)",
-                       "Cases identical to clean run", "Differ only in quality flag", "Differ otherwise", "Pass-through after kill (s)",
-                       "Agent 1-2 outputs without Agent 0", "Report modes", "Wall overhead (s)"], body)]
     return "\n\n".join(out) + "\n"
 
 
@@ -176,6 +160,15 @@ def _drop_sentence(au) -> str:
 def sync_results(md: str, path="reports/RESULTS.md") -> int:
     """Replace RESULTS.md lines whose generated counterpart changed (matched on the line's leading text / first table cell).
     Prose lines are left alone; every number in a replaced line comes from a metrics JSON."""
+    txt = Path(path).read_text()
+    for head in ("### End-to-end replay",):      # whole sections whose row set changes with the data (reasons / causes): replaced, not patched line by line
+        if head in md and head in txt:
+            g0 = md.index(head)
+            g1 = md.find("\n### ", g0 + 1)
+            c0 = txt.index(head)
+            c1 = txt.find("\n### ", c0 + 1)
+            txt = txt[:c0] + md[g0:g1 if g1 > 0 else len(md)].rstrip("\n") + "\n" + (txt[c1:] if c1 > 0 else "")
+    Path(path).write_text(txt)
     cur = Path(path).read_text().splitlines()
     have, n = set(cur), 0
     for g in md.split("### Fault injection")[0].splitlines():
@@ -197,6 +190,18 @@ def sync_readme(path="README.md") -> int:
     new = f"sensitivity {g['adult']['sensitivity']:.3f} adults / {g['elderly']['sensitivity']:.3f} elderly"
     t = Path(path).read_text()
     t2 = re.sub(r"sensitivity [\d.]+ adults / [\d.]+ elderly", new, t)
+    e = load("e2e")
+    sh = e["status_share"]
+    t2 = re.sub(r"- End-to-end \([^)]*\): \d+ detected \(\d+%\); days are \d+% Normal / \d+% Monitor / \d+% Urgent",
+                f"- End-to-end ({e['patients']} patients, {e['injected_falls']} injected falls): {e['falls_detected_as_urgent']} detected ({e['fall_detection_rate']:.0%}); "
+                f"days are {sh['NORMAL']:.0%} Normal / {sh['MONITOR']:.0%} Monitor / {sh['URGENT']:.0%} Urgent", t2)
+    fi = load("fault_injection")
+    if fi and "cases" in fi:
+        cs, ref = fi["cases"], fi["cases"]["clean"]
+        n = len(cs) - 1
+        ok = sum(1 for k, r in cs.items() if k != "clean" and not (set(ref["alerts"]) - set(r["alerts"])) and r["outbox_duplicates"] == 0 and r["mail_duplicates"] == 0)
+        t2 = re.sub(r"- Fault injection: .*", f"- Fault injection (fakes, {fi['config']['patients']} patients x {fi['config']['days']} days): no alert lost and no duplicate in {ok} of {n} fault cases "
+                    "(the SMTP outage case leaves undelivered rows FAILED instead; see RESULTS.md).", t2)
     Path(path).write_text(t2)
     return int(t2 != t)
 

@@ -19,6 +19,7 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 from sqlalchemy import func, select, text  # noqa: E402
 
+from echos.offline import force_offline  # noqa: E402
 from echos.orchestrator import state as S  # noqa: E402
 from echos.orchestrator.graph import build_graph, run_orchestrator  # noqa: E402
 from echos.orchestrator.supervisor import Supervisor  # noqa: E402
@@ -28,7 +29,7 @@ HB, CK, DELAY = 1.0, 1.0, 0.08
 
 
 def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, rate=20.0, report_llm="auto",
-                 kill_frac=0.4, no_restart=(), worker_args=None, wait_blocked=False) -> dict:
+                 kill_frac=0.4, no_restart=(), worker_args=None, wait_blocked=False, gate=None, on_insert=None) -> dict:
     db = work / "echos.db"
     eng = S.get_engine(db)
     model = train_replay_fall_model()
@@ -37,12 +38,12 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
     sup.start_all()
     t = threading.Thread(target=sup.run, daemon=True)
     t.start()
-    graph, conn = build_graph(eng, work / "cp.sqlite", report_llm=report_llm)
+    graph, conn = build_graph(eng, work / "cp.sqlite", report_llm=report_llm, gate=gate)
     rep_done = threading.Event()
     summary = {}
 
     def _rep():
-        summary.update(replay(eng, n_patients, max_days=max_days, rate_eps=rate))
+        summary.update(replay(eng, n_patients, max_days=max_days, rate_eps=rate, on_insert=on_insert))
         rep_done.set()
     threading.Thread(target=_rep, daemon=True).start()
     orch = threading.Thread(target=lambda: run_orchestrator(eng, graph, until_done=rep_done.is_set, timeout=600), daemon=True)
@@ -115,6 +116,7 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
 
 
 if __name__ == "__main__":
+    force_offline()   # this stage: no Gemini, no PubMed, no real SMTP (only when run as a script: importing this module changes nothing)
     agent = sys.argv[1] if len(sys.argv) > 1 else "fall"
     tmp = Path(tempfile.mkdtemp())
     try:

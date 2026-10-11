@@ -40,6 +40,7 @@ fall), writes heartbeats to SQLite and restarts dead ones.
   (local KB first, then live PubMed via echos/knowledge/pubmed.py) only on MONITOR/URGENT days; NORMAL days = template, no LLM, no retrieval.
   Provenance (model, cache hit, tools, sources, validator, fallback reason) is stored in `reports.provenance`. Tests: FakeLLM + mocked PubMed;
   tests/conftest.py fails any outbound call to Gemini / NCBI. scripts/live_llm_check.py (real, <= 6 requests) needs --yes.
+- Offline switches (echos/offline.py): ECHOS_REPORT_LLM=off, ECHOS_PUBMED=off, ECHOS_DRY_RUN=1 make GeminiLLM, the default PubMed transport and SMTPMailer refuse to start; every evaluation/demo script (e2e, run_demo, fault_injection, kill_test, alert_latency, fall_eval, gate_eval) forces them. Real-service scripts (list_models, live_llm_check, llm_smoke, make_samples, send_test_*) need --yes.
 - Tests never use the real LLM (fake LLM objects only). Models train only on real data: every training table has a
   `source` column (tihm / sisfall) and trainers call echos.data.guard.assert_real_source.
 

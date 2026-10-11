@@ -88,6 +88,9 @@ class RateLimiter:
 class GeminiLLM:
     def __init__(self, api_key: str, model: str, temperature: float = 0.2, timeout_s: float = 15.0,
                  max_requests_per_min: float = 20):
+        from echos.offline import llm_off
+        if llm_off():
+            raise RuntimeError("ECHOS_REPORT_LLM=off: refusing to build a Gemini client")
         from google import genai
         from google.genai import types
         self.timeout_s = float(timeout_s)

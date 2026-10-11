@@ -12,7 +12,9 @@ from echos.reports import agent as A
 from echos.reports.llm import LLMAPIError, LLMTimeout, make_llm
 from tests.test_reports import facts
 
-n = int(sys.argv[1]) if len(sys.argv) > 1 else 10
+if "--yes" not in sys.argv:
+    sys.exit("Refusing to run: this makes REAL Gemini requests. Re-run with --yes.")
+n = int(next((a for a in sys.argv[1:] if a.isdigit()), 10))
 llm = make_llm()
 if llm is None:
     sys.exit("no LLM configured (llm.model / ECHOS_LLM_API_KEY)")

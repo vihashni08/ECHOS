@@ -54,17 +54,37 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 |---|---|
 | Patients / patient-days / patient-weeks | 20 / 1266 / 180.9 |
 | Injected falls | 60 |
-| Fall detection rate (URGENT, fall reason) | 0.950 (0.863-0.983) (57/60) |
-| Detection delay, simulated (fall -> end of day), median / max | 11.4 h / 23.8 h |
-| Pipeline latency after last agent output, median | 0.21 s |
-| False fall alerts per patient-week | 0.066 (12 alerts) |
+| Fall detection rate (URGENT, fall reason) | 0.850 (0.739-0.919) (51/60) |
+| Detection delay, simulated (fall -> end of day), median / max | 13.1 h / 23.8 h |
+| False fall alerts per patient-week | 0.011 (2 alerts) |
 | URGENT days from critical vitals (real TIHM readings) | 4 |
-| All URGENT alerts per patient-week | 0.404 |
-| Days Normal / Monitor / Urgent | 65.6% / 28.7% / 5.8% |
-| Days with a data gap | 4.5% |
+| All URGENT alerts per patient-week | 0.315 |
+| Days Normal / Monitor / Urgent | 66.7% / 28.8% / 4.5% |
+| Days with a data gap (any status) | 4.5% |
 | Duplicate alerts | 0 |
 
-### Fault injection (3 patients x 15 days; clean run 181.6 s)
+MONITOR days by reason (364 days)
+
+| Reason | Days | Share of MONITOR days |
+|---|---|---|
+| vitals only | 170 | 46.7% |
+| behaviour only | 92 | 25.3% |
+| data gap only | 49 | 13.5% |
+| behaviour + vitals | 29 | 8.0% |
+| possible fall (no inactivity) only | 13 | 3.6% |
+| data gap + vitals | 4 | 1.1% |
+| behaviour + possible fall (no inactivity) | 3 | 0.8% |
+| possible fall (no inactivity) + vitals | 2 | 0.5% |
+| data gap + possible fall (no inactivity) | 2 | 0.5% |
+
+DATA_GAP causes, all statuses (a day can have several)
+
+| Cause | Days |
+|---|---|
+| sensor gap | 56 |
+| vitals gap > 7 days | 2 |
+
+### Fault injection, OBSOLETE v1 table (3 patients x 15 days; clean run 181.6 s; pre-Agent-0 pipeline, v1 fall model, real-Gemini rows; superseded by the section written by scripts/fault_injection.py further down)
 
 Source: `reports/metrics/fault_injection_pre_agent0.json` (commit 62669da, before Agent 0 was added; not re-run since). `fault_injection.json` is overwritten by later runs and is not what this table shows.
 
@@ -110,19 +130,24 @@ From `reports/eda/DATA_QUALITY.md` (read-only EDA, `scripts/eda.py`) and the rul
 
 - **Agent 1** beats the fixed BP rule on PR-AUC (0.68 vs 0.26; CIs do not overlap). At the rule's own alert count it recalls 0.89 vs 0.76, though the CIs overlap. At ~1 alert/patient-week it recalls 0.70 with 0.41 false alerts/patient-week. The target includes `water_alert`, which has no BP/HR signal, and labels are likely threshold-derived, so part of this is re-learning the labelling rule.
 - **Agent 2 (headline = within-patient):** median per-patient ROC-AUC 0.814 (IQR 0.692-0.944), PR-AUC 0.386 (IQR 0.143-0.620) over 27 patients with both classes; the pooled numbers (ROC 0.85, PR-AUC 4.0x base rate) are inflated by between-patient activity-level differences. Without absolute levels, pooled ROC falls to 0.66 but within-patient ROC stays ~0.83, so per-patient z-scores carry the within-patient signal. 27 patients only; IQRs are wide. Earlier note on pooled results: has real but modest skill: PR-AUC 4.0x the base rate, ROC-AUC 0.85. Most of that comes from same-day raw activity level. The personal-baseline drift score alone is at chance (ROC 0.45), so "routine drift" is not evidence of agitation here.
-- **Agent 3** is near-ceiling on adults in SisFall (tables above and the fall audit section). Elderly sensitivity rests on a single subject (SE06) and is much lower once post-fall inactivity is required. False alarms per hour are measured on short vigorous SisFall ADL trials and overstate daily life, but are still high for continuous wear; the triage rules therefore require post-fall inactivity for URGENT (operating point in `config.yaml`, chosen by `scripts/fall_audit.py`). The end-to-end and fault-injection numbers in this file were produced with the v1 fall model and v1 thresholds and have not been re-run.
-- **End-to-end:** 57/60 injected falls raised an URGENT alert. Alerts are produced at day close, so the simulated delay is 11.4 h median (max 23.8 h): the orchestrator is a daily batch, not real-time. 29% of patient-days are Monitor (including 4.5% data gaps; was 52% with the old thresholds and in-sample scores), which would be too noisy for caregivers in practice. Agents 1-2 were final-fitted on all TIHM patients, so these shares are not out-of-sample.
-- **Fault injection:** 0 lost, 0 extra and 0 duplicate alerts in every scenario, and all 45 cases ended identical to the clean run. Duplicates are also prevented by a UNIQUE(patient, day, level) key, so that zero is partly by construction. Detection takes ~3 s (supervisor polling and 3 missed 1 s heartbeats) and recovery 4-5 s. The delayed-LLM run (each call 1 s, then timeout, retried once) slowed the pipeline by ~95 s because the report node waits on the LLM, but alerts are written before that node, so they are unaffected. There is no per-call LLM timeout beyond the SDK's own; a real hung call would block reports (not alerts).
+- **Agent 3** is near-ceiling on adults in SisFall (tables above and the fall audit section). Elderly sensitivity rests on a single subject (SE06) and is much lower once post-fall inactivity is required. False alarms per hour are measured on short vigorous SisFall ADL trials and overstate daily life, but are still high for continuous wear; the triage rules therefore require post-fall inactivity for URGENT (operating point in `config.yaml`, chosen by `scripts/fall_audit.py`).
+<!-- reading_e2e_fault:start -->
+- **End-to-end (template mode, DryRun mail, out-of-fold Agents 1-2):** 51/60 injected held-out-subject falls raised an URGENT alert (85.0%, Wilson 95% CI 0.739-0.919); 2 false fall alerts (0.011 per patient-week). Alerts are decided at day close, so the simulated delay is 13.1 h median (max 23.8 h): the orchestrator is a daily batch, not real-time; a fall injected through the live controller (which closes the day at once) is queued in about 0.31 s. 28.8% of patient-days are Monitor (4.5% carry a data gap), above the 25% I consider usable for caregivers; switching the vitals trigger off would leave 15.3%, the agitation trigger 21.5% (see the MONITOR driver section; a threshold change is proposed, not applied).
+- **Fault injection (fakes, 3 patients x 10 days, compared with a clean run):** no alert lost and no duplicate in 11 of 11 fault cases; the exception is the SMTP outage longer than the retry window, where alerts were queued but 10 outbox rows ended FAILED (undelivered, visible, not re-sent automatically). Worker kills were detected in 2.9-3.1 s and recovered (first new output) in 3.2-11.1 s; a fall injected during such an outage is delayed by up to the restart time but not lost. Duplicates are impossible by construction (unique alert key). Differences from the clean run were restricted to quality / degraded flags.
+<!-- reading_e2e_fault:end -->
 - **Bugs found and fixed while producing these results:** (1) `run_orchestrator` could stop before processing days inserted during a slow pass (lost alerts under a slow LLM); (2) Agent 1's bootstrap CIs for recall at an alert budget undercounted patient-weeks for resampled duplicate patients, biasing them low. Point estimates are unchanged.
 
 ## Limitations
 
-- **Small cohort:** ~49-54 labelled TIHM patients over 3 months (2019-04-01 to 2019-06-30); agitation occurs in only 27 patients. Confidence intervals are wide and a patient bootstrap only partly reflects that.
-- **Labels are clinical alerts**, not confirmed health events; they probably derive from thresholds on the same measurements. Agent 1's skill may reflect recovering that rule. Agent 2 detects same-day agitation labels; it does not forecast.
-- **TIHM has no falls and no accelerometer.** Falls are simulated by injecting SisFall windows (young volunteers, scripted falls on mats, one elderly faller) into TIHM patients' days. Fall results say nothing about real home falls, and the end-to-end fall detection rate is a pipeline check on held-out SisFall subjects (SA03, SA11, SA19, SE06).
-- **Replay is not out-of-sample** for Agents 1-2 (final models were fitted on all patients), and injected sensor windows are unrelated to the patient's TIHM data.
-- **Fault injection used 3 patients x 15 days** and one process-kill per agent on one machine; it does not cover disk failure, orchestrator-host loss or a truly hung LLM call.
-- **LLM wording quality was not evaluated.** The tables above used template mode; the delayed-LLM test used a stub that times out, and the earlier real-client runs only measured fallbacks. The RAG guidance path (paraphrase/citation checks) is covered by unit tests and a stub, not by a study of real model output.
+- **Single small cohort:** ~49-54 labelled TIHM patients from one study over 3 months (2019-04-01 to 2019-06-30); agitation occurs in only 27 patients. Confidence intervals are wide and a patient bootstrap only partly reflects that. Nothing here has been tested on another cohort or setting.
+- **Labels are clinical alerts**, not confirmed health events; they probably derive from thresholds on the same measurements. The vitals model's skill may reflect recovering that rule. The behaviour model detects same-day agitation labels; it does not forecast.
+- **Falls are simulated.** TIHM has no falls and no accelerometer: falls are SisFall windows (young volunteers, scripted falls on mats) injected into TIHM patient-days. Fall results say nothing about real home falls, and the end-to-end detection rate is a pipeline check on held-out SisFall subjects (SA03, SA11, SA19, SE06).
+- **Elderly fall evidence is one subject:** only SE06 (a judo expert) performed falls; every elderly cell in the per-type table has 5 trials of one person, and the confidence interval of the elderly sensitivity is degenerate. Several fall types are weak or missed (see the per-type table); elderly sensitivity cannot be generalised.
+- **The agitation score has modest skill and is not a probability:** it beats the base rate (Agent 2 table) but much of that comes from between-patient differences in activity level, absolute precision is low, and personal-baseline drift alone is at chance. It is shown only as a Monitor flag, never as a percentage to caregivers, clinicians or the LLM.
+- **Replay numbers:** Agents 1-2 scores are out-of-fold, but the MONITOR thresholds were chosen on those same scores (mild optimism); injected sensor windows are unrelated to the patient's TIHM data; the MONITOR share is above the 25% I consider usable and a threshold change is proposed, not applied (MONITOR driver section).
+- **Alerts depend on SMTP delivery.** Alerts are always queued in the outbox (none lost in the fault tests), but an email that fails 3 attempts stays FAILED and is not re-sent automatically; real SMTP is never exercised by tests or demos (FakeMailer / DryRun only). A fall alert raised while an agent or the supervisor is down is delayed by up to the restart time (seconds for a worker; the operator's restart time for the supervisor) but never dropped.
+- **Fault injection is small:** 3 patients x 10 days, one fault per case, one machine, fakes for the LLM, SMTP and PubMed; it does not cover disk failure, host loss, real network faults or the behaviour of the real Gemini API.
+- **LLM wording quality was not evaluated.** All tables used template mode or fakes; the RAG guidance path (paraphrase / citation checks) is covered by unit tests and fakes, not by a study of real model output.
 - **Decision support, not diagnosis.** Triage is a fixed if-then rule set; the LLM never decides emergencies. Nothing here has been clinically validated.
 
 
@@ -222,3 +247,185 @@ Chosen operating point: threshold 0.8, inactivity confirmation required (adult s
 
 SisFall ADL trials are short, vigorous trials (running, jumping, stairs, sit-downs), so alarms per hour overstate daily life; SisFall falls are scripted on mats by young volunteers, and only one elderly subject performed falls.
 <!-- fall_audit:end -->
+
+<!-- ablation:start -->
+## System ablation (written by scripts/ablation.py)
+
+Out-of-fold scores, patient-level folds; patient-level bootstrap 95% CIs (1000 resamples). 56 patients, 2797 patient-days (399.6 patient-weeks); 315 vitals-labelled and 110 agitation-labelled days (27 patients). A = fixed thresholds, B = vitals sub-model only, C = full system (vitals + behaviour + arbiter). Budget = alert days per patient-week; false alerts = alert days without the target label.
+
+### Vitals-labelled days (BP / pulse / body-water clinical alerts)
+
+| Budget | System | Alerts / pt-wk | Recall (95% CI) | Chance recall | False alerts / pt-wk (95% CI) |
+|---|---|---|---|---|---|
+| A's budget | A fixed BP rule | 2.09 | 0.76 (0.61-0.88) | 0.48 | 1.49 (1.11-1.88) |
+| A's budget | B vitals sub-model only | 2.09 | 0.90 (0.83-0.94) | 0.48 | 1.38 (0.95-1.79) |
+| A's budget | C full system | 2.09 | 0.90 (0.83-0.94) | 0.48 | 1.38 (0.95-1.79) |
+| 0.5 / pt-wk | B vitals sub-model only | 0.50 | 0.50 (0.40-0.63) | 0.12 | 0.11 (0.04-0.20) |
+| 0.5 / pt-wk | C full system | 0.50 | 0.50 (0.40-0.63) | 0.12 | 0.11 (0.04-0.20) |
+| 1.0 / pt-wk | B vitals sub-model only | 1.00 | 0.72 (0.63-0.81) | 0.23 | 0.43 (0.26-0.60) |
+| 1.0 / pt-wk | C full system | 1.00 | 0.72 (0.63-0.81) | 0.23 | 0.43 (0.26-0.60) |
+| 2.0 / pt-wk | B vitals sub-model only | 2.00 | 0.88 (0.82-0.94) | 0.46 | 1.30 (1.01-1.51) |
+| 2.0 / pt-wk | C full system | 2.00 | 0.88 (0.82-0.94) | 0.46 | 1.30 (1.01-1.51) |
+
+### Agitation-labelled days
+
+| Budget | System | Alerts / pt-wk | Recall (95% CI) | Chance recall | False alerts / pt-wk (95% CI) |
+|---|---|---|---|---|---|
+| A's budget | A night-activity rule | 0.32 | 0.07 (0.02-0.15) | 0.06 | 0.30 (0.24-0.37) |
+| A's budget | B vitals sub-model only | 0.32 | 0.08 (0.01-0.18) | 0.06 | 0.30 (0.24-0.37) |
+| A's budget | C full system (behaviour path) | 0.32 | 0.25 (0.12-0.43) | 0.06 | 0.25 (0.19-0.32) |
+| 0.5 / pt-wk | B vitals sub-model only | 0.50 | 0.10 (0.02-0.21) | 0.09 | 0.47 (0.44-0.50) |
+| 0.5 / pt-wk | C full system (behaviour path) | 0.50 | 0.42 (0.24-0.58) | 0.09 | 0.39 (0.33-0.44) |
+| 1.0 / pt-wk | B vitals sub-model only | 1.00 | 0.19 (0.08-0.34) | 0.18 | 0.95 (0.90-0.98) |
+| 1.0 / pt-wk | C full system (behaviour path) | 1.00 | 0.66 (0.52-0.79) | 0.18 | 0.82 (0.73-0.90) |
+| 2.0 / pt-wk | B vitals sub-model only | 2.00 | 0.30 (0.14-0.47) | 0.36 | 1.92 (1.86-1.97) |
+| 2.0 / pt-wk | C full system (behaviour path) | 2.00 | 0.91 (0.82-0.97) | 0.36 | 1.75 (1.63-1.86) |
+
+### Day-level: any labelled clinical alert (vitals or agitation), shipped thresholds
+
+Positives: 412 labelled days. Shipped thresholds: vitals 0.278, agitation 0.129 (+ critical limits).
+
+| System | Alerts / pt-wk | Recall (95% CI) | False alerts / pt-wk (95% CI) |
+|---|---|---|---|
+| A fixed rules (BP rule + night rule) | 2.31 | 0.65 (0.50-0.78) | 1.64 (1.28-2.01) |
+| B vitals only, shipped threshold | 1.00 | 0.58 (0.44-0.69) | 0.40 (0.26-0.56) |
+| B vitals only, matched to C's budget | 1.59 | 0.69 (0.57-0.78) | 0.88 (0.60-1.22) |
+| C full system, shipped thresholds | 1.59 | 0.70 (0.61-0.78) | 0.87 (0.60-1.19) |
+
+**C vs B (recall at matched budget):** vitals @ A's budget: C 0.90 vs B 0.90 -> no difference; vitals @ 0.5 / pt-wk: C 0.50 vs B 0.50 -> no difference; vitals @ 1.0 / pt-wk: C 0.72 vs B 0.72 -> no difference; vitals @ 2.0 / pt-wk: C 0.88 vs B 0.88 -> no difference; agitation @ A's budget: C 0.25 vs B 0.08 -> C higher, CIs overlap; agitation @ 0.5 / pt-wk: C 0.42 vs B 0.10 -> C clearly better (CIs do not overlap); agitation @ 1.0 / pt-wk: C 0.66 vs B 0.19 -> C clearly better (CIs do not overlap); agitation @ 2.0 / pt-wk: C 0.91 vs B 0.30 -> C clearly better (CIs do not overlap).
+<!-- ablation:end -->
+
+<!-- monitor_driver:start -->
+## MONITOR share driver and threshold proposal (written by scripts/monitor_driver.py; NOT applied)
+
+Current replay MONITOR share 28.8% of 1266 days (limit I set myself: 25%). Triage re-run over stored agent outputs (0 mismatches vs the stored statuses).
+
+| Trigger switched off | MONITOR share |
+|---|---|
+| none (current) | 28.8% |
+| vitals trigger | 15.3% |
+| agitation trigger | 21.5% |
+| both (only data gaps / possible falls remain) | 5.8% |
+
+| vitals_prob | MONITOR share | vitals alert days | vitals alerts / patient-week |
+|---|---|---|---|
+| 0.278 | 28.8% | 220 | 1.22 |
+| 0.35 | 26.0% | 174 | 0.96 |
+| 0.4 | 24.1% | 148 | 0.82 |
+| 0.45 | 23.1% | 133 | 0.74 |
+| 0.5 | 22.4% | 121 | 0.67 |
+| 0.6 | 20.9% | 96 | 0.53 |
+
+Out-of-fold vitals recall at fixed budgets (ablation, B): 0.5 / pt-wk -> 0.50, 1.0 / pt-wk -> 0.72, 2.0 / pt-wk -> 0.88.
+**Proposal (not applied):** raise `triage.vitals_prob` to 0.4: MONITOR share 24.1%, about 0.82 vitals alerts per patient-week (recall cost: see the budget recalls above).
+<!-- monitor_driver:end -->
+
+<!-- fall_eval:start -->
+## Fall evaluation on the final pipeline (written by scripts/fall_eval.py)
+
+Operating point: score >= 0.8 AND post-fall inactivity (config `agent3.operating`). Out-of-fold random forest, v2 windows, subject-level folds (38 subjects). Elderly = SE06 only (the single elderly subject who performed falls): 5 trials per type, so every elderly cell has n = 5.
+
+### (i) Sensitivity by fall type
+
+| Type | Description | Adults: trials | Adults: detected (sens., Wilson 95% CI) | Adults: score only | Elderly SE06: trials | Elderly: detected (sens.) | Elderly: score only |
+|---|---|---|---|---|---|---|---|
+| F01 | Fall forward while walking caused by a slip | 114 | 104/114 (0.91; 0.85-0.95) | 1.00 | 5 | 4/5 (0.80) | 1.00 |
+| F02 | Fall backward while walking caused by a slip | 115 | 101/115 (0.88; 0.81-0.93) | 0.98 | 5 | 3/5 (0.60) | 1.00 |
+| F03 | Lateral fall while walking caused by a slip | 115 | 102/114 (0.89; 0.82-0.94) | 0.98 | 5 | 4/5 (0.80) | 1.00 |
+| F04 | Fall forward while walking caused by a trip | 115 | 110/115 (0.96; 0.90-0.98) | 1.00 | 5 | 4/5 (0.80) | 1.00 |
+| F05 | Fall forward while jogging caused by a trip | 115 | 107/115 (0.93; 0.87-0.96) | 0.95 | 5 | 4/5 (0.80) | 1.00 |
+| F06 | Vertical fall while walking caused by fainting | 115 | 109/115 (0.95; 0.89-0.98) | 0.99 | 5 | 3/5 (0.60) | 0.80 |
+| F07 | Fall while walking, with use of hands in a table to dampen fall, caused by fainting | 115 | 110/115 (0.96; 0.90-0.98) | 0.97 | 5 | 1/5 (0.20) | 0.20 |
+| F08 | Fall forward when trying to get up | 115 | 112/115 (0.97; 0.93-0.99) | 0.98 | 5 | 3/5 (0.60) | 0.60 |
+| F09 | Lateral fall when trying to get up | 115 | 112/115 (0.97; 0.93-0.99) | 0.99 | 5 | 2/5 (0.40) | 0.40 |
+| F10 | Fall forward when trying to sit down | 114 | 105/114 (0.92; 0.86-0.96) | 0.94 | 5 | 0/5 (0.00) | 0.00 |
+| F11 | Fall backward when trying to sit down | 115 | 95/115 (0.83; 0.75-0.88) | 0.85 | 5 | 3/5 (0.60) | 0.60 |
+| F12 | Lateral fall when trying to sit down | 115 | 111/115 (0.97; 0.91-0.99) | 0.97 | 5 | 5/5 (1.00) | 1.00 |
+| F13 | Fall forward while sitting, caused by fainting or falling asleep | 115 | 102/115 (0.89; 0.82-0.93) | 0.89 | 5 | 0/5 (0.00) | 0.00 |
+| F14 | Fall backward while sitting, caused by fainting or falling asleep | 115 | 94/115 (0.82; 0.74-0.88) | 0.84 | 5 | 3/5 (0.60) | 0.60 |
+| F15 | Lateral fall while sitting, caused by fainting or falling asleep | 115 | 107/115 (0.93; 0.87-0.96) | 0.94 | 5 | 3/5 (0.60) | 0.60 |
+
+**Missed / weak fall types (adults, sensitivity < 0.90 at the operating point):** F14 fall backward while sitting, caused by fainting or falling asleep (0.82); F11 fall backward when trying to sit down (0.83); F02 fall backward while walking caused by a slip (0.88); F13 fall forward while sitting, caused by fainting or falling asleep (0.89); F03 lateral fall while walking caused by a slip (0.89). **Elderly SE06 below 0.50:** F10 (0.00); F13 (0.00); F07 (0.20); F09 (0.40).
+
+### (ii) End-to-end detection of injected held-out-subject falls (full pipeline replay)
+
+| Item | Value |
+|---|---|
+| Injected falls (20 patients, 180.9 patient-weeks; subjects SA03, SA11, SA19, SE06 held out of the model) | 60 |
+| Detected as URGENT fall alert | 51/60 = 0.850 (Wilson 95% CI 0.739-0.919) |
+| False fall alerts on non-injected days | 2 = 0.011 per patient-week |
+| Simulated event -> alert delay (daily batch: decided at day close), median / max | 13.1 h / 23.8 h |
+| Wall clock injected fall (live controller, day closes at once) -> alert queued, median / max (4 alerts, 3 patients x 10 days) | 0.29 s / 0.36 s |
+| Wall clock injected fall -> alert sent (fake mailer, no network), median / max | 0.29 s / 0.36 s |
+
+The wall-clock rows measure software latency only; the clinically relevant delay is the simulated one, because the orchestrator decides once per patient-day.
+
+Missed injected falls: F01_SE06_R01 (SE06), F14_SE06_R01 (SE06), F07_SE06_R04 (SE06), F04_SA03_R01 (SA03), F04_SA03_R01 (SA03), F13_SA03_R01 (SA03), F10_SE06_R03 (SE06), F10_SE06_R05 (SE06), F11_SA11_R02 (SA11).
+
+### (iii) Effect of inactivity confirmation on false alerts
+
+| Measure | Score only (threshold 0.8) | Score + inactivity confirmation |
+|---|---|---|
+| SisFall sliding ADL windows: false alarms / hour (all subjects) | 0.76 | 0.28 |
+| Adult fall sensitivity (out-of-fold) | 0.952 | 0.918 |
+| Elderly (SE06) fall sensitivity | 0.653 | 0.560 |
+| Replay: false fall alert days per patient-week | 0.105 (19 days) | 0.011 (2 days) |
+| Replay: injected falls with score >= threshold / alerted | 55/60 | 51/60 |
+
+Without confirmation a flagged event would be URGENT on score alone; in the shipped rules it is only MONITOR ("possible fall, no inactivity").
+
+Caveats: SisFall falls are scripted on mats by young volunteers; the elderly column is one subject; ADL windows are short vigorous trials, so alarms per hour overstate daily life; the replay uses 4 held-out subjects, so its detection rate is a pipeline check, not clinical sensitivity.
+<!-- fall_eval:end -->
+
+<!-- gate_eval:start -->
+## Gatekeeper evaluation (written by scripts/gate_eval.py)
+
+Count only (counting FakeLLM, stub retrieval, nothing sent) on the stored replay: 1266 patient-days (845 Normal, 364 Monitor, 57 Urgent). Gate ON = NORMAL days get a template report; gate OFF = hypothetical always-LLM policy.
+
+| Measure | Gate ON | Always-LLM | Avoided |
+|---|---|---|---|
+| Daily reports routed to the LLM | 421 | 1266 | 845 (66.7% of days) |
+| LLM requests, lower bound (2 per report) | 842 | 2532 | 1690 |
+| LLM requests, counting fake (4 per report) | 1684 | 5064 | 3380 |
+| Retrievals executed (local index; MONITOR / URGENT only) | 842 | 842 | 0 |
+| Retrieval requests blocked by the retriever's status guard (NORMAL days) | 0 | 1690 | n/a: the guard exists in both policies |
+| Live PubMed searches | 842 | 842 | 0 |
+
+Triage results identical with gate on and off: **True** (1266 days); alerts identical: **True** (57 vs 57); outbox rows identical: **True**; alerts missed due to gating: **0**.
+
+The avoided share is the Normal share of days in this cohort (66.7%); it depends on the data mix and would be smaller where more days are Monitor. The gate never touches triage or alerts: the gated step runs after the alert has been queued.
+<!-- gate_eval:end -->
+
+<!-- fault_injection:start -->
+## Fault injection with fakes (written by scripts/fault_injection.py)
+
+3 patients x 10 days (99 events), real supervisor + 3 worker processes + orchestrator + simulation controller, FakeMailer, FakeLLM, no network. A fall recording from a held-out SisFall subject is injected through the controller (same path as the API) at 40% of the stream, in every run; the fault is fired at the same event index. Each case is compared with the clean run (case 'clean').
+
+| Fault | Alerts queued (clean) | Lost / extra | Duplicates (outbox / mail) | Delivered (SENT) / FAILED rows | Falls alerted | Detect (s) | Recover (s) | Injected fall: delay added, queued / sent (s) | Cases identical / quality-flag only / other | Report modes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| clean run (reference) | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | - | +0.00 / +0.00 | 30 / 0 / 0 | template:30 |
+| kill quality worker | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | 2.9 | 3.2 | +3.11 / +3.11 | 30 / 0 / 0 | template:30 |
+| kill health_monitoring worker | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | 3.1 | 5.2 | +5.13 / +5.13 | 30 / 0 / 0 | template:30 |
+| kill fall worker | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | 3.0 | 4.1 | +3.94 / +3.94 | 30 / 0 / 0 | template:30 |
+| kill supervisor (workers keep running) | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | n/a (no worker died) | n/a (no worker died) | +0.26 / +0.26 | 30 / 0 / 0 | template:30 |
+| kill supervisor, then fall worker; supervisor restarted after 10 s | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | 11.1 | +10.98 / +10.98 | 30 / 0 / 0 | template:30 |
+| LLM raising errors (HTTP 503 on every call) | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | - | +0.16 / +0.16 | 30 / 0 / 0 | template:30 |
+| LLM timing out (every call) | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | - | +0.13 / +0.13 | 30 / 0 / 0 | template:30 |
+| PubMed failing (HTTP 503) | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | - | -0.02 / -0.02 | 30 / 0 / 0 | template:30 |
+| SMTP fails twice per recipient, then recovers | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | - | +0.00 / +3.01 | 30 / 0 / 0 | template:30 |
+| SMTP down for 8 s (longer than the 3-attempt retry window) | 12 (12) | 0 / 0 | 0 / 0 | 14 / 10 | 12/12 | - | - | -0.08 / not sent | 30 / 0 / 0 | template:30 |
+| API process killed mid-run, restarted after 2 s | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | API back after 2.4 | +0.01 / +0.01 | 30 / 0 / 0 | template:30 |
+
+Notes: alerts are unique per (patient, day, type, event), so duplicates are impossible by construction (the columns check the outbox rows and the mails the fake mailer received). 'Detect' = kill -> supervisor notices and restarts; 'Recover' = kill -> the worker's first new output. 'Delay added' = injected fall: (time from injection to alert queued / sent) minus the same in the clean run. Differences between cases and the clean run are allowed only in quality / degraded flags (middle column).
+
+- SMTP down for 8 s (longer than the 3-attempt retry window): outbox {'SENT': 14, 'FAILED': 10}, alert status {'SENT': 7, 'FAILED': 5}; send delay after queueing median/max {'median': 0.0, 'max': 3.02}. Rows that exhausted the 3 attempts stay FAILED (visible, not re-sent automatically).
+- SMTP fails twice per recipient, then recovers: outbox {'SENT': 24}, alert status {'SENT': 12}; send delay after queueing median/max {'median': 3.01, 'max': 3.02}. All recovered by retry.
+- API restart: down 2.44 s (includes a 2 s restart delay and 0.43 s start-up), SSE reconnect True, alerts visible through the restarted API: 12; the run itself was unaffected.
+- PubMed failing: 30 failed HTTP attempts across 60 fake-LLM requests; each failure was logged and the retriever fell back to local sources only; reports ended as {'template': 30} (the fake model's answers do not validate, so they fall back to the template: {'gate: NORMAL day (template only)': 15, 'fake-retrieving: validation_failed': 15}); no alert was affected.
+- LLM raising errors (HTTP 503 on every call): 30 fake requests, report modes {'template': 30}, fallbacks {'gate: NORMAL day (template only)': 15, 'fake-errors: 503 UNAVAILABLE': 15}.
+- LLM timing out (every call): 15 fake requests, report modes {'template': 30}, fallbacks {'gate: NORMAL day (template only)': 15, 'fake-timeout: timeout': 15}.
+- kill supervisor (workers keep running): workers kept running without a supervisor; no worker died, so nothing needed restarting.
+- kill supervisor, then fall worker; supervisor restarted after 10 s: workers kept running without a supervisor; fall worker killed, restarted by the new supervisor 10.03 s after the kill, first output 11.09 s after the kill.
+
+Supervisor death is a single point of failure for RESTARTS only: with no supervisor a dead worker stays dead until the supervisor is restarted (assumed 10 s here), and a fall alert injected during that outage waits for it (see the delay-added column).
+<!-- fault_injection:end -->

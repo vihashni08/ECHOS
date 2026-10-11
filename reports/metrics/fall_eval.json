@@ -1,0 +1,657 @@
+{
+ "operating_point": {
+  "threshold": 0.8,
+  "require_inactivity": true
+ },
+ "n_subjects": 38,
+ "per_type": [
+  {
+   "type": "F01",
+   "description": "Fall forward while walking caused by a slip",
+   "adult": {
+    "trials": 114,
+    "windowed": 114,
+    "p_ge_thr": 114,
+    "detected": 104,
+    "sensitivity": 0.9122807017543859,
+    "ci95": [
+     0.8460255383653317,
+     0.9516554164078552
+    ],
+    "sensitivity_without_confirmation": 1.0,
+    "median_score": 0.9998499337646376
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 5,
+    "detected": 4,
+    "sensitivity": 0.8,
+    "ci95": [
+     0.3755282641185388,
+     0.9637768390302125
+    ],
+    "sensitivity_without_confirmation": 1.0,
+    "median_score": 0.9403851216113523
+   }
+  },
+  {
+   "type": "F02",
+   "description": "Fall backward while walking caused by a slip",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 113,
+    "detected": 101,
+    "sensitivity": 0.8782608695652174,
+    "ci95": [
+     0.8059859770289615,
+     0.9260809086407031
+    ],
+    "sensitivity_without_confirmation": 0.9826086956521739,
+    "median_score": 0.9996216709532898
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 5,
+    "detected": 3,
+    "sensitivity": 0.6,
+    "ci95": [
+     0.23071993220883708,
+     0.8823817688407467
+    ],
+    "sensitivity_without_confirmation": 1.0,
+    "median_score": 0.9985479284174583
+   }
+  },
+  {
+   "type": "F03",
+   "description": "Lateral fall while walking caused by a slip",
+   "adult": {
+    "trials": 115,
+    "windowed": 114,
+    "p_ge_thr": 112,
+    "detected": 102,
+    "sensitivity": 0.8947368421052632,
+    "ci95": [
+     0.8249833564660207,
+     0.9387537278912861
+    ],
+    "sensitivity_without_confirmation": 0.9824561403508771,
+    "median_score": 0.9998950977649701
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 5,
+    "detected": 4,
+    "sensitivity": 0.8,
+    "ci95": [
+     0.3755282641185388,
+     0.9637768390302125
+    ],
+    "sensitivity_without_confirmation": 1.0,
+    "median_score": 1.0
+   }
+  },
+  {
+   "type": "F04",
+   "description": "Fall forward while walking caused by a trip",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 115,
+    "detected": 110,
+    "sensitivity": 0.9565217391304348,
+    "ci95": [
+     0.9022408250995758,
+     0.981288174846571
+    ],
+    "sensitivity_without_confirmation": 1.0,
+    "median_score": 0.9998473427061523
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 5,
+    "detected": 4,
+    "sensitivity": 0.8,
+    "ci95": [
+     0.3755282641185388,
+     0.9637768390302125
+    ],
+    "sensitivity_without_confirmation": 1.0,
+    "median_score": 0.9886591494587318
+   }
+  },
+  {
+   "type": "F05",
+   "description": "Fall forward while jogging caused by a trip",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 109,
+    "detected": 107,
+    "sensitivity": 0.9304347826086956,
+    "ci95": [
+     0.8687098549854323,
+     0.9643317735352203
+    ],
+    "sensitivity_without_confirmation": 0.9478260869565217,
+    "median_score": 0.9995938847703367
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 5,
+    "detected": 4,
+    "sensitivity": 0.8,
+    "ci95": [
+     0.3755282641185388,
+     0.9637768390302125
+    ],
+    "sensitivity_without_confirmation": 1.0,
+    "median_score": 0.999731278690471
+   }
+  },
+  {
+   "type": "F06",
+   "description": "Vertical fall while walking caused by fainting",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 114,
+    "detected": 109,
+    "sensitivity": 0.9478260869565217,
+    "ci95": [
+     0.8908280962827254,
+     0.9758717798549231
+    ],
+    "sensitivity_without_confirmation": 0.991304347826087,
+    "median_score": 0.9998632882823254
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 4,
+    "detected": 3,
+    "sensitivity": 0.6,
+    "ci95": [
+     0.23071993220883708,
+     0.8823817688407467
+    ],
+    "sensitivity_without_confirmation": 0.8,
+    "median_score": 0.9793587811812384
+   }
+  },
+  {
+   "type": "F07",
+   "description": "Fall while walking, with use of hands in a table to dampen fall, caused by fainting",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 112,
+    "detected": 110,
+    "sensitivity": 0.9565217391304348,
+    "ci95": [
+     0.9022408250995758,
+     0.981288174846571
+    ],
+    "sensitivity_without_confirmation": 0.9739130434782609,
+    "median_score": 0.999632534099768
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 1,
+    "detected": 1,
+    "sensitivity": 0.2,
+    "ci95": [
+     0.03622316096978745,
+     0.6244717358814613
+    ],
+    "sensitivity_without_confirmation": 0.2,
+    "median_score": 0.22186329737174848
+   }
+  },
+  {
+   "type": "F08",
+   "description": "Fall forward when trying to get up",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 113,
+    "detected": 112,
+    "sensitivity": 0.9739130434782609,
+    "ci95": [
+     0.9260981308647812,
+     0.9910891166983616
+    ],
+    "sensitivity_without_confirmation": 0.9826086956521739,
+    "median_score": 0.9956393142153123
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 3,
+    "detected": 3,
+    "sensitivity": 0.6,
+    "ci95": [
+     0.23071993220883708,
+     0.8823817688407467
+    ],
+    "sensitivity_without_confirmation": 0.6,
+    "median_score": 0.8013035508779801
+   }
+  },
+  {
+   "type": "F09",
+   "description": "Lateral fall when trying to get up",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 114,
+    "detected": 112,
+    "sensitivity": 0.9739130434782609,
+    "ci95": [
+     0.9260981308647812,
+     0.9910891166983616
+    ],
+    "sensitivity_without_confirmation": 0.991304347826087,
+    "median_score": 0.9998596276192143
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 2,
+    "detected": 2,
+    "sensitivity": 0.4,
+    "ci95": [
+     0.1176182311592533,
+     0.769280067791163
+    ],
+    "sensitivity_without_confirmation": 0.4,
+    "median_score": 0.7971942764018471
+   }
+  },
+  {
+   "type": "F10",
+   "description": "Fall forward when trying to sit down",
+   "adult": {
+    "trials": 114,
+    "windowed": 114,
+    "p_ge_thr": 107,
+    "detected": 105,
+    "sensitivity": 0.9210526315789473,
+    "ci95": [
+     0.8567410271260313,
+     0.9579118628550959
+    ],
+    "sensitivity_without_confirmation": 0.9385964912280702,
+    "median_score": 0.9958181820179997
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 0,
+    "detected": 0,
+    "sensitivity": 0.0,
+    "ci95": [
+     -2.7755575615628914e-17,
+     0.43449149475208104
+    ],
+    "sensitivity_without_confirmation": 0.0,
+    "median_score": 0.33925747388189004
+   }
+  },
+  {
+   "type": "F11",
+   "description": "Fall backward when trying to sit down",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 98,
+    "detected": 95,
+    "sensitivity": 0.8260869565217391,
+    "ci95": [
+     0.7465880380379792,
+     0.884504104780697
+    ],
+    "sensitivity_without_confirmation": 0.8521739130434782,
+    "median_score": 0.9895337401046368
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 3,
+    "detected": 3,
+    "sensitivity": 0.6,
+    "ci95": [
+     0.23071993220883708,
+     0.8823817688407467
+    ],
+    "sensitivity_without_confirmation": 0.6,
+    "median_score": 0.9995126845858086
+   }
+  },
+  {
+   "type": "F12",
+   "description": "Lateral fall when trying to sit down",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 112,
+    "detected": 111,
+    "sensitivity": 0.9652173913043478,
+    "ci95": [
+     0.9139657463817712,
+     0.9863923773728736
+    ],
+    "sensitivity_without_confirmation": 0.9739130434782609,
+    "median_score": 0.9996612350164764
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 5,
+    "detected": 5,
+    "sensitivity": 1.0,
+    "ci95": [
+     0.5655085052479191,
+     1.0000000000000002
+    ],
+    "sensitivity_without_confirmation": 1.0,
+    "median_score": 0.946887885602786
+   }
+  },
+  {
+   "type": "F13",
+   "description": "Fall forward while sitting, caused by fainting or falling asleep",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 102,
+    "detected": 102,
+    "sensitivity": 0.8869565217391304,
+    "ci95": [
+     0.8161594465142679,
+     0.9327365629638946
+    ],
+    "sensitivity_without_confirmation": 0.8869565217391304,
+    "median_score": 0.9910290508560974
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 0,
+    "detected": 0,
+    "sensitivity": 0.0,
+    "ci95": [
+     -2.7755575615628914e-17,
+     0.43449149475208104
+    ],
+    "sensitivity_without_confirmation": 0.0,
+    "median_score": 0.4721912435982017
+   }
+  },
+  {
+   "type": "F14",
+   "description": "Fall backward while sitting, caused by fainting or falling asleep",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 97,
+    "detected": 94,
+    "sensitivity": 0.8173913043478261,
+    "ci95": [
+     0.7369158490326673,
+     0.877347169977511
+    ],
+    "sensitivity_without_confirmation": 0.8434782608695652,
+    "median_score": 0.9821586758056242
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 3,
+    "detected": 3,
+    "sensitivity": 0.6,
+    "ci95": [
+     0.23071993220883708,
+     0.8823817688407467
+    ],
+    "sensitivity_without_confirmation": 0.6,
+    "median_score": 0.8209707592759649
+   }
+  },
+  {
+   "type": "F15",
+   "description": "Lateral fall while sitting, caused by fainting or falling asleep",
+   "adult": {
+    "trials": 115,
+    "windowed": 115,
+    "p_ge_thr": 108,
+    "detected": 107,
+    "sensitivity": 0.9304347826086956,
+    "ci95": [
+     0.8687098549854323,
+     0.9643317735352203
+    ],
+    "sensitivity_without_confirmation": 0.9391304347826087,
+    "median_score": 0.9918343364933133
+   },
+   "elderly": {
+    "trials": 5,
+    "windowed": 5,
+    "p_ge_thr": 3,
+    "detected": 3,
+    "sensitivity": 0.6,
+    "ci95": [
+     0.23071993220883708,
+     0.8823817688407467
+    ],
+    "sensitivity_without_confirmation": 0.6,
+    "median_score": 0.8607321999976788
+   }
+  }
+ ],
+ "group_with_confirmation": {
+  "adult": {
+   "n_falls": 1722,
+   "fall_subjects": [
+    "SA01",
+    "SA02",
+    "SA03",
+    "SA04",
+    "SA05",
+    "SA06",
+    "SA07",
+    "SA08",
+    "SA09",
+    "SA10",
+    "SA11",
+    "SA12",
+    "SA13",
+    "SA14",
+    "SA15",
+    "SA16",
+    "SA17",
+    "SA18",
+    "SA19",
+    "SA20",
+    "SA21",
+    "SA22",
+    "SA23"
+   ],
+   "sensitivity": 0.9181184668989547,
+   "n_adl_windows": 26408,
+   "adl_hours": 9.49556111111111,
+   "specificity_windows": 0.9983164983164983,
+   "specificity_sliding_windows": 0.9998375700479168,
+   "false_alarms_per_hour": 0.421249461005464
+  },
+  "elderly": {
+   "n_falls": 75,
+   "fall_subjects": [
+    "SE06"
+   ],
+   "sensitivity": 0.56,
+   "n_adl_windows": 14036,
+   "adl_hours": 5.004738888888889,
+   "specificity_windows": 1.0,
+   "specificity_sliding_windows": 1.0,
+   "false_alarms_per_hour": 0.0
+  }
+ },
+ "group_without_confirmation": {
+  "adult": {
+   "n_falls": 1722,
+   "fall_subjects": [
+    "SA01",
+    "SA02",
+    "SA03",
+    "SA04",
+    "SA05",
+    "SA06",
+    "SA07",
+    "SA08",
+    "SA09",
+    "SA10",
+    "SA11",
+    "SA12",
+    "SA13",
+    "SA14",
+    "SA15",
+    "SA16",
+    "SA17",
+    "SA18",
+    "SA19",
+    "SA20",
+    "SA21",
+    "SA22",
+    "SA23"
+   ],
+   "sensitivity": 0.9523809523809523,
+   "n_adl_windows": 26408,
+   "adl_hours": 9.49556111111111,
+   "specificity_windows": 0.9943883277216611,
+   "specificity_sliding_windows": 0.9993908876796881,
+   "false_alarms_per_hour": 1.158436017765026
+  },
+  "elderly": {
+   "n_falls": 75,
+   "fall_subjects": [
+    "SE06"
+   ],
+   "sensitivity": 0.6533333333333333,
+   "n_adl_windows": 14036,
+   "adl_hours": 5.004738888888889,
+   "specificity_windows": 1.0,
+   "specificity_sliding_windows": 1.0,
+   "false_alarms_per_hour": 0.0
+  }
+ },
+ "false_alarms_per_hour_overall": {
+  "with_confirmation": 0.2758563615925187,
+  "without_confirmation": 0.7586049943794265
+ },
+ "injected_end_to_end": {
+  "patients": 20,
+  "patient_weeks": 180.9,
+  "injected": 60,
+  "detected": 51,
+  "detection_rate": 0.85,
+  "wilson95": [
+   0.7388517410884038,
+   0.9190265075770431
+  ],
+  "missed": [
+   {
+    "patient_id": "ec812",
+    "day": "2019-04-19",
+    "subject": "SE06",
+    "trial": "F01_SE06_R01"
+   },
+   {
+    "patient_id": "201d8",
+    "day": "2019-05-01",
+    "subject": "SE06",
+    "trial": "F14_SE06_R01"
+   },
+   {
+    "patient_id": "55cd4",
+    "day": "2019-05-10",
+    "subject": "SE06",
+    "trial": "F07_SE06_R04"
+   },
+   {
+    "patient_id": "96adf",
+    "day": "2019-05-10",
+    "subject": "SA03",
+    "trial": "F04_SA03_R01"
+   },
+   {
+    "patient_id": "0efe8",
+    "day": "2019-05-16",
+    "subject": "SA03",
+    "trial": "F04_SA03_R01"
+   },
+   {
+    "patient_id": "c5785",
+    "day": "2019-05-22",
+    "subject": "SA03",
+    "trial": "F13_SA03_R01"
+   },
+   {
+    "patient_id": "6b29b",
+    "day": "2019-06-08",
+    "subject": "SE06",
+    "trial": "F10_SE06_R03"
+   },
+   {
+    "patient_id": "30a32",
+    "day": "2019-06-12",
+    "subject": "SE06",
+    "trial": "F10_SE06_R05"
+   },
+   {
+    "patient_id": "a2849",
+    "day": "2019-06-30",
+    "subject": "SA11",
+    "trial": "F11_SA11_R02"
+   }
+  ],
+  "false_fall_alerts": 2,
+  "false_fall_alerts_per_patient_week": 0.011,
+  "sim_delay_h_median": 13.1,
+  "sim_delay_h_max": 23.8
+ },
+ "live_latency": {
+  "patients": 3,
+  "days": 10,
+  "n_injected_falls": 4,
+  "fall_alerts": 4,
+  "event_to_queued_s": {
+   "median": 0.29,
+   "max": 0.36
+  },
+  "event_to_sent_s": {
+   "median": 0.29,
+   "max": 0.36
+  },
+  "note": "wall clock, 3 real worker processes + orchestrator, FakeMailer (no network); small sample. In the replay timeline the orchestrator decides at day close (daily batch), see detection_delay_sim_hours"
+ },
+ "inactivity_effect_replay": {
+  "injected_events": 60,
+  "injected_p_ge_thr": 55,
+  "injected_urgent_with_confirmation": 51,
+  "adl_events": 2532,
+  "adl_events_p_ge_thr": 19,
+  "adl_events_urgent_with_confirmation": 2,
+  "false_fall_alert_days_with_confirmation": 2,
+  "false_fall_alert_days_without_confirmation": 19,
+  "false_fall_alerts_per_patient_week_with_confirmation": 0.011,
+  "false_fall_alerts_per_patient_week_without_confirmation": 0.105
+ }
+}

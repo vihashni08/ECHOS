@@ -1,0 +1,64 @@
+{
+ "patient_days": 1266,
+ "triage_reconstruction_mismatches": 0,
+ "monitor_share_current": 0.28751974723538704,
+ "drivers": {
+  "current_monitor_share": 0.28751974723538704,
+  "without_vitals_trigger": 0.15323854660347552,
+  "without_agitation_trigger": 0.21484992101105846,
+  "neither_trigger (data gap + possible fall only)": 0.05766192733017378
+ },
+ "vitals_grid": [
+  {
+   "vitals_prob": 0.278,
+   "monitor_share": 0.28751974723538704,
+   "vitals_alert_days": 220,
+   "vitals_alerts_per_patient_week": 1.216429699842022
+  },
+  {
+   "vitals_prob": 0.35,
+   "monitor_share": 0.2598736176935229,
+   "vitals_alert_days": 174,
+   "vitals_alerts_per_patient_week": 0.962085308056872
+  },
+  {
+   "vitals_prob": 0.4,
+   "monitor_share": 0.24091627172195892,
+   "vitals_alert_days": 148,
+   "vitals_alerts_per_patient_week": 0.8183254344391785
+  },
+  {
+   "vitals_prob": 0.45,
+   "monitor_share": 0.23064770932069512,
+   "vitals_alert_days": 133,
+   "vitals_alerts_per_patient_week": 0.735387045813586
+  },
+  {
+   "vitals_prob": 0.5,
+   "monitor_share": 0.22432859399684044,
+   "vitals_alert_days": 121,
+   "vitals_alerts_per_patient_week": 0.6690363349131121
+  },
+  {
+   "vitals_prob": 0.6,
+   "monitor_share": 0.2093206951026856,
+   "vitals_alert_days": 96,
+   "vitals_alerts_per_patient_week": 0.5308056872037915
+  }
+ ],
+ "oof_vitals_recall_by_budget": {
+  "0.5 / pt-wk": 0.5015873015873016,
+  "1.0 / pt-wk": 0.7206349206349206,
+  "2.0 / pt-wk": 0.8825396825396825
+ },
+ "proposal_not_applied": {
+  "vitals_prob": 0.4,
+  "monitor_share": 0.24091627172195892,
+  "vitals_alert_days": 148,
+  "vitals_alerts_per_patient_week": 0.8183254344391785
+ },
+ "notes": [
+  "replay scores are out-of-fold; thresholds were chosen on the same OOF scores",
+  "proposal only: config.yaml unchanged"
+ ]
+}

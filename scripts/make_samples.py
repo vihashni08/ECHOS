@@ -19,6 +19,8 @@ DAILY = [("c55f8", "2019-04-02"), ("c55f8", "2019-04-06"), ("ec812", "2019-04-02
          ("ec812", "2019-04-19"), ("c5785", "2019-05-07"), ("201d8", "2019-05-04"), ("c5785", "2019-05-02")]
 WEEKLY = [("c55f8", "2019-04-17"), ("c5785", "2019-05-18")]
 
+if "--yes" not in sys.argv:
+    sys.exit("Refusing to run: this makes REAL Gemini requests. Re-run with --yes.")
 llm = make_llm()
 if llm is None:
     sys.exit("no LLM configured")

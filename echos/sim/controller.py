@@ -239,7 +239,10 @@ def main():
     ap.add_argument("--patients", type=int, default=4)
     ap.add_argument("--days", type=int, default=28)
     ap.add_argument("--no-llm", action="store_true", help="template reports only (no Gemini calls)")
+    ap.add_argument("--no-pubmed", action="store_true", help="no live PubMed (local guideline index only)")
     a = ap.parse_args()
+    if a.no_llm or a.no_pubmed:
+        os.environ["ECHOS_PUBMED"] = "off"
     rt = Runtime(a.db, a.patients, a.days, report_root=os.environ.get("ECHOS_REPORT_ROOT"), report_llm=None if (a.no_llm or os.environ.get("ECHOS_REPORT_LLM") == "off") else "auto")
     rt.start()
     print("runtime started (workers + orchestrator + controller); Ctrl-C to stop", flush=True)

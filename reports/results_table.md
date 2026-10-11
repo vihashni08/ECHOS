@@ -50,15 +50,35 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 |---|---|
 | Patients / patient-days / patient-weeks | 20 / 1266 / 180.9 |
 | Injected falls | 60 |
-| Fall detection rate (URGENT, fall reason) | 0.950 (0.863-0.983) (57/60) |
-| Detection delay, simulated (fall -> end of day), median / max | 11.4 h / 23.8 h |
-| Pipeline latency after last agent output, median | 0.21 s |
-| False fall alerts per patient-week | 0.066 (12 alerts) |
+| Fall detection rate (URGENT, fall reason) | 0.850 (0.739-0.919) (51/60) |
+| Detection delay, simulated (fall -> end of day), median / max | 13.1 h / 23.8 h |
+| False fall alerts per patient-week | 0.011 (2 alerts) |
 | URGENT days from critical vitals (real TIHM readings) | 4 |
-| All URGENT alerts per patient-week | 0.404 |
-| Days Normal / Monitor / Urgent | 65.6% / 28.7% / 5.8% |
-| Days with a data gap | 4.5% |
+| All URGENT alerts per patient-week | 0.315 |
+| Days Normal / Monitor / Urgent | 66.7% / 28.8% / 4.5% |
+| Days with a data gap (any status) | 4.5% |
 | Duplicate alerts | 0 |
+
+MONITOR days by reason (364 days)
+
+| Reason | Days | Share of MONITOR days |
+|---|---|---|
+| vitals only | 170 | 46.7% |
+| behaviour only | 92 | 25.3% |
+| data gap only | 49 | 13.5% |
+| behaviour + vitals | 29 | 8.0% |
+| possible fall (no inactivity) only | 13 | 3.6% |
+| data gap + vitals | 4 | 1.1% |
+| behaviour + possible fall (no inactivity) | 3 | 0.8% |
+| possible fall (no inactivity) + vitals | 2 | 0.5% |
+| data gap + possible fall (no inactivity) | 2 | 0.5% |
+
+DATA_GAP causes, all statuses (a day can have several)
+
+| Cause | Days |
+|---|---|
+| sensor gap | 56 |
+| vitals gap > 7 days | 2 |
 
 ### MONITOR thresholds re-selected from out-of-fold predictions (alert budget)
 
@@ -72,13 +92,3 @@ Budgets: vitals <= 1 alert per patient-week; behaviour Monitor days <= 10% of pa
 | Vitals recall (BP/pulse/water labels) | 0.724 | 0.721 |
 | Behaviour Monitor days, share of patient-days | 9.9% | 9.9% |
 | Agitation recall of behaviour Monitor | 0.527 | 0.509 |
-
-### Fault injection (3 patients x 15 days; clean run 181.6 s)
-
-| Fault | Lost alerts | Extra alerts | Duplicates | Falls alerted | Detect (s) | Recover (s) | Cases identical to clean run | Differ only in quality flag | Differ otherwise | Pass-through after kill (s) | Agent 1-2 outputs without Agent 0 | Report modes | Wall overhead (s) |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| kill physiological | 0 | 0 | 0 | 9/9 | 2.9 | 4.8 | 45/45 | 0 | 0 | - | 0 | llm:42,template:9 | 2.2 |
-| kill behaviour | 0 | 0 | 0 | 9/9 | 2.8 | 4.0 | 45/45 | 0 | 0 | - | 0 | llm:42,template:9 | 10.7 |
-| kill fall | 0 | 0 | 0 | 9/9 | 2.8 | 3.8 | 45/45 | 0 | 0 | - | 0 | template:9,llm:42 | 8.6 |
-| real Gemini client, 1s timeout | 0 | 0 | 0 | 9/9 | - | - | 45/45 | 0 | 0 | - | 0 | template:47,llm:4 | -10.6 |
-| LLM key removed | 0 | 0 | 0 | 9/9 | - | - | 45/45 | 0 | 0 | - | 0 | template:51 | -168.8 |

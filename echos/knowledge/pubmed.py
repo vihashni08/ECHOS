@@ -59,6 +59,8 @@ def build_query(finding_type: str, details: Optional[dict] = None) -> Optional[s
 
 
 def _http_get(url: str, params: dict, timeout: float) -> bytes:
+    if os.environ.get("ECHOS_PUBMED") == "off":
+        raise PubMedError("disabled")
     req = request.Request(url + "?" + parse.urlencode(params), headers={"User-Agent": f"{TOOL}/1.0"})
     with request.urlopen(req, timeout=timeout) as r:     # noqa: S310 - fixed https NCBI endpoints
         return r.read()

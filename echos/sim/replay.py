@@ -92,7 +92,7 @@ def build_events(n_patients: int = 5, seed: int | None = None, max_days: int | N
     return events, [e for e in events if e["_fall"]]
 
 
-def replay(engine, n_patients: int = 5, seed: int | None = None, rate_eps: float = 0.0, max_days: int | None = None) -> dict:
+def replay(engine, n_patients: int = 5, seed: int | None = None, rate_eps: float = 0.0, max_days: int | None = None, on_insert=None) -> dict:
     """Write events to event_log (one transaction per event so consumers see a live stream). rate_eps=0 -> as fast as possible."""
     events, _ = build_events(n_patients, seed, max_days)
     n_fall = 0
@@ -105,6 +105,8 @@ def replay(engine, n_patients: int = 5, seed: int | None = None, rate_eps: float
                 n_fall += 1
                 S.insert_ignore(c, S.gt_fall, event_id=eid, patient_id=e["patient_id"], day=e["day"], ts=e["ts"],
                                 subject=e["payload"]["subject"], file=e["payload"]["file"])
+        if on_insert:
+            on_insert(eid, e, time.time())     # wall-clock time of the insert (latency measurements)
         if rate_eps > 0:
             time.sleep(1.0 / rate_eps)
     return {"events": len(events), "falls": n_fall}

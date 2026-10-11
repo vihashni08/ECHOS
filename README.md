@@ -78,8 +78,15 @@ PYTHONPATH=. python3 scripts/choose_monitor_thresholds.py
 PYTHONPATH=. python3 scripts/run_demo.py 4 28
 # 5. systems tests
 PYTHONPATH=. python3 scripts/e2e.py 20             # 20 patients, full period -> reports/metrics/e2e.json
-PYTHONPATH=. python3 scripts/fault_injection.py    # kill each agent, delay LLM, remove key -> fault_injection.json
+PYTHONPATH=. python3 scripts/fault_injection.py    # fakes only: kill workers / supervisor, LLM, PubMed, SMTP, API faults -> fault_injection.json
 PYTHONPATH=. python3 scripts/kill_test.py fall     # single kill test -> kill_test.json
+PYTHONPATH=. python3 scripts/fall_eval.py          # per-fall-type sensitivity, injected-fall results, inactivity effect (after e2e.py + fault_injection.py)
+PYTHONPATH=. python3 scripts/ablation.py           # A fixed rules / B vitals only / C full system, out-of-fold, patient bootstrap CIs
+PYTHONPATH=. python3 scripts/gate_eval.py          # report gatekeeper: LLM / retrieval calls avoided (counting fakes), triage identical on/off
+PYTHONPATH=. python3 scripts/monitor_driver.py     # MONITOR share driver + threshold proposal (not applied)
+PYTHONPATH=. python3 scripts/sync_prose.py         # RESULTS.md prose bullets regenerated from the JSONs
+# every script above runs with ECHOS_REPORT_LLM=off, ECHOS_PUBMED=off, ECHOS_DRY_RUN=1 (echos/offline.py): no Gemini, PubMed or SMTP.
+# Real-service scripts need --yes: scripts/list_models.py (model names), scripts/live_llm_check.py --yes (<= 4 requests, stops at the first failure)
 # 6. merge metrics into one table (reports/results_table.md and .csv)
 PYTHONPATH=. python3 scripts/evaluate.py
 # tests
@@ -119,7 +126,7 @@ The sidebar switches between the Caregiver page (daily report) and the Clinician
 - Agent 1 PR-AUC 0.70 vs 0.26 for the fixed BP rule (out-of-fold, patient-level).
 - Agent 2 PR-AUC 0.22 vs 0.05 base rate (within-patient ROC-AUC 0.82); drift alone is at chance and is report evidence only, not a Monitor trigger; the signal is mostly raw same-day activity.
 - Agent 3 sensitivity 0.918 adults / 0.560 elderly (one subject), on SisFall scripted falls.
-- End-to-end (20 patients, 60 injected falls): 57 detected (95%); days are 66% Normal / 29% Monitor / 6% Urgent with MONITOR thresholds chosen from out-of-fold alert budgets (<=1 vitals alert/patient-week, <=10% behaviour Monitor days, agitation_prob only) and out-of-fold agent scores.
-- Fault injection: 0 lost, 0 duplicate alerts across all five scenarios.
+- End-to-end (20 patients, 60 injected falls): 51 detected (85%); days are 67% Normal / 29% Monitor / 4% Urgent with MONITOR thresholds chosen from out-of-fold alert budgets (<=1 vitals alert/patient-week, <=10% behaviour Monitor days, agitation_prob only) and out-of-fold agent scores.
+- Fault injection (fakes, 3 patients x 10 days): no alert lost and no duplicate in 11 of 11 fault cases (the SMTP outage case leaves undelivered rows FAILED instead; see RESULTS.md).
 
 Small cohort, clinical-alert labels, simulated falls: treat all numbers as preliminary.
