@@ -17,3 +17,4 @@ jinja2
 matplotlib
 pypdf
 chromadb
+sentence-transformers
