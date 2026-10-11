@@ -37,13 +37,15 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
                 report_llm="auto", report_root=None, gate=None, dispatcher=None):
     """fault(node_name) may raise to simulate a crash. inline_agents: {agent_id: fn(event_row)->dict} used only
     when an agent's stored output is missing (tests / no-process mode). report_llm: "auto" = Gemini if configured
-    (llm.model + key), None/False = template mode. gate: NORMAL days get a template daily report (no LLM, no RAG);
+    (llm.model + key), None/False = template mode. gate: NORMAL days get a template daily report (no LLM, no retrieval);
     None = config `report_gate.enabled`. The gate only touches the report node, never triage or alerts.
     dispatcher: AlertDispatcher (default: config alerts.send_real false -> DryRunMailer; true -> SMTP). Sending runs in its own thread."""
     from echos.reports.agent import ReportAgent
     from echos.reports.facts import build_day_facts
     from echos.reports.llm import make_llm
-    reporter = ReportAgent(eng, make_llm() if report_llm == "auto" else (report_llm or None), root=report_root)
+    from echos.reports.llm_budget import make_budget
+    auto = report_llm == "auto"   # real Gemini if configured: daily report through the budget manager (cache -> primary -> fallback -> template)
+    reporter = ReportAgent(eng, make_llm() if auto else (report_llm or None), root=report_root, budget=make_budget() if auto else None)
     fault = fault or (lambda node: None)
     dispatcher = dispatcher or AlertDispatcher(eng, make_mailer())
     gate_on = bool(load_config().get("report_gate", {}).get("enabled", True)) if gate is None else bool(gate)

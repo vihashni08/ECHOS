@@ -66,6 +66,9 @@ def get_engine(path=None):
         c.close()
 
     md.create_all(eng)
+    with eng.begin() as c:   # databases created before the provenance column existed
+        if "provenance" not in {r[1] for r in c.execute(text("PRAGMA table_info(reports)"))}:
+            c.execute(text("ALTER TABLE reports ADD COLUMN provenance TEXT"))
     return eng
 
 
@@ -91,4 +94,5 @@ daily_facts = Table("daily_facts", md, Column("patient_id", String, primary_key=
                     Column("facts", Text))
 reports = Table("reports", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True),
                 Column("kind", String, primary_key=True), Column("mode", String), Column("path", String),
-                Column("validation", Text), Column("created_ts", Float))
+                Column("validation", Text), Column("created_ts", Float),
+                Column("provenance", Text))   # JSON: model / cache hit / tools / sources / validator / fallback reason / request counts ("How this report was made")

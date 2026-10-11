@@ -177,6 +177,22 @@ Elderly sensitivity rests on one subject's falls: its bootstrap CI is degenerate
 
 <!-- model_selection:end -->
 
+<!-- elderly_se06:start -->
+### Elderly fall sensitivity by threshold (written by scripts/elderly_by_threshold.py)
+
+Subject SE06 is the only elderly subject with falls (75 falls). Random forest, v2 windows, subject-level folds.
+
+| Threshold | Without inactivity confirmation | With inactivity confirmation |
+|---|---|---|
+| 0.5 | 0.813 (61/75) | 0.720 (54/75) |
+| 0.6 | 0.760 (57/75) | 0.667 (50/75) |
+| 0.7 | 0.680 (51/75) | 0.587 (44/75) |
+| 0.8 | 0.653 (49/75) | 0.560 (42/75) |
+| 0.9 | 0.587 (44/75) | 0.493 (37/75) |
+
+**Limitation:** elderly sensitivity comes from one subject (SE06, 75 scripted falls) and ranges from 0.49 to 0.81 across thresholds and confirmation settings; at the chosen operating point (threshold 0.8, inactivity confirmation required) it is 0.56 (42/75). It cannot be generalised to elderly people, and requiring inactivity confirmation lowers elderly sensitivity more than adult sensitivity.
+<!-- elderly_se06:end -->
+
 <!-- fall_audit:start -->
 ## Fall window audit (written by scripts/fall_audit.py)
 

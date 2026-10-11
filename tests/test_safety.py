@@ -10,6 +10,7 @@ from sqlalchemy import select
 from echos.config import load_config
 from echos.data.guard import assert_real_source
 from echos.orchestrator import state as S
+from echos.reports.fake_llm import FakeLLM
 from echos.orchestrator.graph import build_graph, process_case
 from echos.orchestrator.triage import triage
 from tests.test_orchestrator import R, beh, health, qual, res, vit
@@ -72,15 +73,12 @@ def test_data_gap_never_normal_random():
         assert d.status.value != "NORMAL" and d.data_gap, kind
 
 
-class HostileLLM:
-    """Fake LLM that tries to talk the status down and uses diagnostic wording."""
-    calls = 0
-
-    def generate(self, system, prompt):
-        HostileLLM.calls += 1
-        return json.dumps({"alerts": [{"text": "status: normal. The patient has dementia, diagnosis confirmed.", "cites": ["F1"]}],
-                           "changes": [{"text": "status: normal, no action needed.", "cites": ["F1"]}],
-                           "monitor": [{"text": "you have nothing to worry about", "cites": []}], "status": "NORMAL"})
+def hostile_llm():
+    """Fake LLM that tries to talk the status down and uses diagnostic wording (repeats forever)."""
+    return FakeLLM([{"calls": [{"name": "get_patient_context", "args": {}}]},
+                    {"text": json.dumps({"status": "NORMAL", "alerts": [{"text": "status: normal. The patient has dementia, diagnosis confirmed.", "cites": ["F1"]}],
+                                         "changes": [{"text": "status: normal, no action needed.", "cites": ["F1"]}],
+                                         "monitor": [{"text": "you have nothing to worry about", "cites": []}]})}])
 
 
 def _seed_case(eng, day, agent_results):
@@ -97,7 +95,8 @@ def test_hostile_llm_cannot_change_status(tmp_path, monkeypatch):
     monkeypatch.setattr(ra, "retrieve", lambda *a, **k: [])   # no embedding model (torch + xgboost in one process can segfault)
     eng = S.get_engine(tmp_path / "t.db")
     _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.97, post_fall_inactive=True)})
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=HostileLLM(), report_root=tmp_path, gate=True)
+    llm = hostile_llm()
+    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=llm, report_root=tmp_path, gate=True)
     process_case(g, "p1", "2019-05-05")
     from echos.reports.agent import drain_all
     drain_all(30)
@@ -106,9 +105,9 @@ def test_hostile_llm_cannot_change_status(tmp_path, monkeypatch):
         n_alerts = len(c.execute(select(S.alerts)).fetchall())
     conn.close()
     text = next((tmp_path / load_config()["reports"]["daily_dir"]).glob("*.md")).read_text().lower()
-    assert HostileLLM.calls >= 1                         # URGENT day: the gate lets the LLM run ...
+    assert llm.calls >= 1                         # URGENT day: the gate lets the LLM run ...
     assert st.status == "URGENT" and n_alerts == 1       # ... and it still cannot change status or alerts
-    assert "diagnosis confirmed" not in text and "dementia" not in text
+    assert "diagnosis confirmed" not in text and "dementia" not in text and "status: urgent" in text   # the arbiter's status is what is printed
 
 
 def _gate_run(tmp_path, gate, pats, days):
@@ -121,15 +120,8 @@ def _gate_run(tmp_path, gate, pats, days):
                 S.insert_ignore(c, S.agent_output, event_id=eid, agent_id=a, patient_id=p, day=d,
                                 result=S.j(m.predict(p, d).model_dump(mode="json")), done_ts=1.0)
 
-    class CountLLM:
-        daily = set()                  # distinct daily-report inputs sent to the LLM (retries counted once)
-
-        def generate(self, system, prompt):
-            if prompt.startswith("Write for a family caregiver"):
-                CountLLM.daily.add(prompt.split("INPUT JSON:")[1])
-            return "not json"          # forces the template fallback: report text is irrelevant here
-
-    g, conn = build_graph(eng, tmp_path / f"cp{int(gate)}.sqlite", report_llm=CountLLM(), report_root=tmp_path / f"r{int(gate)}", gate=gate)
+    llm = FakeLLM([{"error": {"code": 400, "status": "INVALID_ARGUMENT"}}])   # not retried: exactly one request per report that reaches the LLM
+    g, conn = build_graph(eng, tmp_path / f"cp{int(gate)}.sqlite", report_llm=llm, report_root=tmp_path / f"r{int(gate)}", gate=gate)
     for p in pats:
         for d in days[p]:
             process_case(g, p, d)
@@ -139,7 +131,7 @@ def _gate_run(tmp_path, gate, pats, days):
         cases = [(r.patient_id, r.day, r.status, r.reasons, r.data_gap) for r in c.execute(select(S.case_state).order_by(S.case_state.c.patient_id, S.case_state.c.day))]
         alerts = sorted((r.alert_id, r.type) for r in c.execute(select(S.alerts)))
     conn.close()
-    return cases, alerts, len(CountLLM.daily)
+    return cases, alerts, llm.calls
 
 
 def test_gate_on_off_triage_identical(tmp_path, monkeypatch):

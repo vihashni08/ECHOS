@@ -540,5 +540,72 @@
       "rule": "switch only if paired-bootstrap CI of PR-AUC difference vs current RF is above zero",
       "keep_current": true
     }
+  },
+  "fall_elderly_by_threshold": {
+    "subjects": [
+      "SE06"
+    ],
+    "n_falls": 75,
+    "rows": [
+      {
+        "threshold": 0.5,
+        "without_inactivity": {
+          "sensitivity": 0.8133333333333334,
+          "falls_detected": 61
+        },
+        "with_inactivity": {
+          "sensitivity": 0.72,
+          "falls_detected": 54
+        }
+      },
+      {
+        "threshold": 0.6,
+        "without_inactivity": {
+          "sensitivity": 0.76,
+          "falls_detected": 57
+        },
+        "with_inactivity": {
+          "sensitivity": 0.6666666666666666,
+          "falls_detected": 50
+        }
+      },
+      {
+        "threshold": 0.7,
+        "without_inactivity": {
+          "sensitivity": 0.68,
+          "falls_detected": 51
+        },
+        "with_inactivity": {
+          "sensitivity": 0.5866666666666667,
+          "falls_detected": 44
+        }
+      },
+      {
+        "threshold": 0.8,
+        "without_inactivity": {
+          "sensitivity": 0.6533333333333333,
+          "falls_detected": 49
+        },
+        "with_inactivity": {
+          "sensitivity": 0.56,
+          "falls_detected": 42
+        }
+      },
+      {
+        "threshold": 0.9,
+        "without_inactivity": {
+          "sensitivity": 0.5866666666666667,
+          "falls_detected": 44
+        },
+        "with_inactivity": {
+          "sensitivity": 0.49333333333333335,
+          "falls_detected": 37
+        }
+      }
+    ],
+    "operating_point": {
+      "threshold": 0.8,
+      "require_inactivity": true
+    }
   }
 }

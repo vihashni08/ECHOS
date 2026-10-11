@@ -10,6 +10,7 @@ from echos.alerts import payload as P
 from echos.alerts.dispatcher import AlertDispatcher
 from echos.alerts.mailer import DryRunMailer, FakeMailer, SMTPMailer, make_mailer
 from echos.orchestrator import alerts as OA
+from echos.reports.fake_llm import FakeLLM
 from echos.orchestrator import state as S
 from echos.orchestrator.graph import build_graph, process_case
 from tests.test_orchestrator import R, _seed, health, qual
@@ -51,11 +52,13 @@ def test_payload_has_every_field(eng):
     p = P.build_payload(eng, "x|1", "FALL", pid, "2019-05-05", "2019-05-05T12:00:00", 7, {"status": "URGENT"}, res, res["fall"])
     assert p.patient_id == pid and p.age_band != "unknown" and p.event_time.startswith("2019-05-05")
     assert p.fall_probability == 0.97 and p.peak_impact_g == 5.2 and p.post_fall_inactivity is True and p.today_status == "URGENT"
-    assert len(p.vitals) >= 3 and len(p.recent_room_events) <= 3 and p.data_quality_note.startswith("sensor gap")
+    assert len(p.recent_room_events) <= 3 and p.data_quality_note.startswith("sensor gap")
+    assert all(v.time and v.age.endswith("before this event") for v in p.vitals) and (p.vitals or p.vitals_note)
+    assert p.recent_room_events or p.room_note.startswith("No room-sensor activity recorded in the 6 hours before the event (last recorded:")
     assert p.checklist == P.CHECKLIST
     txt, html = P.render_text(p), P.render_html(p)
     for needle in ["Fall probability: 0.97", "Peak impact: 5.2 g", "Post-fall inactivity: yes", "Age band", "Today's status: URGENT", "sensor gap",
-                   "Latest vitals vs this patient's own baseline", "Last room-sensor events"] + [f"[ ] {c}" for c in P.CHECKLIST]:
+                   "Latest vitals vs this patient's own baseline", "Last room-sensor events (within 6 h"] + [f"[ ] {c}" for c in P.CHECKLIST]:
         assert needle in txt, needle
     assert "<table>" in html and P.subject(p).startswith("[ECHOS URGENT]")
     assert "sex" not in txt.lower() and "female" not in txt.lower()
@@ -185,7 +188,7 @@ def test_alerts_still_go_out_when_llm_rag_pubmed_are_down(tmp_path, monkeypatch)
     eng = S.get_engine(tmp_path / "t.db")
     _seed(eng)
     m = FakeMailer()
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=RaisingLLM(), dispatcher=disp(eng, m))
+    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=FakeLLM([{"error": {"code": 503, "status": "UNAVAILABLE"}}]), dispatcher=disp(eng, m))
     assert process_case(g, "p1", "2019-05-05") is True
     assert g.dispatcher.flush(5)
     assert sorted(x["to"] for x in m.sent) == sorted(TO.values())
@@ -212,3 +215,55 @@ def test_orchestrator_alert_is_queued_before_report(tmp_path):
         rep = c.execute(select(S.reports.c.created_ts)).first()
     assert a.alert_id.startswith("p1|2019-05-05|fall|") and (rep is None or a.time <= rep.created_ts)
     conn.close()
+
+
+# ---------------------------------------------------------------- vitals / room-sensor context with timestamps and ages
+def test_humanize_age():
+    import pandas as pd
+    h = lambda **k: P.humanize_age(pd.Timedelta(**k))  # noqa: E731
+    assert h(minutes=35) == "35 minutes before this event" and h(hours=5) == "5 hours before this event"
+    assert h(days=2) == "2 days before this event" and h(minutes=1) == "1 minute before this event"
+
+
+def _fake_data(monkeypatch, phys, act):
+    import pandas as pd
+    mk = lambda rows, cols: {"p1": pd.DataFrame(rows, columns=cols).assign(date=lambda d: pd.to_datetime(d.date)).sort_values("date")}  # noqa: E731
+    P._CACHE["phys"] = mk(phys, ["device_type", "value", "date"])
+    P._CACHE["act"] = mk(act, ["location_name", "date"])
+    monkeypatch.setattr("echos.reports.facts.build_day_facts", lambda *a, **k: {"vitals": {"sys": {"baseline": 140.0}, "dia": {"baseline": 82.0},
+                                                                                       "hr": {"baseline": 70.0}, "temp": {"baseline": None}}})
+    yield
+    P._CACHE.pop("phys", None), P._CACHE.pop("act", None)
+
+
+@pytest.fixture
+def fake(monkeypatch):
+    phys = [("Systolic blood pressure", 152, "2019-05-03 10:12:00"), ("Diastolic blood pressure", 88, "2019-05-03 10:12:00"),
+            ("Heart rate", 71, "2019-05-03 10:12:00"), ("Body Temperature", 36.4, "2019-05-03 22:00:00"),
+            ("Heart rate", 99, "2019-05-06 08:00:00")]   # after the event: must never be shown
+    act = [("Kitchen", "2019-05-05 03:00:00"), ("Hallway", "2019-05-05 08:00:00"), ("Lounge", "2019-05-05 08:10:00"), ("Bedroom", "2019-05-05 09:00:00"),
+           ("Bathroom", "2019-05-05 09:30:00"), ("Kitchen", "2019-05-05 12:00:00")]
+    yield from _fake_data(monkeypatch, phys, act)
+
+
+def test_vitals_have_time_age_baseline_and_old_note(eng, fake):
+    p = P.build_payload(eng, "a|1", "FALL", "p1", "2019-05-05", "2019-05-05T10:00:00", 1, {}, {}, None)
+    bp = next(v for v in p.vitals if v.name == "BP")
+    assert (bp.value, bp.value2, bp.baseline, bp.baseline2) == (152, 88, 140, 82) and bp.age == "2 days before this event"
+    assert next(v for v in p.vitals if v.name == "Heart rate").value == 71        # the 99 bpm reading is after the event
+    txt = P.render_text(p)
+    assert "BP 152/88 mmHg, 2 days before this event (2019-05-03 10:12); personal baseline 140/82" in txt
+    assert "Temperature 36.4 C, 2 days before this event" in txt and p.vitals_note.startswith("No recent vitals")
+
+
+def test_recent_vitals_have_no_note(eng, fake):
+    p = P.build_payload(eng, "a|2", "FALL", "p1", "2019-05-05", "2019-05-04T08:00:00", 1, {}, {}, None)
+    assert p.vitals_note is None
+
+
+def test_room_events_last3_within_6h_else_plain_sentence(eng, fake):
+    p = P.build_payload(eng, "a|3", "FALL", "p1", "2019-05-05", "2019-05-05T10:00:00", 1, {}, {}, None)
+    assert [e.room for e in p.recent_room_events] == ["Lounge", "Bedroom", "Bathroom"] and p.room_note is None   # Kitchen 03:00 is >6 h old
+    assert "minutes before" in P.render_text(p)
+    p = P.build_payload(eng, "a|4", "FALL", "p1", "2019-05-05", "2019-05-05T20:00:00", 1, {}, {}, None)
+    assert p.recent_room_events == [] and "No room-sensor activity recorded in the 6 hours before the event (last recorded: 2019-05-05 12:00:00)" in P.render_text(p)

@@ -70,13 +70,22 @@ llm:
   temperature: 0.2
   retries: 1           # failed (non-timeout) LLM output is retried at most this many times, then Jinja2 template fallback
   timeout_s: 45        # hard per-call timeout; a timeout is never retried
-  max_requests_per_min: 5   # request-rate limiter
+  max_requests_per_min: 5   # legacy limiter, used only by the weekly report's direct generate() calls
+  rpm: {primary: 15, fallback: 10}   # requests/min limits of the primary / fallback model (set from your Gemini quota); the budget manager stays 20% below
+  cooldown_s: 60       # a model that returned HTTP 429 is skipped this long
+  cache_path: data/llm_cache.sqlite   # response cache + call log (SQLite)
   max_pending: 200     # background report backlog; beyond it reports stay template (logged)
 alerts:   # immediate alerts (fall, critical vitals): fixed template, no LLM; see echos/alerts/
   send_real: false          # false -> DryRunMailer: outbox rows only, SMTP is never used
   max_attempts: 3
   backoff_s: [1, 2, 4]      # wait before the next attempt (a 3rd failure -> FAILED)
   critical_cooldown_sim_h: 12   # per patient: a second critical-vitals alert inside this many SIMULATED hours is suppressed
+pubmed:   # live PubMed (NCBI E-utilities) for MONITOR / URGENT daily reports only; env: ECHOS_NCBI_EMAIL, optional NCBI_API_KEY
+  enabled: true
+  max_results: 3
+  timeout_s: 10
+  max_rps: 3            # NCBI limit without an API key
+  cache_path: data/pubmed_cache.sqlite
 report_gate:
   enabled: true       # NORMAL days get a template daily report (no LLM, no RAG); never affects triage or alerts
 rag:

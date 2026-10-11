@@ -1,7 +1,9 @@
 """Non-LLM validator. Checks a report-writer output (JSON of {section: [{text, cites}]}) against its input payload.
 
-Rules: (1) every number in the text appears in the input; (2) no diagnostic wording; (3) every item cites known
-evidence ids and every required flag is cited by at least one item.
+Rules: (1) every number in the text appears in the input (citation ids like [KB-65], [PM-123], F1 are not numbers); (2) no diagnostic wording,
+no medication advice, no quoting of the agitation score; (3) every item cites known evidence ids and every required flag is cited by at least one
+item; (4) when `expected_status` is given, the output's `status` must equal the arbiter's status text exactly; (5) every guidance statement cites
+at least one source that was actually retrieved, and paraphrases it.
 """
 from __future__ import annotations
 
@@ -9,7 +11,13 @@ import re
 
 NUM = re.compile(r"\d+(?:\.\d+)?")
 BANNED = [r"diagnos", r"\byou have\b", r"\bsuffer(s|ing)? from\b", r"\bis suffering\b", r"\bhas developed\b",
-          r"\bconfirm(s|ed)? (that )?(he|she|they|the patient) has\b"]
+          r"\bconfirm(s|ed)? (that )?(he|she|they|the patient) has\b",
+          # medication advice: ECHOS never tells anyone to start / stop / change a medicine
+          r"\b(take|taking|start|stop|skip|increase|decrease|reduce|adjust|change|double|restart)\b[^.]{0,40}\b(medication|medicine|medicines|medications|dose|doses|dosage|tablets?|pills?|drugs?|antihypertensives?|sedatives?)\b",
+          r"\bprescri(be|bed|ption)\b", r"\bdosage\b", r"\b\d+\s?(mg|mcg|ml)\b",
+          # the behaviour score barely beats the base rate: never quote it
+          r"\bagitation (probability|risk|score|likelihood)\b", r"\bprobability of agitation\b"]
+CITE_TOKEN = re.compile(r"\[?\b(?:KB|PM)-\d+\b\]?|\b[FE]\d+\b")
 
 
 def _walk(x, out: list):
@@ -83,17 +91,20 @@ def check_guidance(output: dict, guidance: dict, errors: list):
             errors.append("guidance quotes the source verbatim (paraphrase required)")
 
 
-def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=None, cite_sections=(), guidance=None) -> dict:
+def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=None, cite_sections=(), guidance=None,
+                    expected_status=None) -> dict:
     """Return {ok, errors}. required_ids: ids that must be cited; valid_ids: ids that may be cited;
     cite_sections: sections whose every item must cite at least one id; guidance: see check_guidance."""
     errors = []
     if not isinstance(output, dict):
         return {"ok": False, "errors": ["output is not a JSON object"]}
+    if expected_status is not None and output.get("status") != expected_status:
+        errors.append(f"status text {str(output.get('status'))[:30]!r} does not match the arbiter's status {expected_status!r}")
     allowed = input_numbers(payload)
     cites_text = {c for it in _items(output) for c in (it.get("cites") or []) if isinstance(c, str)}
     for t in _texts({k: [{"text": it.get("text", "")} for it in v if isinstance(it, dict)]
                      for k, v in output.items() if isinstance(v, list)}):
-        for m in NUM.findall(t):
+        for m in NUM.findall(CITE_TOKEN.sub(" ", t)):
             if round(float(m), 2) not in allowed and float(m) not in allowed:
                 errors.append(f"number {m} not in input")
         for pat in BANNED:

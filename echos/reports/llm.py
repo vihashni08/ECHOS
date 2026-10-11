@@ -12,6 +12,7 @@ import os
 import re
 import threading
 import time
+from dataclasses import dataclass, field
 
 from echos.config import ROOT, load_config
 
@@ -58,6 +59,17 @@ def _is_timeout(ex: BaseException) -> bool:
     return isinstance(ex, TimeoutError) or "timeout" in type(ex).__name__.lower() or "timed out" in str(ex).lower()
 
 
+@dataclass
+class Step:
+    """One model response: final `text`, or `calls` = [{"name", "args"}] (function calling). `raw` is the provider's own content
+    object, kept so the next request can replay it (Gemini needs the original function-call parts back)."""
+    text: str = ""
+    calls: list = field(default_factory=list)
+    raw: object = None
+    prompt_tokens: int | None = None
+    output_tokens: int | None = None
+
+
 class RateLimiter:
     """Minimum spacing between requests (thread-safe): at most `per_min` calls per minute."""
     def __init__(self, per_min: float):
@@ -91,13 +103,13 @@ class GeminiLLM:
                                                response_mime_type="application/json"))
         return r.text or ""
 
-    def _once(self, system: str, user: str) -> str:
-        self.limiter.wait()
+    def _guard(self, fn):
+        """Run fn() under the hard timeout (SDK HTTP timeout + watchdog thread); API errors become LLMAPIError, timeouts LLMTimeout."""
         box: dict = {}
 
         def run():
             try:
-                box["out"] = self._call(system, user)
+                box["out"] = fn()
             except BaseException as ex:  # noqa: BLE001 - re-raised in the caller
                 box["err"] = ex
         t = threading.Thread(target=run, daemon=True)
@@ -110,6 +122,48 @@ class GeminiLLM:
                 raise LLMTimeout(f"{type(box['err']).__name__}: timed out after {self.timeout_s:g}s") from box["err"]
             raise _wrap(box["err"])
         return box["out"]
+
+    def _once(self, system: str, user: str) -> str:
+        self.limiter.wait()
+        return self._guard(lambda: self._call(system, user))
+
+    # ---- function-calling interface (used by the report agent through llm_budget; rate limiting is done there)
+    def _contents(self, messages: list):
+        from google.genai import types
+        out = []
+        for m in messages:
+            if m["role"] == "user":
+                out.append(types.Content(role="user", parts=[types.Part(text=m["text"])]))
+            elif m["role"] == "model":
+                out.append(m.get("raw") or types.Content(role="model", parts=[types.Part.from_function_call(name=c["name"], args=c["args"]) for c in m["calls"]]))
+            else:   # tool results go back as a user turn with function_response parts
+                out.append(types.Content(role="user", parts=[types.Part.from_function_response(name=r["name"], response=r["response"]) for r in m["results"]]))
+        return out
+
+    def step(self, system: str, messages: list, tools: list | None = None) -> Step:
+        """ONE request. tools=None -> final answer (JSON mime type, no function calling); else manual function calling
+        (automatic_function_calling disabled: the agent executes tools itself and enforces the step limit)."""
+        from google.genai import types
+        if tools:
+            cfg = types.GenerateContentConfig(
+                system_instruction=system, temperature=self.temperature,
+                tools=[types.Tool(function_declarations=[types.FunctionDeclaration(name=t["name"], description=t["description"],
+                                                                                   parameters_json_schema=t["parameters"]) for t in tools])],
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True))
+        else:
+            cfg = types.GenerateContentConfig(system_instruction=system, temperature=self.temperature, response_mime_type="application/json")
+
+        def call():
+            return self._client.models.generate_content(model=self.model, contents=self._contents(messages), config=cfg)
+        r = self._guard(call)
+        cand = (r.candidates or [None])[0]
+        content = getattr(cand, "content", None)
+        parts = (content.parts if content is not None else None) or []
+        calls = [{"name": p.function_call.name, "args": dict(p.function_call.args or {})} for p in parts if getattr(p, "function_call", None)]
+        text = "".join(p.text for p in parts if getattr(p, "text", None) and not getattr(p, "thought", False))
+        u = r.usage_metadata
+        return Step(text=text, calls=calls, raw=content if calls else None, prompt_tokens=getattr(u, "prompt_token_count", None),
+                    output_tokens=getattr(u, "candidates_token_count", None))
 
     def generate(self, system: str, user: str) -> str:
         """One request; on HTTP 429 exactly one retry after the API-suggested delay (capped at RETRY_CAP_S).

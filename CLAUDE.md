@@ -34,7 +34,12 @@ fall), writes heartbeats to SQLite and restarts dead ones.
   delays triage or alerts). Weekly clinician report is a PDF sent by email.
 - Fallbacks: health_monitoring fails -> fixed vitals thresholds + "monitoring degraded"; quality fails -> pass-through +
   "quality unchecked"; both are DATA_GAP, never NORMAL.
-- Gemini limits are per minute: budget requests (llm.max_requests_per_min), cache, never block alerts on the LLM.
+- Gemini limits are per minute: echos/reports/llm_budget.py orders cache -> primary -> fallback model -> template, limiter 20% below each model's
+  `llm.rpm`, 429 = 60 s cooldown and move on (no retry), timeouts never retried, SQLite response cache; never block alerts on the LLM.
+- Daily report = tool loop (get_patient_context, get_last_7_days, retrieve_guidance; max 4 tool steps) + non-LLM validator in code. Retrieval
+  (local KB first, then live PubMed via echos/knowledge/pubmed.py) only on MONITOR/URGENT days; NORMAL days = template, no LLM, no retrieval.
+  Provenance (model, cache hit, tools, sources, validator, fallback reason) is stored in `reports.provenance`. Tests: FakeLLM + mocked PubMed;
+  tests/conftest.py fails any outbound call to Gemini / NCBI. scripts/live_llm_check.py (real, <= 6 requests) needs --yes.
 - Tests never use the real LLM (fake LLM objects only). Models train only on real data: every training table has a
   `source` column (tihm / sisfall) and trainers call echos.data.guard.assert_real_source.
 

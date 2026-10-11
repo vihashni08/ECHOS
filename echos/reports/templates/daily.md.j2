@@ -1,6 +1,6 @@
 # Daily report for {{ pid }} - {{ day }}
 
-**Status: {{ label }}**
+**Status: {{ status }}** - {{ label }}
 {% if alerts %}
 
 ## Alerts
@@ -19,6 +19,18 @@
 {% for m in monitor %}
 - {{ m.text }}
 {% endfor %}
+{% if guidance %}
+
+## Guidance for the care team
+{% for g in guidance %}
+- {{ g.text }}{% if g.cites %} [{{ g.cites | join(', ') }}]{% endif %}
+
+{% endfor %}
+{% for r in refs %}
+- [{{ r.id }}] {{ r.title }} - {{ r.source }}{% if r.url %} - {{ r.url }}{% endif %}
+
+{% endfor %}
+{% endif %}
 {% if data_note %}
 
 ## Data note

@@ -4,6 +4,7 @@ import pytest
 
 from echos.orchestrator import state as S
 from echos.reports import agent as A
+from echos.reports.fake_llm import FakeLLM
 from echos.reports.llm import make_llm
 from echos.reports.validator import validate_report
 
@@ -19,24 +20,23 @@ def facts(day="2019-05-01", status="MONITOR", sys_now=162.0, with_flag=True):
             "falls": [], "flags": flags}
 
 
-class FakeLLM:
-    def __init__(self, *replies):
-        self.replies, self.calls = list(replies), 0
-
-    def generate(self, system, user):
-        self.calls += 1
-        return self.replies.pop(0)
-
-
 @pytest.fixture
 def agent_env(tmp_path):
     return S.get_engine(tmp_path / "t.db"), tmp_path
 
 
 def good(sys_text="162"):
-    return json.dumps({"changes": [{"text": f"Systolic pressure was {sys_text} against usual 128.", "cites": ["F1"]}],
+    return json.dumps({"status": "MONITOR", "changes": [{"text": f"Systolic pressure was {sys_text} against usual 128.", "cites": ["F1"]}],
                        "monitor": [{"text": "Repeat the reading later today.", "cites": ["F1"]},
-                                   {"text": "Keep drinking fluids.", "cites": []}]})
+                                   {"text": "Keep drinking fluids.", "cites": []}], "guidance": []})
+
+
+def script(*texts):
+    """tool call (get_patient_context) then the final answer, for each text"""
+    out = []
+    for t in texts:
+        out += [{"calls": [{"name": "get_patient_context", "args": {}}]}, {"text": t}]
+    return out
 
 
 def test_validator_rejects_wrong_number():
@@ -67,19 +67,6 @@ def test_template_fallback_with_llm_off(agent_env):
     assert "normal" in normal["text"].lower() and normal["validation"]["ok"]
 
 
-def test_llm_valid_retry_and_fallback(agent_env):
-    eng, tmp = agent_env
-    ok = A.ReportAgent(eng, FakeLLM(good()), root=tmp).daily(facts())
-    assert ok["mode"] == "llm"
-    llm = FakeLLM(good("171"), good())            # first reply has a wrong number -> retried once
-    assert A.ReportAgent(eng, llm, root=tmp).daily(facts())["mode"] == "llm" and llm.calls == 2
-    llm = FakeLLM(good("171"), good("171"), good())  # two bad replies -> template, no third call
-    out = A.ReportAgent(eng, llm, root=tmp).daily(facts())
-    assert out["mode"] == "template" and llm.calls == 2 and out["validation"]["notes"]
-    out = A.ReportAgent(eng, FakeLLM("not json", "still not"), root=tmp).daily(facts())
-    assert out["mode"] == "template"
-
-
 def test_weekly_html_and_tools(agent_env):
     eng, tmp = agent_env
     ag = A.ReportAgent(eng, None, root=tmp)
@@ -96,38 +83,25 @@ def test_llm_off():
     assert make_llm({"llm": {"model": None}}) is None
 
 
-class RaisingLLM:
-    def __init__(self, exc):
-        self.exc, self.calls = exc, 0
-
-    def generate(self, system, user):
-        self.calls += 1
-        raise self.exc
-
-
-def test_timeout_is_not_retried_and_fallback_has_reason(agent_env):
+def test_llm_valid_retry_and_fallback(agent_env):
     eng, tmp = agent_env
-    llm = RaisingLLM(TimeoutError("slow"))
+    ok = A.ReportAgent(eng, FakeLLM(script(good())), root=tmp).daily(facts())
+    assert ok["mode"] == "llm" and ok["provenance"]["model"] == "fake-model"
+    llm = FakeLLM(script(good("171"), good()))            # first reply has a wrong number -> retried once with the validator's errors
+    assert A.ReportAgent(eng, llm, root=tmp).daily(facts())["mode"] == "llm" and llm.calls == 4
+    llm = FakeLLM(script(good("171"), good("171"), good()))  # two bad replies -> template, no third generation
     out = A.ReportAgent(eng, llm, root=tmp).daily(facts())
-    assert out["mode"] == "template" and llm.calls == 1 and out["validation"]["fallback_reason"].startswith("timeout")
-
-
-def test_other_errors_retry_at_most_once(agent_env):
-    eng, tmp = agent_env
-    llm = RaisingLLM(RuntimeError("boom"))
-    out = A.ReportAgent(eng, llm, root=tmp).daily(facts())
-    assert out["mode"] == "template" and llm.calls == 2 and out["validation"]["fallback_reason"].startswith("error")
+    assert out["mode"] == "template" and llm.calls == 4 and out["validation"]["fallback_reason"].startswith("fake-model: validation_failed")
 
 
 def test_deferred_llm_never_blocks_the_caller(agent_env):
     import time
     eng, tmp = agent_env
 
-    class Slow:
-        def generate(self, system, user):
-            time.sleep(1.0)
-            return good()
-    ag = A.ReportAgent(eng, Slow(), root=tmp)
+    def slow(system, messages, tools):
+        time.sleep(1.0)
+        return {"text": good()}
+    ag = A.ReportAgent(eng, FakeLLM([slow]), root=tmp)
     t0 = time.time()
     out = ag.daily(facts(), defer_llm=True)
     assert time.time() - t0 < 0.5 and out["mode"] == "template"  # template written immediately
@@ -145,43 +119,30 @@ def test_rate_limiter_spaces_requests():
     assert time.monotonic() - t0 >= 0.29
 
 
-def test_watchdog_enforces_short_timeout_without_retry(agent_env):
+def test_watchdog_enforces_short_timeout():
     import time
-    from echos.reports.llm import GeminiLLM
-    eng, tmp = agent_env
-    g = GeminiLLM.__new__(GeminiLLM)  # no network: stub the SDK call with a hang
-    g.timeout_s, g.calls = 0.3, 0
-    from echos.reports.llm import RateLimiter
-    g.limiter = RateLimiter(0)
-
-    def hang(system, user):
-        g.calls += 1
-        time.sleep(3)
-    g._call = hang
+    from echos.reports.llm import GeminiLLM, LLMTimeout
+    g = GeminiLLM.__new__(GeminiLLM)  # no network: a hung call
+    g.timeout_s = 0.3
     t0 = time.time()
-    out = A.ReportAgent(eng, g, root=tmp).daily(facts())
-    assert time.time() - t0 < 1.5 and g.calls == 1 and out["validation"]["fallback_reason"].startswith("timeout")
+    with pytest.raises(LLMTimeout):
+        g._guard(lambda: time.sleep(3))
+    assert time.time() - t0 < 1.5
 
 
-def test_api_error_records_code_status_and_429_retries_once(agent_env, monkeypatch):
-    import time
+def test_api_error_carries_http_code_and_status():
     from echos.reports import llm as L
-    eng, tmp = agent_env
-    monkeypatch.setattr(time, "sleep", lambda s: None)
-    g = L.GeminiLLM.__new__(L.GeminiLLM)
-    g.timeout_s, g.limiter, g.calls = 5, L.RateLimiter(0), 0
 
     class E(Exception):
         code, status, message, details = 429, "RESOURCE_EXHAUSTED", "quota exceeded, retry in 3s", None
+    g = L.GeminiLLM.__new__(L.GeminiLLM)
+    g.timeout_s = 5
 
-    def call(system, user):
-        g.calls += 1
-        raise E("429 RESOURCE_EXHAUSTED")
-    g._call = call
-    out = A.ReportAgent(eng, g, root=tmp).daily(facts())
-    assert g.calls == 2 and out["mode"] == "template"  # exactly one retry, no extra retry in the report loop
-    assert "429 RESOURCE_EXHAUSTED" in out["validation"]["fallback_reason"]
-    assert L._retry_delay(E("x")) == 3.0
+    def boom():
+        raise E("x")
+    with pytest.raises(L.LLMAPIError) as ei:
+        g._guard(boom)
+    assert ei.value.code == 429 and ei.value.status == "RESOURCE_EXHAUSTED" and L._retry_delay(E("x")) == 3.0
 
 
 def _weekly_with_fake_rag(agent_env, monkeypatch, fake, llm=None):

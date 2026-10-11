@@ -32,16 +32,21 @@ def num(x, nd: int = 1) -> Optional[float]:
 
 
 class VitalLine(BaseModel):
+    """One latest reading with its own timestamp and age relative to the event. BP carries value2/baseline2 (diastolic)."""
     model_config = ConfigDict(validate_assignment=True)
     name: str
     value: Optional[float] = None
+    value2: Optional[float] = None
     baseline: Optional[float] = None
+    baseline2: Optional[float] = None
     unit: str = ""
+    time: str = ""        # when the reading was taken
+    age: str = ""         # "2 days before this event"
 
-    @field_validator("name", "unit")
+    @field_validator("name", "unit", "time", "age")
     @classmethod
     def _safe(cls, v):
-        return clean(v, 30)
+        return clean(v, 40)
 
 
 class RoomEvent(BaseModel):
@@ -51,7 +56,7 @@ class RoomEvent(BaseModel):
     @field_validator("time", "room")
     @classmethod
     def _safe(cls, v):
-        return clean(v, 30)
+        return clean(v, 50)
 
 
 class AlertPayload(BaseModel):
@@ -68,7 +73,9 @@ class AlertPayload(BaseModel):
     post_fall_inactivity: Optional[bool] = None   # None = not assessed
     vitals: list[VitalLine] = Field(default_factory=list)
     today_status: str = "URGENT"
-    recent_room_events: list[RoomEvent] = Field(default_factory=list)    # last 3, oldest first
+    vitals_note: Optional[str] = None                                    # e.g. "no recent vitals ..."
+    recent_room_events: list[RoomEvent] = Field(default_factory=list)    # last 3 within 6 h of the event, oldest first
+    room_note: Optional[str] = None                                      # printed when there are none
     data_quality_note: Optional[str] = None
     checklist: tuple[str, ...] = CHECKLIST
     is_test: bool = False
@@ -78,10 +85,10 @@ class AlertPayload(BaseModel):
     def _safe(cls, v):
         return clean(v, 80)
 
-    @field_validator("data_quality_note")
+    @field_validator("data_quality_note", "vitals_note", "room_note")
     @classmethod
     def _safe_note(cls, v):
-        return None if v is None else clean(v, 140)
+        return None if v is None else clean(v, 160)
 
     @field_validator("checklist")
     @classmethod
@@ -91,6 +98,23 @@ class AlertPayload(BaseModel):
 
 def _fmt(v, unit="") -> str:
     return "n/a" if v is None else f"{v:g}{(' ' + unit) if unit else ''}"
+
+
+def _vital_text(v: VitalLine) -> str:
+    val = _fmt(v.value) if v.value2 is None else f"{_fmt(v.value)}/{_fmt(v.value2)}"
+    base = "" if v.baseline is None else "; personal baseline " + (_fmt(v.baseline) if v.baseline2 is None else f"{_fmt(v.baseline)}/{_fmt(v.baseline2)}")
+    unit = f" {v.unit}" if v.unit else ""
+    return f"{v.name} {val}{unit}, {v.age} ({v.time}){base}"
+
+
+def _vital_rows(p: AlertPayload) -> list[str]:
+    out = [p.vitals_note] if p.vitals_note else []
+    out += [_vital_text(v) for v in p.vitals]
+    return out or ["no vitals available"]
+
+
+def _room_rows(p: AlertPayload) -> list[str]:
+    return [f"{e.time}  {e.room}" for e in p.recent_room_events] or [p.room_note or "none available"]
 
 
 def subject(p: AlertPayload) -> str:
@@ -114,9 +138,9 @@ def render_text(p: AlertPayload) -> str:
         out += ["*** TEST MESSAGE - NO REAL EVENT ***", ""]
     out += [f"{k}: {v}" for k, v in _lines(p)]
     out += ["", "Latest vitals vs this patient's own baseline:"]
-    out += [f"  {v.name}: {_fmt(v.value, v.unit)} (baseline {_fmt(v.baseline, v.unit)})" for v in p.vitals] or ["  no vitals available"]
-    out += ["", "Last room-sensor events:"]
-    out += [f"  {e.time}  {e.room}" for e in p.recent_room_events] or ["  none available"]
+    out += [f"  {r}" for r in _vital_rows(p)]
+    out += ["", "Last room-sensor events (within 6 h of the event):"]
+    out += [f"  {r}" for r in _room_rows(p)]
     out += ["", "Data quality: " + (p.data_quality_note or "no issues noted"), "", "Checklist:"]
     out += [f"  [ ] {c}" for c in p.checklist]
     out += ["", "ECHOS is a decision-support system, not a diagnostic tool. This message is a fixed template."]
@@ -126,12 +150,12 @@ def render_text(p: AlertPayload) -> str:
 def render_html(p: AlertPayload) -> str:
     e = html.escape
     rows = "".join(f"<tr><th align=left>{e(k)}</th><td>{e(v)}</td></tr>" for k, v in _lines(p))
-    vit = "".join(f"<li>{e(v.name)}: {e(_fmt(v.value, v.unit))} (baseline {e(_fmt(v.baseline, v.unit))})</li>" for v in p.vitals) or "<li>no vitals available</li>"
-    rooms = "".join(f"<li>{e(r.time)} {e(r.room)}</li>" for r in p.recent_room_events) or "<li>none available</li>"
+    vit = "".join(f"<li>{e(r)}</li>" for r in _vital_rows(p))
+    rooms = "".join(f"<li>{e(r)}</li>" for r in _room_rows(p))
     chk = "".join(f"<li>{e(c)}</li>" for c in p.checklist)
     test = "<p><b>*** TEST MESSAGE - NO REAL EVENT ***</b></p>" if p.is_test else ""
     return (f"<html><body>{test}<h2>{e(TITLE[p.alert_type])}</h2><table>{rows}</table>"
-            f"<h3>Latest vitals vs this patient's own baseline</h3><ul>{vit}</ul><h3>Last room-sensor events</h3><ul>{rooms}</ul>"
+            f"<h3>Latest vitals vs this patient's own baseline</h3><ul>{vit}</ul><h3>Last room-sensor events (within 6 h of the event)</h3><ul>{rooms}</ul>"
             f"<p>Data quality: {e(p.data_quality_note or 'no issues noted')}</p><h3>Checklist</h3><ol>{chk}</ol>"
             "<p><i>ECHOS is a decision-support system, not a diagnostic tool. This message is a fixed template.</i></p></body></html>")
 
@@ -148,18 +172,46 @@ def _age_band(pid: str) -> str:
     return f"{m[0]}-{m[1]}" if len(m) >= 2 else "unknown"      # "(80, 90]" -> "80-90"
 
 
-def recent_room_events(pid: str, event_time: str, k: int = 3) -> list[RoomEvent]:
+ROOM_WINDOW_H = 6
+VITAL_WINDOW_H = 24
+
+
+def humanize_age(delta: pd.Timedelta) -> str:
+    """'35 minutes before this event', '5 hours ...', '2 days ...' (readings after the event are not used)."""
+    m = max(delta.total_seconds(), 0) / 60
+    if m < 1:
+        return "less than a minute before this event"
+    if m < 90:
+        n, u = round(m), "minute"
+    elif m < 36 * 60:
+        n, u = round(m / 60), "hour"
+    else:
+        n, u = round(m / 1440), "day"
+    return f"{n} {u}{'' if n == 1 else 's'} before this event"
+
+
+def _activity(pid: str):
     if "act" not in _CACHE:
         from echos.config import ROOT, load_config
         a = pd.read_csv(ROOT / load_config()["paths"]["tihm"] / "Activity.csv", usecols=["patient_id", "location_name", "date"],
                         parse_dates=["date"]).sort_values("date")
         _CACHE["act"] = {p: g for p, g in a.groupby("patient_id")}
-    g = _CACHE["act"].get(pid)
-    if g is None:
-        return []
+    return _CACHE["act"].get(pid)
+
+
+def recent_room_events(pid: str, event_time: str, k: int = 3) -> tuple[list[RoomEvent], Optional[str]]:
+    """Last k room events within ROOM_WINDOW_H before the event; if none, (empty, the plain-words note with the last recorded time)."""
+    g = _activity(pid)
     t = pd.Timestamp(event_time)
-    g = g[g.date <= t].tail(k)
-    return [RoomEvent(time=clean(d.strftime("%Y-%m-%d %H:%M:%S"), 19), room=clean(r, 30)) for r, d in zip(g.location_name, g.date)]
+    past = g[g.date <= t] if g is not None else None
+    if past is None or past.empty:
+        return [], f"No room-sensor activity recorded in the {ROOM_WINDOW_H} hours before the event (last recorded: none on file)"
+    inwin = past[past.date >= t - pd.Timedelta(hours=ROOM_WINDOW_H)].tail(k)
+    if inwin.empty:
+        return [], (f"No room-sensor activity recorded in the {ROOM_WINDOW_H} hours before the event "
+                    f"(last recorded: {past.date.iloc[-1].strftime('%Y-%m-%d %H:%M:%S')})")
+    return [RoomEvent(time=clean(f"{d.strftime('%Y-%m-%d %H:%M:%S')}, {humanize_age(t - d).replace(' before this event', '')} before", 50), room=clean(r, 30))
+            for r, d in zip(inwin.location_name, inwin.date)], None
 
 
 def quality_note(results: dict) -> Optional[str]:
@@ -174,20 +226,55 @@ def quality_note(results: dict) -> Optional[str]:
     return None
 
 
-def vitals_lines(eng, pid: str, day: str, decision: dict, results: dict) -> list[VitalLine]:
-    from echos.reports.facts import build_day_facts
-    f = build_day_facts(eng, pid, day, decision, results)["vitals"]
-    cur = (((results or {}).get("health") or {}).get("vitals") or {}).get("current_vs_baseline") or {}
-    units = {"sys": "mmHg", "dia": "mmHg", "hr": "bpm", "temp": "C", "weight": "kg"}
-    names = {"sys": "Systolic BP", "dia": "Diastolic BP", "hr": "Heart rate", "temp": "Temperature", "weight": "Weight"}
+def _physiology(pid: str):
+    if "phys" not in _CACHE:
+        from echos.config import ROOT, load_config
+        d = pd.read_csv(ROOT / load_config()["paths"]["tihm"] / "Physiology.csv", parse_dates=["date"])
+        d = d[d.device_type.isin(["Systolic blood pressure", "Diastolic blood pressure", "Heart rate", "Body Temperature"])]
+        _CACHE["phys"] = {p: g.sort_values("date") for p, g in d.groupby("patient_id")}
+    return _CACHE["phys"].get(pid)
+
+
+def vitals_lines(eng, pid: str, day: str, event_time: str, decision: dict, results: dict) -> tuple[list[VitalLine], Optional[str]]:
+    """Latest BP / heart rate / temperature at or before the event, each with its timestamp, age and personal baseline (when known).
+    Returns (lines, note); note says 'no recent vitals' when the newest reading is older than VITAL_WINDOW_H."""
+    g, t = _physiology(pid), pd.Timestamp(event_time)
+    if g is None or g[g.date <= t].empty:
+        return [], "No vitals on file before this event."
+    g = g[g.date <= t]
+    try:
+        from echos.reports.facts import build_day_facts
+        base = build_day_facts(eng, pid, day, decision or {}, results or {})["vitals"]
+    except Exception:  # noqa: BLE001 - baselines are optional
+        base = {}
+    b = lambda k: num((base.get(k) or {}).get("baseline"))  # noqa: E731
     out = []
-    for k in ("sys", "dia", "hr", "temp", "weight"):
-        v, b = (cur.get(k) or {}).get("current"), (cur.get(k) or {}).get("baseline")
-        v = num(v) if v is not None else num(f[k]["value"])
-        b = num(b) if b is not None else num(f[k]["baseline"])
-        if v is not None:
-            out.append(VitalLine(name=names[k], value=v, baseline=b, unit=units[k]))
-    return out
+    sys_ = g[g.device_type == "Systolic blood pressure"]
+    if len(sys_):
+        ts = sys_.date.iloc[-1]
+        dia = g[(g.device_type == "Diastolic blood pressure") & (g.date == ts)]
+        out.append((ts, VitalLine(name="BP", value=num(sys_.value.iloc[-1], 0), value2=num(dia.value.iloc[-1], 0) if len(dia) else None,
+                                  baseline=b("sys"), baseline2=b("dia"), unit="mmHg")))
+    for dev, name, key, unit in (("Heart rate", "Heart rate", "hr", "bpm"), ("Body Temperature", "Temperature", "temp", "C")):
+        x = g[g.device_type == dev]
+        if len(x):
+            out.append((x.date.iloc[-1], VitalLine(name=name, value=num(x.value.iloc[-1]), baseline=b(key), unit=unit)))
+    lines = []
+    for ts, v in out:
+        v.time, v.age = ts.strftime("%Y-%m-%d %H:%M"), humanize_age(t - ts)
+        lines.append(v)
+    newest = max(ts for ts, _ in out) if out else None
+    note = None if newest is not None and t - newest <= pd.Timedelta(hours=VITAL_WINDOW_H) else \
+        f"No recent vitals (none in the {VITAL_WINDOW_H} hours before this event; newest reading shown below)" if out else "No vitals on file before this event."
+    return lines, note
+
+
+def _set_vitals(p, eng, pid, day, event_time, decision, results):
+    p.vitals, p.vitals_note = vitals_lines(eng, pid, day, event_time, decision, results)
+
+
+def _set_rooms(p, pid, event_time):
+    p.recent_room_events, p.room_note = recent_room_events(pid, event_time)
 
 
 def build_payload(eng, alert_id: str, alert_type: str, patient_id: str, day: str, event_time: str, event_id=None,
@@ -202,8 +289,8 @@ def build_payload(eng, alert_id: str, alert_type: str, patient_id: str, day: str
         p.peak_impact_g = num(ev.get("peak_svm_g"), 1)
         p.post_fall_inactivity = bool(ev["post_fall_inactive"]) if "post_fall_inactive" in ev else None
     for name, fn in (("age_band", lambda: setattr(p, "age_band", clean(_age_band(patient_id)))),
-                     ("vitals", lambda: setattr(p, "vitals", vitals_lines(eng, patient_id, day, decision, results))),
-                     ("rooms", lambda: setattr(p, "recent_room_events", recent_room_events(patient_id, event_time))),
+                     ("vitals", lambda: _set_vitals(p, eng, patient_id, day, event_time, decision, results)),
+                     ("rooms", lambda: _set_rooms(p, patient_id, event_time)),
                      ("quality", lambda: setattr(p, "data_quality_note", quality_note(results)))):
         try:
             fn()
