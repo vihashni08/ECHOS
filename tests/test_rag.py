@@ -72,3 +72,22 @@ def test_validator_guidance_rules():
     assert not quote["ok"] and any("verbatim" in e for e in quote["errors"])
     diag = _val([{"text": "This is a diagnosis of hypertension.", "cites": ["KB-1"]}])
     assert not diag["ok"]
+
+
+def test_retrieve_and_xgboost_share_a_process_without_torch():
+    """retrieve() must work in a process that also fits an xgboost model, in either order, and never import torch there
+    (torch-then-xgboost segfaults on macOS). Embeddings come from echos.knowledge.embed_worker."""
+    import subprocess
+    import sys
+    code = ("import sys\n"
+            "{a}\n"
+            "from echos.knowledge.retrieve import retrieve\n"
+            "r = retrieve('fall', None)\n"
+            "{b}\n"
+            "assert 'torch' not in sys.modules and 'sentence_transformers' not in sys.modules\n"
+            "print('OK', len(r))\n")
+    fit = "import numpy as np, xgboost as xgb; X = np.random.rand(100, 3); xgb.XGBClassifier(n_estimators=10).fit(X, X[:, 0] > .5).predict_proba(X)"
+    for a, b in ((fit, ""), ("", fit)):
+        p = subprocess.run([sys.executable, "-c", code.format(a=a, b=b)], capture_output=True, text=True, timeout=170,
+                           cwd=str(__import__("pathlib").Path(__file__).resolve().parents[1]))
+        assert p.returncode == 0 and "OK" in p.stdout, (p.returncode, p.stderr[-300:])

@@ -98,9 +98,9 @@ The sidebar switches between the Caregiver page (daily report) and the Clinician
 
 ## Headline results (see RESULTS.md for CIs and caveats)
 
-- Agent 1 PR-AUC 0.68 vs 0.26 for the fixed BP rule (out-of-fold, patient-level).
-- Agent 2 PR-AUC 0.19 vs 0.05 base rate (within-patient ROC-AUC 0.81); drift alone is at chance and is report evidence only, not a Monitor trigger; the signal is mostly raw same-day activity.
-- Agent 3 sensitivity 0.985 adults / 0.853 elderly (one subject), on SisFall scripted falls.
+- Agent 1 PR-AUC 0.70 vs 0.26 for the fixed BP rule (out-of-fold, patient-level).
+- Agent 2 PR-AUC 0.22 vs 0.05 base rate (within-patient ROC-AUC 0.82); drift alone is at chance and is report evidence only, not a Monitor trigger; the signal is mostly raw same-day activity.
+- Agent 3 sensitivity 0.982 adults / 0.867 elderly (one subject), on SisFall scripted falls.
 - End-to-end (20 patients, 60 injected falls): 57 detected (95%); days are 66% Normal / 29% Monitor / 6% Urgent with MONITOR thresholds chosen from out-of-fold alert budgets (<=1 vitals alert/patient-week, <=10% behaviour Monitor days, agitation_prob only) and out-of-fold agent scores.
 - Fault injection: 0 lost, 0 duplicate alerts across all five scenarios.
 

@@ -28,6 +28,7 @@ FEATURES = (
     + ["sys", "dia", "hr", "pulse_pressure", "pp_dev", "days_since_last", "n_prior"]
 )
 MODEL_PATH = ROOT / "models" / "physiological.joblib"
+CALIBRATED_PATH = ROOT / "models" / "physiological_calibrated.joblib"   # written by scripts/calibrate.py (old model kept)
 METRICS_PATH = ROOT / "reports" / "metrics" / "agent1.json"
 MIN_SCALE = {"sys": 3.0, "dia": 2.0, "hr": 2.0}  # floor on robust scale (units) to avoid z blow-ups
 
@@ -183,7 +184,8 @@ _cache: dict = {}
 
 def _state():
     if not _cache:
-        _cache["art"] = joblib.load(MODEL_PATH)
+        use_cal = (load_config().get("health") or {}).get("use_calibrated", False) and CALIBRATED_PATH.exists()
+        _cache["art"] = joblib.load(CALIBRATED_PATH if use_cal else MODEL_PATH)
         df = build_features()
         df["day"] = pd.to_datetime(df["day"])
         _cache["df"] = df.set_index(["patient_id", "day"])
@@ -203,6 +205,8 @@ def predict(patient_id: str, day) -> AgentResult:
     row = st["df"].loc[[(patient_id, d)]]
     X = row[art["features"]]
     score = float(art["model"].predict_proba(X)[0, 1])
+    if "calibrator" in art:
+        score = float(art["calibrator"](np.array([score]))[0])
     if oof.enabled():  # replay evaluation with out-of-fold scores
         score = float(oof.lookup(AGENT, patient_id, d) or 0.0)
     sv = st["expl"].shap_values(X)[0]

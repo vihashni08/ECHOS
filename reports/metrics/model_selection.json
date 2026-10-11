@@ -1,0 +1,542 @@
+{
+  "lightgbm": "lightgbm not used: import failed (ModuleNotFoundError: No module named 'lightgbm')",
+  "vitals": {
+    "n_rows": 1733,
+    "n_patients": 54,
+    "prevalence": 0.1817657241777265,
+    "patient_weeks": 375.71428571428567,
+    "alert_budget": "1 alert per patient-week (fixed rule: its own alert count)",
+    "models": {
+      "fixed_rule": {
+        "pr_auc": {
+          "value": 0.2612844530519623,
+          "ci95": [
+            0.18286307137720412,
+            0.3455044423017096
+          ]
+        },
+        "recall": {
+          "value": 0.7587301587301587,
+          "ci95": [
+            0.6166717555225149,
+            0.8723551136363638
+          ]
+        },
+        "fa_pw": {
+          "value": 1.5836501901140687,
+          "ci95": [
+            1.233311751372449,
+            1.9610276075019741
+          ]
+        },
+        "paired_vs_current_xgboost": {
+          "pr_auc": {
+            "diff_vs_current": -0.4355529321571658,
+            "ci95": [
+              -0.5087679791978394,
+              -0.33358827143640646
+            ],
+            "better": false
+          },
+          "recall": {
+            "diff_vs_current": 0.04761904761904756,
+            "ci95": [
+              -0.11568383391612434,
+              0.21875161782977845
+            ],
+            "better": false
+          }
+        }
+      },
+      "logreg": {
+        "pr_auc": {
+          "value": 0.3485989198297553,
+          "ci95": [
+            0.24762642990585146,
+            0.4520721104894098
+          ]
+        },
+        "recall": {
+          "value": 0.42857142857142855,
+          "ci95": [
+            0.3340815372387676,
+            0.5252192566606618
+          ]
+        },
+        "fa_pw": {
+          "value": 0.6387832699619773,
+          "ci95": [
+            0.5266884206987081,
+            0.7580858842765011
+          ]
+        },
+        "paired_vs_current_xgboost": {
+          "pr_auc": {
+            "diff_vs_current": -0.34823846537937275,
+            "ci95": [
+              -0.4232022902888655,
+              -0.24592088996673195
+            ],
+            "better": false
+          },
+          "recall": {
+            "diff_vs_current": -0.2825396825396826,
+            "ci95": [
+              -0.39234601174974254,
+              -0.16625901288551892
+            ],
+            "better": false
+          }
+        }
+      },
+      "random_forest": {
+        "pr_auc": {
+          "value": 0.6383800720858558,
+          "ci95": [
+            0.5140186441831727,
+            0.723310291497763
+          ]
+        },
+        "recall": {
+          "value": 0.653968253968254,
+          "ci95": [
+            0.5443216513281285,
+            0.7751509094946804
+          ]
+        },
+        "fa_pw": {
+          "value": 0.449809885931559,
+          "ci95": [
+            0.34552420398090405,
+            0.5886177287509418
+          ]
+        },
+        "paired_vs_current_xgboost": {
+          "pr_auc": {
+            "diff_vs_current": -0.05845731312327229,
+            "ci95": [
+              -0.09832850225318472,
+              -0.010800882302784818
+            ],
+            "better": false
+          },
+          "recall": {
+            "diff_vs_current": -0.05714285714285716,
+            "ci95": [
+              -0.1335617862121249,
+              0.013674242424242356
+            ],
+            "better": false
+          }
+        }
+      },
+      "extra_trees": {
+        "pr_auc": {
+          "value": 0.5593411591851575,
+          "ci95": [
+            0.4465848410373319,
+            0.6541345340451376
+          ]
+        },
+        "recall": {
+          "value": 0.5714285714285714,
+          "ci95": [
+            0.4782797143734644,
+            0.6812819834879913
+          ]
+        },
+        "fa_pw": {
+          "value": 0.5190114068441065,
+          "ci95": [
+            0.3753984829910242,
+            0.6438810024517168
+          ]
+        },
+        "paired_vs_current_xgboost": {
+          "pr_auc": {
+            "diff_vs_current": -0.1374962260239706,
+            "ci95": [
+              -0.20526417236101582,
+              -0.05345733732202838
+            ],
+            "better": false
+          },
+          "recall": {
+            "diff_vs_current": -0.13968253968253974,
+            "ci95": [
+              -0.2500217770034844,
+              -0.008512911123429327
+            ],
+            "better": false
+          }
+        }
+      },
+      "xgboost": {
+        "pr_auc": {
+          "value": 0.6968373852091281,
+          "ci95": [
+            0.5712341242145456,
+            0.7824018301016531
+          ]
+        },
+        "recall": {
+          "value": 0.7111111111111111,
+          "ci95": [
+            0.6189128490024207,
+            0.7889809308551491
+          ]
+        },
+        "fa_pw": {
+          "value": 0.4019011406844107,
+          "ci95": [
+            0.247222596888769,
+            0.5845672597768912
+          ]
+        }
+      }
+    },
+    "decision": {
+      "rule": "switch only if paired-bootstrap CI of PR-AUC difference vs current XGBoost is above zero",
+      "better_than_current": [],
+      "keep_current": true
+    }
+  },
+  "behaviour": {
+    "n_rows": 2236,
+    "n_patients": 50,
+    "prevalence": 0.049194991055456175,
+    "patient_weeks": 319.42857142857144,
+    "alert_budget": "1 alert per patient-week (fixed rule: its own alert count)",
+    "models": {
+      "logreg": {
+        "pr_auc": {
+          "value": 0.3330118496144035,
+          "ci95": [
+            0.16740092084436556,
+            0.4902530042276009
+          ]
+        },
+        "recall": {
+          "value": 0.7,
+          "ci95": [
+            0.5582047872340425,
+            0.8354022191400833
+          ]
+        },
+        "fa_pw": {
+          "value": 0.757602862254025,
+          "ci95": [
+            0.6273829854522454,
+            0.8556563912385714
+          ]
+        },
+        "within_patient_roc_auc": {
+          "median": 0.8095238095238095,
+          "q1": 0.7147402820777433,
+          "q3": 0.9569444444444445,
+          "n_patients": 27
+        },
+        "paired_vs_current_xgboost": {
+          "pr_auc": {
+            "diff_vs_current": 0.11707255394070007,
+            "ci95": [
+              -0.022815642295488422,
+              0.22307556314538998
+            ],
+            "better": false
+          },
+          "recall": {
+            "diff_vs_current": 0.11818181818181817,
+            "ci95": [
+              0.012156201349247437,
+              0.21204532470005716
+            ],
+            "better": true
+          }
+        }
+      },
+      "random_forest": {
+        "pr_auc": {
+          "value": 0.17553325384289759,
+          "ci95": [
+            0.12646840248775146,
+            0.27045325928237685
+          ]
+        },
+        "recall": {
+          "value": 0.5272727272727272,
+          "ci95": [
+            0.352450357885015,
+            0.7010836287463745
+          ]
+        },
+        "fa_pw": {
+          "value": 0.8170840787119856,
+          "ci95": [
+            0.7347297529169527,
+            0.8934891364285508
+          ]
+        },
+        "within_patient_roc_auc": {
+          "median": 0.8627450980392157,
+          "q1": 0.7726579520697168,
+          "q3": 0.9567460317460317,
+          "n_patients": 27
+        },
+        "paired_vs_current_xgboost": {
+          "pr_auc": {
+            "diff_vs_current": -0.040406041830805844,
+            "ci95": [
+              -0.0828798402912205,
+              0.003984392475519697
+            ],
+            "better": false
+          },
+          "recall": {
+            "diff_vs_current": -0.054545454545454564,
+            "ci95": [
+              -0.1593191684755384,
+              0.021047794117647144
+            ],
+            "better": false
+          }
+        }
+      },
+      "extra_trees": {
+        "pr_auc": {
+          "value": 0.2460291894652463,
+          "ci95": [
+            0.1652550558776019,
+            0.3601805240588978
+          ]
+        },
+        "recall": {
+          "value": 0.5909090909090909,
+          "ci95": [
+            0.4572911261027504,
+            0.7112212643678162
+          ]
+        },
+        "fa_pw": {
+          "value": 0.795169946332737,
+          "ci95": [
+            0.6888894738408545,
+            0.8835465724483098
+          ]
+        },
+        "within_patient_roc_auc": {
+          "median": 0.8679245283018868,
+          "q1": 0.6733918128654971,
+          "q3": 0.9595238095238094,
+          "n_patients": 27
+        },
+        "paired_vs_current_xgboost": {
+          "pr_auc": {
+            "diff_vs_current": 0.030089893791542865,
+            "ci95": [
+              -0.03668918772067723,
+              0.08937759107974681
+            ],
+            "better": false
+          },
+          "recall": {
+            "diff_vs_current": 0.00909090909090915,
+            "ci95": [
+              -0.09364958521474326,
+              0.11928159748500913
+            ],
+            "better": false
+          }
+        }
+      },
+      "xgboost": {
+        "pr_auc": {
+          "value": 0.21593929567370343,
+          "ci95": [
+            0.14686407953894617,
+            0.31170691928697436
+          ]
+        },
+        "recall": {
+          "value": 0.5818181818181818,
+          "ci95": [
+            0.40982825917252147,
+            0.7319491169049622
+          ]
+        },
+        "fa_pw": {
+          "value": 0.7983005366726297,
+          "ci95": [
+            0.7000000000000001,
+            0.8718708805185813
+          ]
+        },
+        "within_patient_roc_auc": {
+          "median": 0.8181818181818181,
+          "q1": 0.6551851851851852,
+          "q3": 0.9756944444444444,
+          "n_patients": 27
+        }
+      }
+    },
+    "decision": {
+      "rule": "switch only if paired-bootstrap CI of PR-AUC difference vs current XGBoost is above zero",
+      "better_than_current": [],
+      "keep_current": true
+    }
+  },
+  "fall": {
+    "n_windows": 39571,
+    "n_subjects": 38,
+    "adult_subjects": 23,
+    "elderly_subjects": 15,
+    "elderly_fall_subjects": [
+      "SE06"
+    ],
+    "threshold": 0.5,
+    "models": {
+      "random_forest": {
+        "pr_auc": {
+          "value": 0.9950702419621025,
+          "ci95": [
+            0.9897487996303729,
+            0.997939926575899
+          ]
+        },
+        "detection_delay_s": {
+          "window_decision": 1.25,
+          "with_post_fall_inactivity_confirmation": 4.0,
+          "note": "structural: each fall is one window centred on the impact, decided at window end; same for every model"
+        },
+        "adult": {
+          "sensitivity": {
+            "value": 0.9819976771196284,
+            "ci95": [
+              0.9662969467138361,
+              0.9933166988832901
+            ]
+          },
+          "specificity": {
+            "value": 0.9989035978234386,
+            "ci95": [
+              0.9977750009408131,
+              0.9997757242663604
+            ]
+          },
+          "false_alarms_per_hour": {
+            "value": 2.3168720355300514,
+            "ci95": [
+              0.5815574600837375,
+              4.40235542872504
+            ]
+          }
+        },
+        "elderly": {
+          "sensitivity": {
+            "value": 0.8666666666666667,
+            "ci95": [
+              0.8666666666666667,
+              0.8666666666666667
+            ]
+          },
+          "specificity": {
+            "value": 0.9993154852449042,
+            "ci95": [
+              0.998202271079082,
+              1.0
+            ]
+          },
+          "false_alarms_per_hour": {
+            "value": 1.5984849914469954,
+            "ci95": [
+              0.0,
+              4.077875617041194
+            ]
+          }
+        }
+      },
+      "xgboost": {
+        "pr_auc": {
+          "value": 0.9950768283181505,
+          "ci95": [
+            0.9902606900495118,
+            0.9984647159464326
+          ]
+        },
+        "detection_delay_s": {
+          "window_decision": 1.25,
+          "with_post_fall_inactivity_confirmation": 4.0,
+          "note": "structural: each fall is one window centred on the impact, decided at window end; same for every model"
+        },
+        "adult": {
+          "sensitivity": {
+            "value": 0.9883855981416957,
+            "ci95": [
+              0.9763680657857835,
+              0.9966537928370289
+            ]
+          },
+          "specificity": {
+            "value": 0.9989035978234386,
+            "ci95": [
+              0.9978058241439028,
+              0.999845914867575
+            ]
+          },
+          "false_alarms_per_hour": {
+            "value": 2.1062473050273196,
+            "ci95": [
+              0.399728625997295,
+              4.0233505215107765
+            ]
+          }
+        },
+        "elderly": {
+          "sensitivity": {
+            "value": 0.88,
+            "ci95": [
+              0.88,
+              0.88
+            ]
+          },
+          "specificity": {
+            "value": 0.9993154852449042,
+            "ci95": [
+              0.998202271079082,
+              1.0
+            ]
+          },
+          "false_alarms_per_hour": {
+            "value": 1.5984849914469954,
+            "ci95": [
+              0.0,
+              4.077875617041194
+            ]
+          }
+        },
+        "paired_vs_current_rf": {
+          "pr_auc": {
+            "diff_xgboost_minus_rf": 6.326427611111351e-06,
+            "ci95": [
+              -0.0013292931983413024,
+              0.001112023977940768
+            ],
+            "better": false
+          },
+          "adult_sensitivity": {
+            "diff_xgboost_minus_rf": 0.006312024255038637,
+            "ci95": [
+              0.0017303523035230226,
+              0.012757483818770197
+            ],
+            "better": true
+          }
+        }
+      }
+    },
+    "decision": {
+      "rule": "switch only if paired-bootstrap CI of PR-AUC difference vs current RF is above zero",
+      "keep_current": true
+    }
+  }
+}

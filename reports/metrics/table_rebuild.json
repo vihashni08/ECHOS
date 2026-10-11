@@ -1,0 +1,38 @@
+{
+  "patient_day": {
+    "old": {
+      "rows": 2797,
+      "patients": 56,
+      "bp_alert": 251,
+      "pulse_alert": 76,
+      "water_alert": 63,
+      "agitation": 115,
+      "has_reading": 1733,
+      "has_activity": 2665
+    },
+    "new": {
+      "rows": 2797,
+      "patients": 56,
+      "bp_alert": 251,
+      "pulse_alert": 76,
+      "water_alert": 63,
+      "agitation": 115,
+      "has_reading": 1733,
+      "has_activity": 2665
+    }
+  },
+  "sisfall": {
+    "old": {
+      "rows": 39571,
+      "subjects": 38,
+      "falls": 1797,
+      "adl_windows": 37774
+    },
+    "new": {
+      "rows": 39571,
+      "subjects": 38,
+      "falls": 1797,
+      "adl_windows": 37774
+    }
+  }
+}

@@ -26,6 +26,7 @@ SRC = {"kitchen": "n_kitchen", "fridge": "n_fridge_door"}
 FEATS = list(DIRECTION)
 Z_CLIP = 4.0
 MODEL_PATH = ROOT / "models" / "behaviour.joblib"
+CALIBRATED_PATH = ROOT / "models" / "behaviour_calibrated.joblib"   # written by scripts/calibrate.py (old model kept)
 METRICS_PATH = ROOT / "reports" / "metrics" / "agent2.json"
 CLF_FEATURES = ([f"{f}_z" for f in FEATS] + [f"{f}_cusum" for f in FEATS] + FEATS
                 + ["drift_score", "n_drifted", "total_events_delta", "night_events_delta"])
@@ -137,7 +138,8 @@ _cache: dict = {}
 
 def _state():
     if not _cache:
-        _cache["art"] = joblib.load(MODEL_PATH)
+        use_cal = (load_config().get("health") or {}).get("use_calibrated", False) and CALIBRATED_PATH.exists()
+        _cache["art"] = joblib.load(CALIBRATED_PATH if use_cal else MODEL_PATH)
         df = build_features()
         _cache["df"] = df.set_index(["patient_id", "day"])
     return _cache
@@ -153,6 +155,8 @@ def predict(patient_id: str, day) -> AgentResult:
     art, r = st["art"], st["df"].loc[(patient_id, d)]
     X = pd.DataFrame([r[art["features"]].astype(float)])
     prob = float(art["model"].predict_proba(X)[0, 1]) if not X.isna().all(axis=None) and not np.isnan(r["total_events_z"]) else 0.0
+    if "calibrator" in art:
+        prob = float(art["calibrator"](np.array([prob]))[0])
     if oof.enabled():  # replay evaluation with out-of-fold scores
         prob = float(oof.lookup(AGENT, patient_id, d) or 0.0)
     h = load_config()["agent2"]["cusum"]["h"]

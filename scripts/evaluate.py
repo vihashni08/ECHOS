@@ -82,7 +82,7 @@ def build() -> str:
             add("agent2", k, k, p[k], ci[k])
         out += [f"### Agent 2 (behaviour / agitation) vs base rate, out-of-fold; CI = patient bootstrap. {a2['n_days']} days, "
                 f"{a2['n_patients']} patients ({a2['n_patients_with_agitation']} with an agitation day)",
-                table(["Metric", "Value (95% CI)", "Reference"], body), "Ablation: " + a2["ablation_oof"]["note"]]
+                table(["Metric", "Value (95% CI)", "Reference"], body), "Ablation (out-of-fold, from scripts/audit_agent2.py): " + _ablation(a2)]
         au = a2.get("within_patient_audit")
         if au:
             g = lambda t: f"{t[0]:.3f} (IQR {t[1]:.3f}-{t[2]:.3f})"
@@ -96,8 +96,7 @@ def build() -> str:
                     f"(median per-patient prevalence {w['patient_prevalence_median']:.3f}). Pooled numbers above mix between-patient differences in activity level with within-patient signal.",
                     table(["Model", "Pooled ROC-AUC", "Within-patient ROC-AUC", "Pooled PR-AUC", "Within-patient PR-AUC"], wrows),
                     "Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. "
-                    "Top gain importance: " + ", ".join(f"{k} {v:.2f}" for k, v in list(au["top10_gain_importance"].items())[:10]) + ". "
-                    "Dropping absolute levels cuts pooled ROC 0.852 to 0.664 but within-patient ROC stays ~0.83: personal-baseline z-scores carry the within-patient signal; absolute levels mostly separate patients."]
+                    "Top gain importance: " + ", ".join(f"{k} {v:.2f}" for k, v in list(au["top10_gain_importance"].items())[:10]) + ". " + _drop_sentence(au)]
     a3 = load("agent3")
     if a3:
         body = []
@@ -131,6 +130,18 @@ def build() -> str:
             out += [f"MONITOR days by reason ({nm} days)", table(["Reason", "Days", "Share of MONITOR days"],
                     [[k, v, f"{v / nm:.1%}"] for k, v in e["monitor_days_by_reason"].items()]),
                     "DATA_GAP causes on MONITOR days (a day can have several)", table(["Cause", "Days"], [[k, v] for k, v in e["data_gap_days_by_cause_monitor_days"].items()])]
+    mt = load("monitor_thresholds")
+    if mt:
+        o, n = mt["old"], mt["new"]
+        out += ["### MONITOR thresholds re-selected from out-of-fold predictions (alert budget)",
+                f"Budgets: vitals <= 1 alert per patient-week; behaviour Monitor days <= 10% of patient-days; agitation_prob is the only behaviour trigger "
+                f"(drift is report evidence only). Score scale: {mt.get('score_scale', 'raw')}; the previous column is the earlier run on the raw score scale.",
+                table(["", "Previous run (raw scale)", "Current"],
+                      [["vitals_prob", o["vitals_prob"], n["vitals_prob"]], ["agitation_prob", o["agitation_prob"], n["agitation_prob"]],
+                       ["Vitals alerts / patient-week", f"{o['vitals_alerts_per_patient_week']:.2f}", f"{n['vitals_alerts_per_patient_week']:.2f}"],
+                       ["Vitals recall (BP/pulse/water labels)", f"{o['vitals_recall']:.3f}", f"{n['vitals_recall']:.3f}"],
+                       ["Behaviour Monitor days, share of patient-days", f"{o['behaviour_monitor_share_of_patient_days']:.1%}", f"{n['behaviour_monitor_share_of_patient_days']:.1%}"],
+                       ["Agitation recall of behaviour Monitor", f"{o['behaviour_monitor_recall']:.3f}", f"{n['behaviour_monitor_recall']:.3f}"]])]
     fi = load("fault_injection")
     if fi:
         body = [[r["scenario"], r["lost_alerts"], r["extra_alerts"], r["duplicate_alerts"], r["falls_alerted"],
@@ -149,9 +160,41 @@ def build() -> str:
     return "\n\n".join(out) + "\n"
 
 
+def _ablation(a2) -> str:
+    au = a2["within_patient_audit"]
+    return (f"per-patient z-scores only: pooled ROC-AUC {au['z_only']['pooled_roc_auc']:.3f}, PR-AUC {au['z_only']['pooled_pr_auc']:.3f}; "
+            f"drift score only: pooled ROC-AUC {au['drift_score_only']['pooled_roc_auc']:.3f} (chance = 0.5).")
+
+
+def _drop_sentence(au) -> str:
+    fz, zz = au["full"], au["z_only"]
+    return (f"Dropping absolute levels moves pooled ROC {fz['pooled_roc_auc']:.3f} to {zz['pooled_roc_auc']:.3f}, while within-patient ROC "
+            f"moves {fz['within_patient']['roc_auc_median_q1_q3'][0]:.3f} to {zz['within_patient']['roc_auc_median_q1_q3'][0]:.3f}: "
+            "absolute levels mostly separate patients; personal-baseline z-scores carry the within-patient signal.")
+
+
+def sync_results(md: str, path="reports/RESULTS.md") -> int:
+    """Replace RESULTS.md lines whose generated counterpart changed (matched on the line's leading text / first table cell).
+    Prose lines are left alone; every number in a replaced line comes from a metrics JSON."""
+    cur = Path(path).read_text().splitlines()
+    have, n = set(cur), 0
+    for g in md.split("### Fault injection")[0].splitlines():
+        if not g.strip() or g in have:
+            continue
+        key = g.split("|")[1].strip() if g.startswith("|") else g[:30]
+        for i, l in enumerate(cur):
+            if (l.startswith("|") and l.split("|")[1].strip() == key) or (not g.startswith("|") and l.startswith(key)):
+                cur[i], n = g, n + 1
+                break
+    Path(path).write_text("\n".join(cur) + "\n")
+    return n
+
+
 def main():
     rows.clear()
     md = build()
+    if "--sync" in __import__("sys").argv:
+        print("RESULTS.md lines updated:", sync_results(md))
     pd.DataFrame(rows).to_csv("reports/results_table.csv", index=False)
     Path("reports/results_table.md").write_text(md)
     print(md)

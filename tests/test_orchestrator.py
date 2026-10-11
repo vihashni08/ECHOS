@@ -22,7 +22,7 @@ def R(score=0.0, **ev):
 
 
 def vit(sys=120, dia=80, hr=70, score=0.0):
-    return {"available": True, "probability": score, "flag": score >= 0.435, "current_vs_baseline":
+    return {"available": True, "probability": score, "flag": score >= 0.278, "current_vs_baseline":
             {"sys": {"current": sys}, "dia": {"current": dia}, "hr": {"current": hr}}}
 
 

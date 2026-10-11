@@ -7,10 +7,10 @@ Decision support for home-dwelling elderly patients, **not a diagnostic tool**. 
 | Method | PR-AUC (95% CI) | Recall (95% CI) | False alerts / patient-week | Alerts |
 |---|---|---|---|---|
 | Fixed rule (sys>=140 / dia>=90 / sys<100) | 0.261 (0.183-0.346) | 0.759 (0.617-0.872) | 1.58 | 834 |
-| XGBoost @ same alert count as rule | 0.681 (0.561-0.767) | 0.886 (0.819-0.932) | 1.48 | 834 |
-| XGBoost @ 0.5 alerts/pt-wk | 0.681 (0.561-0.767) | 0.473 (0.366-0.599) | 0.10 | 187 |
-| XGBoost @ 1.0 alerts/pt-wk | 0.681 (0.561-0.767) | 0.698 (0.612-0.793) | 0.41 | 375 |
-| XGBoost @ 2.0 alerts/pt-wk | 0.681 (0.561-0.767) | 0.876 (0.802-0.916) | 1.26 | 751 |
+| XGBoost @ same alert count as rule | 0.697 (0.571-0.782) | 0.886 (0.827-0.938) | 1.48 | 834 |
+| XGBoost @ 0.5 alerts/pt-wk | 0.697 (0.571-0.782) | 0.483 (0.378-0.608) | 0.09 | 187 |
+| XGBoost @ 1.0 alerts/pt-wk | 0.697 (0.571-0.782) | 0.711 (0.619-0.789) | 0.40 | 375 |
+| XGBoost @ 2.0 alerts/pt-wk | 0.697 (0.571-0.782) | 0.879 (0.810-0.920) | 1.26 | 751 |
 
 SHAP top features: sys 0.72, dia 0.62, hr 0.38, dia_base 0.33, hr_base 0.18
 
@@ -18,33 +18,33 @@ SHAP top features: sys 0.72, dia 0.62, hr 0.38, dia_base 0.33, hr_base 0.18
 
 | Metric | Value (95% CI) | Reference |
 |---|---|---|
-| PR-AUC (full agent) | 0.194 (0.133-0.309) | 4.0x base rate |
+| PR-AUC (full agent) | 0.216 (0.143-0.312) | 4.4x base rate |
 | PR-AUC, base rate (no skill) | 0.049 (0.028-0.079) | 1.0x |
 | PR-AUC, personal-baseline drift only | 0.044 (0.026-0.070) | 0.9x |
-| ROC-AUC (full agent) | 0.852 (0.804-0.900) | chance = 0.5 |
+| ROC-AUC (full agent) | 0.859 (0.809-0.904) | chance = 0.5 |
 | ROC-AUC, drift only | 0.453 (0.378-0.542) | chance = 0.5 |
-| Recall @ 0.5 alerts/pt-wk | 0.336 (0.186-0.502) | 0.38 false alerts/pt-wk |
-| Recall @ 1.0 alerts/pt-wk | 0.573 (0.411-0.719) | 0.80 false alerts/pt-wk |
-| Recall @ 2.0 alerts/pt-wk | 0.827 (0.722-0.920) | 1.71 false alerts/pt-wk |
+| Recall @ 0.5 alerts/pt-wk | 0.355 (0.232-0.522) | 0.38 false alerts/pt-wk |
+| Recall @ 1.0 alerts/pt-wk | 0.582 (0.424-0.736) | 0.80 false alerts/pt-wk |
+| Recall @ 2.0 alerts/pt-wk | 0.836 (0.700-0.942) | 1.71 false alerts/pt-wk |
 
-Ablation: most signal is raw same-day activity level (agitated days mean 574 events vs 383); personal-baseline drift adds little. Drift-only score is at chance (ROC 0.45).
+Ablation (out-of-fold, from scripts/audit_agent2.py): per-patient z-scores only: pooled ROC-AUC 0.658, PR-AUC 0.088; drift score only: pooled ROC-AUC 0.453 (chance = 0.5).
 
-**Agent 2 headline (within-patient, 27 patients with both classes; median across patients):** ROC-AUC 0.814 (IQR 0.692-0.944), PR-AUC 0.386 (IQR 0.143-0.620) (median per-patient prevalence 0.040). Pooled numbers above mix between-patient differences in activity level with within-patient signal.
+**Agent 2 headline (within-patient, 27 patients with both classes; median across patients):** ROC-AUC 0.818 (IQR 0.655-0.976), PR-AUC 0.449 (IQR 0.146-0.584) (median per-patient prevalence 0.040). Pooled numbers above mix between-patient differences in activity level with within-patient signal.
 
 | Model | Pooled ROC-AUC | Within-patient ROC-AUC | Pooled PR-AUC | Within-patient PR-AUC |
 |---|---|---|---|---|
-| Full feature set | 0.852 | 0.814 (IQR 0.692-0.944) | 0.194 | 0.386 (IQR 0.143-0.620) |
-| Per-patient z-scores only (no absolute levels) | 0.664 | 0.827 (IQR 0.621-0.956) | 0.089 | 0.309 (IQR 0.122-0.442) |
+| Full feature set | 0.859 | 0.818 (IQR 0.655-0.976) | 0.216 | 0.449 (IQR 0.146-0.584) |
+| Per-patient z-scores only (no absolute levels) | 0.658 | 0.824 (IQR 0.617-0.930) | 0.088 | 0.262 (IQR 0.155-0.500) |
 | Drift score only | 0.453 | 0.500 (IQR 0.333-0.642) | 0.044 | 0.091 (IQR 0.044-0.214) |
 
-Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. Top gain importance: total_events 0.19, room_transitions 0.13, total_events_delta 0.05, kitchen_cusum 0.04, night_bathroom_cusum 0.04, fridge_z 0.04, fridge 0.04, night_events 0.04, room_transitions_z 0.03, kitchen_z 0.03. Dropping absolute levels cuts pooled ROC 0.852 to 0.664 but within-patient ROC stays ~0.83: personal-baseline z-scores carry the within-patient signal; absolute levels mostly separate patients.
+Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. Top gain importance: total_events 0.19, room_transitions 0.13, total_events_delta 0.05, kitchen_cusum 0.04, night_bathroom_cusum 0.04, fridge_z 0.04, fridge 0.04, night_events 0.04, room_transitions_z 0.03, kitchen_z 0.03. Dropping absolute levels moves pooled ROC 0.859 to 0.658, while within-patient ROC moves 0.818 to 0.824: absolute levels mostly separate patients; personal-baseline z-scores carry the within-patient signal.
 
 ### Agent 3 (falls, SisFall), subject-wise out-of-fold, threshold 0.5. Overall PR-AUC 0.995, 38 subjects
 
 | Group | Fall subjects | Fall trials | Sensitivity (Wilson 95% CI) | Specificity (windows) | False alarms / hour |
 |---|---|---|---|---|---|
-| adult | 23 | 1722 | 0.985 (0.978-0.990) | 0.9989 | 2.32 |
-| elderly | 1 | 75 | 0.853 (0.756-0.916) | 0.9995 | 1.00 |
+| adult | 23 | 1722 | 0.982 (0.975-0.987) | 0.9989 | 2.32 |
+| elderly | 1 | 75 | 0.867 (0.772-0.926) | 0.9993 | 1.60 |
 
 Wilson CIs treat trials as independent; trials are clustered within subjects, so true uncertainty is wider (elderly = one subject).
 
@@ -76,22 +76,18 @@ Source: `reports/metrics/fault_injection_pre_agent0.json` (commit 62669da, befor
 | real Gemini client, 1s timeout | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:47,llm:4 | -10.6 |
 | LLM key removed | 0 | 0 | 0 | 9/9 | - | - | 45/45 | template:51 | -168.8 |
 
-### MONITOR thresholds re-selected from out-of-fold predictions (alert budget), after Agent 0 cleaning
+### MONITOR thresholds re-selected from out-of-fold predictions (alert budget)
 
-Budgets: vitals <= 1 alert per patient-week; behaviour Monitor days <= 10% of patient-days, **agitation_prob is the only behaviour trigger**; drift (max CUSUM) is report evidence only (`drift_evidence_cusum` = 10.4). URGENT rules unchanged. Computed on 2797 patient-days / 400 patient-weeks, patient-level GroupKFold (`scripts/choose_monitor_thresholds.py`). "Old" = previous config (drift OR agitation) re-scored on the cleaned table.
+Budgets: vitals <= 1 alert per patient-week; behaviour Monitor days <= 10% of patient-days; agitation_prob is the only behaviour trigger (drift is report evidence only). Score scale: calibrated; the previous column is the earlier run on the raw score scale.
 
-| | Old (drift OR agitation) | New (agitation only) |
+|  | Previous run (raw scale) | Current |
 |---|---|---|
-| vitals_prob | 0.439 | 0.435 |
-| agitation_prob | 0.762 | 0.587 |
-| drift as Monitor trigger | max CUSUM >= 10.4 | none (evidence only) |
-| Vitals alerts / patient-week | 0.99 | 1.00 |
-| Vitals recall (BP/pulse/water labels) | 0.721 | 0.721 |
-| Behaviour Monitor days, share of patient-days | 8.7% | 9.9% |
-| Agitation recall via agitation_prob alone | 0.273 | 0.545 |
-| Agitation recall of behaviour Monitor | 0.291 | 0.545 |
-
-Drift alone caught 1.8% of agitation days (at 4.2% of days), so it added almost no recall; dropping it lets agitation_prob use the whole 10% budget (threshold 0.762 -> 0.587), which raises Monitor recall from 0.29 to 0.55 against ~0.10 for random flagging. Day-status shares in the end-to-end table use out-of-fold Agent 1-2 scores. Reports in that run used templates (no LLM). Fault-injection table was not re-run after this change.
+| vitals_prob | 0.443 | 0.278 |
+| agitation_prob | 0.592 | 0.129 |
+| Vitals alerts / patient-week | 1.00 | 1.00 |
+| Vitals recall (BP/pulse/water labels) | 0.724 | 0.721 |
+| Behaviour Monitor days, share of patient-days | 9.9% | 9.9% |
+| Agitation recall of behaviour Monitor | 0.527 | 0.509 |
 
 ## Data quality (Agent 0)
 
@@ -131,3 +127,50 @@ From `reports/eda/DATA_QUALITY.md` (read-only EDA, `scripts/eda.py`) and the rul
 
 
 **LLM guardrails (report generation):** per-call timeout (15 s when those runs were made; `config.yaml` now has 45 s) (timeouts are never retried, other failures retry at most once), a requests/min limiter (20 then; now 8), and LLM wording is produced in a background worker after the template report and the alert are already written, so it cannot block alerts or the next case. Every fallback is logged with a reason (`data/llm_fallbacks.log` and the report's validation record). Real-client test with the timeout forced to 1 s (the Gemini API itself rejects HTTP deadlines under 10 s, so sub-10 s timeouts are enforced by a watchdog thread): 0 lost alerts, 0 extra, 45/45 cases identical to the clean run, 47/51 reports fell back to template (42 timeouts, 5 API client errors), 4 completed in under 1 s. In the other real-LLM runs 3-4 of 51 reports failed validation and 5-6 hit an API client error (cause not diagnosed; possibly quota).
+
+<!-- model_selection:start -->
+## Model selection (identical folds; written by scripts/model_selection.py)
+
+CIs: patient-level (TIHM) or subject-level (SisFall) bootstrap, 200 resamples. Grids: logistic C in {0.1, 1}; RF / ExtraTrees max_depth in {4, 8}; XGBoost = current configuration; fall XGBoost max_depth in {3, 5}; grids chosen by inner CV on the training part only. Calibration is monotone and does not change these rank-based numbers much; models are compared on raw scores.
+
+Note: lightgbm not used: import failed (ModuleNotFoundError: No module named 'lightgbm').
+
+### Vitals: 1733 rows, 54 patients, prevalence 0.182; alert budget: 1 alert per patient-week (fixed rule: its own alert count)
+
+| Model | PR-AUC | Recall @ budget | False alerts / patient-week |
+|---|---|---|---|
+| fixed_rule | 0.261 (0.183-0.346) | 0.759 (0.617-0.872) | 1.58 (1.23-1.96) |
+| logreg | 0.349 (0.248-0.452) | 0.429 (0.334-0.525) | 0.64 (0.53-0.76) |
+| random_forest | 0.638 (0.514-0.723) | 0.654 (0.544-0.775) | 0.45 (0.35-0.59) |
+| extra_trees | 0.559 (0.447-0.654) | 0.571 (0.478-0.681) | 0.52 (0.38-0.64) |
+| xgboost | 0.697 (0.571-0.782) | 0.711 (0.619-0.789) | 0.40 (0.25-0.58) |
+
+Paired difference vs current XGBoost (PR-AUC, 95% CI): fixed_rule -0.436 (-0.509 to -0.334); logreg -0.348 (-0.423 to -0.246); random_forest -0.058 (-0.098 to -0.011); extra_trees -0.137 (-0.205 to -0.053)
+Decision: keep current XGBoost.
+
+### Behaviour (agitation): 2236 rows, 50 patients, prevalence 0.049; alert budget: 1 alert per patient-week (fixed rule: its own alert count)
+
+| Model | PR-AUC | Recall @ budget | False alerts / patient-week | Within-patient ROC-AUC median (IQR) |
+|---|---|---|---|---|
+| logreg | 0.333 (0.167-0.490) | 0.700 (0.558-0.835) | 0.76 (0.63-0.86) | 0.810 (0.715-0.957) |
+| random_forest | 0.176 (0.126-0.270) | 0.527 (0.352-0.701) | 0.82 (0.73-0.89) | 0.863 (0.773-0.957) |
+| extra_trees | 0.246 (0.165-0.360) | 0.591 (0.457-0.711) | 0.80 (0.69-0.88) | 0.868 (0.673-0.960) |
+| xgboost | 0.216 (0.147-0.312) | 0.582 (0.410-0.732) | 0.80 (0.70-0.87) | 0.818 (0.655-0.976) |
+
+Paired difference vs current XGBoost (PR-AUC, 95% CI): logreg +0.117 (-0.023 to +0.223); random_forest -0.040 (-0.083 to +0.004); extra_trees +0.030 (-0.037 to +0.089)
+Decision: keep current XGBoost.
+
+### Fall (SisFall, subject-level folds, threshold 0.5): 38 subjects (23 adult, 15 elderly; only 1 elderly subject performed falls: SE06)
+
+| Model | PR-AUC | Group | Sensitivity | Specificity (windows) | False alarms / hour | Detection delay (s) |
+|---|---|---|---|---|---|---|
+| random_forest | 0.995 (0.990-0.998) | adult | 0.982 (0.966-0.993) | 0.999 (0.998-1.000) | 2.32 (0.58-4.40) | 1.25 (+4.0 s inactivity confirmation) |
+| random_forest | 0.995 (0.990-0.998) | elderly | 0.867 (0.867-0.867) | 0.999 (0.998-1.000) | 1.60 (0.00-4.08) | 1.25 (+4.0 s inactivity confirmation) |
+| xgboost | 0.995 (0.990-0.998) | adult | 0.988 (0.976-0.997) | 0.999 (0.998-1.000) | 2.11 (0.40-4.02) | 1.25 (+4.0 s inactivity confirmation) |
+| xgboost | 0.995 (0.990-0.998) | elderly | 0.880 (0.880-0.880) | 0.999 (0.998-1.000) | 1.60 (0.00-4.08) | 1.25 (+4.0 s inactivity confirmation) |
+
+Paired XGBoost minus current RF: PR-AUC +0.0000 (-0.0013 to +0.0011); adult sensitivity +0.0063 (+0.0017 to +0.0128). Decision: keep current random forest.
+Detection delay is structural (one window per fall, decided at window end), not measured per model.
+Elderly sensitivity rests on one subject's falls: its bootstrap CI is degenerate (resamples without that subject are dropped) and says nothing about elderly people in general.
+
+<!-- model_selection:end -->

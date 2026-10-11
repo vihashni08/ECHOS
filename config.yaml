@@ -50,11 +50,12 @@ replay:
   falls_per_patient: 3
   adl_windows_per_day: 2
 health:   # Health Monitoring agent (vitals + behaviour sub-models)
+  use_calibrated: true   # models/*_calibrated.joblib (scripts/calibrate.py); thresholds below are on the calibrated scale
   persistence: {z: 2.0, last_n: 3, need: 2}   # evidence only: 2 of last 3 readings beyond |z| >= 2 of the personal baseline
 triage:
   # chosen from reports/metrics/{agent1,agent2,triage_thresholds}.json (see docs in orchestrator/triage.py)
-  vitals_prob: 0.435       # agent1 OOF: <= 1 alert / patient-week (scripts/choose_monitor_thresholds.py)
-  agitation_prob: 0.587    # agent2 OOF: the ONLY behaviour Monitor trigger; Monitor days <= 10% of patient-days
+  vitals_prob: 0.278       # calibrated OOF score: <= 1 alert / patient-week (scripts/choose_monitor_thresholds.py)
+  agitation_prob: 0.129    # calibrated OOF score: the ONLY behaviour Monitor trigger; Monitor days <= 10% of patient-days
   drift_evidence_cusum: 10.4  # max per-feature CUSUM: report evidence only (routine_change fact), NOT a triage trigger
   fall_prob_high: 0.90     # OOF: sens 0.905, 0.41 false alarms/h (no inactivity needed)
   fall_prob: 0.50          # with post_fall_inactive: sens 0.942, 0.90 FA/h; without -> MONITOR only

@@ -7,7 +7,8 @@ import logging
 import time
 
 from echos.config import load_config
-from echos.knowledge.ingest import COLLECTION, get_model, rag_dir
+from echos.knowledge import embed_worker
+from echos.knowledge.ingest import COLLECTION, rag_dir
 
 LOG = logging.getLogger("echos.rag")
 # finding type -> natural-language query. Types with no query (e.g. data_gap) get no guidance.
@@ -43,8 +44,7 @@ def _col():
     if "col" not in _state:
         import chromadb
         _state["col"] = chromadb.PersistentClient(path=str(rag_dir())).get_collection(COLLECTION)
-        _state["model"] = get_model()
-    return _state["col"], _state["model"]
+    return _state["col"]
 
 
 def _log(rec: dict):
@@ -68,8 +68,8 @@ def retrieve(finding_type: str, details: dict | None = None, k: int | None = Non
     if q is None:
         return []
     try:
-        col, model = _col()
-        r = col.query(query_embeddings=model.encode([q], normalize_embeddings=True).tolist(), n_results=k)
+        col = _col()  # embeddings come from the helper process: this process never loads torch
+        r = col.query(query_embeddings=embed_worker.encode([q]), n_results=k)
     except Exception as ex:  # not ingested / chroma error: report agent continues without guidance
         LOG.warning("retrieval failed (%s): %s", type(ex).__name__, ex)
         return []

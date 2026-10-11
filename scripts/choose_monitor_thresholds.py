@@ -15,7 +15,15 @@ pdy = load_patient_day()
 n_days, pw = len(pdy), len(pdy) / 7.0
 
 
+CAL = json.loads((ROOT / "reports/metrics/calibration.json").read_text()) if (ROOT / "reports/metrics/calibration.json").exists() else {}
+
+
 def oof(df, feats):
+    if CAL.get("use_calibrated"):  # same alert-budget rule, on the calibrated nested out-of-fold score
+        from echos.agents.health import calibration as C
+        name = "vitals" if feats is ph.FEATURES else "behaviour"
+        mk = ph._model if feats is ph.FEATURES else b._model
+        return C.nested_oof(df, feats, mk, seed, nf)[1][CAL[name]["chosen_kind"]]
     y, o = df.y.values, np.zeros(len(df))
     for tr, te in patient_folds(df, nf, seed):
         m = ph._model(seed, (1 - y[tr].mean()) / max(y[tr].mean(), 1e-6)) if feats is ph.FEATURES else \
@@ -70,7 +78,13 @@ def stats(v, a, dr, trigger_drift=True):
             "drift_share_of_patient_days": float((ds >= dr).sum() / n_days)}
 
 
-res = {"patient_days": n_days, "patient_weeks": pw, "old": {**old, **stats(old["vitals_prob"], old["agitation_prob"], old["drift_cusum"])},
+_prev = ROOT / "reports/metrics/monitor_thresholds.json"
+if CAL.get("use_calibrated") and _prev.exists() and "raw_scale_run" not in json.loads(_prev.read_text()):
+    # score scale changed: the old row = the previous script run on the RAW score scale (its stats are not recomputable on the new scale)
+    old_block = {**json.loads(_prev.read_text())["new"], "config_vitals_prob": old["vitals_prob"], "config_agitation_prob": old["agitation_prob"]}
+else:
+    old_block = {**old, **stats(old["vitals_prob"], old["agitation_prob"], old["drift_cusum"])}
+res = {"patient_days": n_days, "patient_weeks": pw, "old": old_block, "score_scale": "calibrated" if CAL.get("use_calibrated") else "raw",
        "new": {**new, **stats(new["vitals_prob"], new["agitation_prob"], old["drift_cusum"], trigger_drift=False)},
        "notes": ["OOF scores, patient-level GroupKFold; vitals budget uses all patient-days / 7 (as Agent 1 does)",
                  "old = max CUSUM >= drift_cusum OR agitation_prob (thresholds as in the previous config, re-scored on the cleaned table); new = agitation_prob only, capped at 10% of all patient-days; drift is report evidence only (drift_evidence_cusum)",
