@@ -15,3 +15,5 @@ google-genai
 python-dotenv
 jinja2
 matplotlib
+pypdf
+chromadb
