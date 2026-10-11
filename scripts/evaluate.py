@@ -190,11 +190,22 @@ def sync_results(md: str, path="reports/RESULTS.md") -> int:
     return n
 
 
+def sync_readme(path="README.md") -> int:
+    """README headline bullet for Agent 3, from agent3.json (never hand-typed)."""
+    import re
+    g = load("agent3")["groups"]
+    new = f"sensitivity {g['adult']['sensitivity']:.3f} adults / {g['elderly']['sensitivity']:.3f} elderly"
+    t = Path(path).read_text()
+    t2 = re.sub(r"sensitivity [\d.]+ adults / [\d.]+ elderly", new, t)
+    Path(path).write_text(t2)
+    return int(t2 != t)
+
+
 def main():
     rows.clear()
     md = build()
     if "--sync" in __import__("sys").argv:
-        print("RESULTS.md lines updated:", sync_results(md))
+        print("RESULTS.md lines updated:", sync_results(md), "README updated:", sync_readme())
     pd.DataFrame(rows).to_csv("reports/results_table.csv", index=False)
     Path("reports/results_table.md").write_text(md)
     print(md)

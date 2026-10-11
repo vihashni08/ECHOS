@@ -23,12 +23,12 @@ agent2,roc_auc,roc_auc,0.8590609766526981,0.8091750822652298,0.9043844184602913,
 agent2,drift_only_pr_auc,drift_only_pr_auc,0.043875018725482745,0.026178712416571187,0.07011925941966295,
 agent2,drift_only_roc_auc,drift_only_roc_auc,0.4531813905755581,0.3779598469067113,0.5423846944990756,
 agent2,prevalence,prevalence,0.049194991055456175,0.028362713503493207,0.07876242312082475,
-agent3,adult,sensitivity,0.9819976771196284,0.9745606984438575,0.9872888710647232,
-agent3,adult,specificity,0.9989035978234386,,,
-agent3,adult,false_alarms_per_hour,2.316872035530052,,,
-agent3,elderly,sensitivity,0.8666666666666667,0.7716663173307007,0.9259349490058527,
-agent3,elderly,specificity,0.9993154852449042,,,
-agent3,elderly,false_alarms_per_hour,1.5984849914469952,,,
+agent3,adult,sensitivity,0.9181184668989547,0.9042183890051325,0.9301571411709857,
+agent3,adult,specificity,0.9983164983164983,,,
+agent3,adult,false_alarms_per_hour,0.421249461005464,,,
+agent3,elderly,sensitivity,0.56,0.44746569425928456,0.6666872402321515,
+agent3,elderly,specificity,1.0,,,
+agent3,elderly,false_alarms_per_hour,0.0,,,
 e2e,Patients / patient-days / patient-weeks,value,,,,20 / 1266 / 180.9
 e2e,Injected falls,value,,,,60
 e2e,"Fall detection rate (URGENT, fall reason)",value,,,,0.950 (0.863-0.983) (57/60)

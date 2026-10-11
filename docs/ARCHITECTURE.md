@@ -14,7 +14,7 @@ flowchart LR
     A2 --> AO
     A3 --> AO
     AO --> ORCH["LangGraph orchestrator<br/>rule-based triage, SQLite checkpoints<br/>DATA_GAP rule"]
-    ORCH -->|URGENT| AL[(alerts)]
+    ORCH -->|URGENT: fall / critical vitals| AL[(alerts + outbox)] --> MAIL[background mailer: caregiver + clinician, fixed template, no LLM]
     ORCH --> A4["Agent 4 Report<br/>template + optional LLM + validator"]
     AL --> A4
     KB[("Guideline PDFs<br/>echos/knowledge/raw")] -->|ingest: clean, chunk, MiniLM embed| VS[("Chroma<br/>data/rag")]

@@ -23,6 +23,15 @@ from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 from echos.reports import facts as F
 from echos.knowledge.retrieve import retrieve
+
+
+def _safe_retrieve(*a, **k) -> list:
+    """RAG down (index missing, embedding failure): reports go on without guideline guidance, never crash the case."""
+    try:
+        return retrieve(*a, **k)
+    except Exception as ex:  # noqa: BLE001
+        logging.getLogger("echos.llm.fallback").warning("RAG unavailable (%s): report without guidance", type(ex).__name__)
+        return []
 from echos.reports.llm import LLMAPIError
 from echos.reports.validator import validate_report
 
@@ -65,7 +74,7 @@ class Tools:
     @staticmethod
     def get_guideline(finding_type: str, details: dict | None = None, k: int = 3) -> list:
         """RAG retriever over the local guideline index: chunks with citation ids [KB-n] (empty when RAG is off)."""
-        return retrieve(finding_type, details, k)
+        return _safe_retrieve(finding_type, details, k)
 
     @staticmethod
     def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=None, cite_sections=(), guidance=None) -> dict:
@@ -204,7 +213,7 @@ def weekly_stats(days: list, patient_id: str, end_day: str) -> dict:
     falls = [{"day": d["day"], **f} for d in days for f in d["falls"]]
     guides, seen = [], set()
     for e in evidence:  # RAG: guideline chunks for each finding type present this week (deduplicated by chunk id)
-        for g in retrieve(e["type"], {"kind": e["kind"]}):
+        for g in _safe_retrieve(e["type"], {"kind": e["kind"]}):
             if g["id"] not in seen:
                 seen.add(g["id"])
                 guides.append(g)

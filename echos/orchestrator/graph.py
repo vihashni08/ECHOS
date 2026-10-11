@@ -17,7 +17,9 @@ from sqlalchemy import select
 
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
-from echos.orchestrator.alerts import send_alerts
+from echos.alerts.dispatcher import AlertDispatcher
+from echos.alerts.mailer import make_mailer
+from echos.orchestrator.alerts import queue_alerts
 from echos.orchestrator.triage import triage as run_triage
 
 
@@ -32,16 +34,18 @@ class CaseState(TypedDict, total=False):
 
 
 def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]] = None, inline_agents=None,
-                report_llm="auto", report_root=None, gate=None):
+                report_llm="auto", report_root=None, gate=None, dispatcher=None):
     """fault(node_name) may raise to simulate a crash. inline_agents: {agent_id: fn(event_row)->dict} used only
     when an agent's stored output is missing (tests / no-process mode). report_llm: "auto" = Gemini if configured
     (llm.model + key), None/False = template mode. gate: NORMAL days get a template daily report (no LLM, no RAG);
-    None = config `report_gate.enabled`. The gate only touches the report node, never triage or alerts."""
+    None = config `report_gate.enabled`. The gate only touches the report node, never triage or alerts.
+    dispatcher: AlertDispatcher (default: config alerts.send_real false -> DryRunMailer; true -> SMTP). Sending runs in its own thread."""
     from echos.reports.agent import ReportAgent
     from echos.reports.facts import build_day_facts
     from echos.reports.llm import make_llm
     reporter = ReportAgent(eng, make_llm() if report_llm == "auto" else (report_llm or None), root=report_root)
     fault = fault or (lambda node: None)
+    dispatcher = dispatcher or AlertDispatcher(eng, make_mailer())
     gate_on = bool(load_config().get("report_gate", {}).get("enabled", True)) if gate is None else bool(gate)
     cp = checkpoint_path or ROOT / load_config()["checkpoint_db_path"]
     cp = str(cp)
@@ -106,7 +110,7 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
         return "immediate_alert" if st["decision"]["status"] == "URGENT" else "daily_report"
 
     def immediate_alert(st: CaseState) -> dict:
-        send_alerts(eng, st["patient_id"], st["day"], st["decision"].get("urgent_types") or [], st["decision"]["reasons"])
+        queue_alerts(eng, dispatcher, st["patient_id"], st["day"], st["decision"], st["results"])   # fixed template, no LLM: before any report work
         fault("immediate_alert")  # crash point AFTER the side effect: resume must not duplicate it
         return {}
 
@@ -137,7 +141,9 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
     g.add_edge("immediate_alert", "daily_report")
     g.add_conditional_edges("daily_report", after, {"weekly_report": "weekly_report", END: END})
     g.add_edge("weekly_report", END)
-    return g.compile(checkpointer=saver), conn
+    compiled = g.compile(checkpointer=saver)
+    compiled.dispatcher = dispatcher   # tests / shutdown: compiled.dispatcher.flush()
+    return compiled, conn
 
 
 def agent_down(eng, agent: str) -> bool:

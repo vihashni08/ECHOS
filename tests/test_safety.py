@@ -31,8 +31,9 @@ def rnd_quality(rng):
 def test_confirmed_fall_forces_urgent_random():
     rng = random.Random(1)
     for _ in range(N):
-        p = rng.uniform(CFG["fall_prob_high"], 1.0) if rng.random() < 0.5 else rng.uniform(CFG["fall_prob"], 1.0)
-        inactive = p < CFG["fall_prob_high"] or rng.random() < 0.5   # 0.5<=p<0.9 counts as confirmed only with inactivity
+        hi = CFG["fall_prob_high"]
+        p = rng.uniform(hi, 1.0) if hi is not None and rng.random() < 0.5 else rng.uniform(CFG["fall_prob"], 1.0)
+        inactive = hi is None or p < hi or rng.random() < 0.5   # below fall_prob_high (or when it is null) a fall counts only with inactivity
         r = {"quality": rnd_quality(rng), "health": rnd_health(rng) if rng.random() < 0.9 else None,
              "fall": R(p, post_fall_inactive=inactive)}
         d = triage(r, rng.randint(0, 12), CFG)

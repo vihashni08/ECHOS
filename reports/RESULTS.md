@@ -39,12 +39,12 @@ Ablation (out-of-fold, from scripts/audit_agent2.py): per-patient z-scores only:
 
 Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. Top gain importance: total_events 0.19, room_transitions 0.13, total_events_delta 0.05, kitchen_cusum 0.04, night_bathroom_cusum 0.04, fridge_z 0.04, fridge 0.04, night_events 0.04, room_transitions_z 0.03, kitchen_z 0.03. Dropping absolute levels moves pooled ROC 0.859 to 0.658, while within-patient ROC moves 0.818 to 0.824: absolute levels mostly separate patients; personal-baseline z-scores carry the within-patient signal.
 
-### Agent 3 (falls, SisFall), subject-wise out-of-fold, threshold 0.5. Overall PR-AUC 0.995, 38 subjects
+### Agent 3 (falls, SisFall), subject-wise out-of-fold, threshold 0.8. Overall PR-AUC 0.997, 38 subjects
 
 | Group | Fall subjects | Fall trials | Sensitivity (Wilson 95% CI) | Specificity (windows) | False alarms / hour |
 |---|---|---|---|---|---|
-| adult | 23 | 1722 | 0.982 (0.975-0.987) | 0.9989 | 2.32 |
-| elderly | 1 | 75 | 0.867 (0.772-0.926) | 0.9993 | 1.60 |
+| adult | 23 | 1722 | 0.918 (0.904-0.930) | 0.9983 | 0.42 |
+| elderly | 1 | 75 | 0.560 (0.447-0.667) | 1.0000 | 0.00 |
 
 Wilson CIs treat trials as independent; trials are clustered within subjects, so true uncertainty is wider (elderly = one subject).
 
@@ -110,7 +110,7 @@ From `reports/eda/DATA_QUALITY.md` (read-only EDA, `scripts/eda.py`) and the rul
 
 - **Agent 1** beats the fixed BP rule on PR-AUC (0.68 vs 0.26; CIs do not overlap). At the rule's own alert count it recalls 0.89 vs 0.76, though the CIs overlap. At ~1 alert/patient-week it recalls 0.70 with 0.41 false alerts/patient-week. The target includes `water_alert`, which has no BP/HR signal, and labels are likely threshold-derived, so part of this is re-learning the labelling rule.
 - **Agent 2 (headline = within-patient):** median per-patient ROC-AUC 0.814 (IQR 0.692-0.944), PR-AUC 0.386 (IQR 0.143-0.620) over 27 patients with both classes; the pooled numbers (ROC 0.85, PR-AUC 4.0x base rate) are inflated by between-patient activity-level differences. Without absolute levels, pooled ROC falls to 0.66 but within-patient ROC stays ~0.83, so per-patient z-scores carry the within-patient signal. 27 patients only; IQRs are wide. Earlier note on pooled results: has real but modest skill: PR-AUC 4.0x the base rate, ROC-AUC 0.85. Most of that comes from same-day raw activity level. The personal-baseline drift score alone is at chance (ROC 0.45), so "routine drift" is not evidence of agitation here.
-- **Agent 3** is near-ceiling on adults in SisFall; elderly sensitivity (0.85) rests on a single subject (SE06). Its false alarms (1-2.3 per hour of ADL recordings) are high for continuous wear; the triage rules therefore require post-fall inactivity or p >= 0.90 for URGENT.
+- **Agent 3** is near-ceiling on adults in SisFall (tables above and the fall audit section). Elderly sensitivity rests on a single subject (SE06) and is much lower once post-fall inactivity is required. False alarms per hour are measured on short vigorous SisFall ADL trials and overstate daily life, but are still high for continuous wear; the triage rules therefore require post-fall inactivity for URGENT (operating point in `config.yaml`, chosen by `scripts/fall_audit.py`). The end-to-end and fault-injection numbers in this file were produced with the v1 fall model and v1 thresholds and have not been re-run.
 - **End-to-end:** 57/60 injected falls raised an URGENT alert. Alerts are produced at day close, so the simulated delay is 11.4 h median (max 23.8 h): the orchestrator is a daily batch, not real-time. 29% of patient-days are Monitor (including 4.5% data gaps; was 52% with the old thresholds and in-sample scores), which would be too noisy for caregivers in practice. Agents 1-2 were final-fitted on all TIHM patients, so these shares are not out-of-sample.
 - **Fault injection:** 0 lost, 0 extra and 0 duplicate alerts in every scenario, and all 45 cases ended identical to the clean run. Duplicates are also prevented by a UNIQUE(patient, day, level) key, so that zero is partly by construction. Detection takes ~3 s (supervisor polling and 3 missed 1 s heartbeats) and recovery 4-5 s. The delayed-LLM run (each call 1 s, then timeout, retried once) slowed the pipeline by ~95 s because the report node waits on the LLM, but alerts are written before that node, so they are unaffected. There is no per-call LLM timeout beyond the SDK's own; a real hung call would block reports (not alerts).
 - **Bugs found and fixed while producing these results:** (1) `run_orchestrator` could stop before processing days inserted during a slow pass (lost alerts under a slow LLM); (2) Agent 1's bootstrap CIs for recall at an alert budget undercounted patient-weeks for resampled duplicate patients, biasing them low. Point estimates are unchanged.
@@ -160,17 +160,49 @@ Decision: keep current XGBoost.
 Paired difference vs current XGBoost (PR-AUC, 95% CI): logreg +0.117 (-0.023 to +0.223); random_forest -0.040 (-0.083 to +0.004); extra_trees +0.030 (-0.037 to +0.089)
 Decision: keep current XGBoost.
 
-### Fall (SisFall, subject-level folds, threshold 0.5): 38 subjects (23 adult, 15 elderly; only 1 elderly subject performed falls: SE06)
+### Fall (SisFall, subject-level folds, unbiased v2 windows, threshold 0.8 + post-fall inactivity): 38 subjects (23 adult, 15 elderly; only 1 elderly subject performed falls: SE06)
+
+PR-AUC and specificity: falls vs ADL windows built identically (peak-centred); false alarms / hour: sliding ADL windows (SisFall ADL trials are short vigorous trials, so this overstates daily life).
 
 | Model | PR-AUC | Group | Sensitivity | Specificity (windows) | False alarms / hour | Detection delay (s) |
 |---|---|---|---|---|---|---|
-| random_forest | 0.995 (0.990-0.998) | adult | 0.982 (0.966-0.993) | 0.999 (0.998-1.000) | 2.32 (0.58-4.40) | 1.25 (+4.0 s inactivity confirmation) |
-| random_forest | 0.995 (0.990-0.998) | elderly | 0.867 (0.867-0.867) | 0.999 (0.998-1.000) | 1.60 (0.00-4.08) | 1.25 (+4.0 s inactivity confirmation) |
-| xgboost | 0.995 (0.990-0.998) | adult | 0.988 (0.976-0.997) | 0.999 (0.998-1.000) | 2.11 (0.40-4.02) | 1.25 (+4.0 s inactivity confirmation) |
-| xgboost | 0.995 (0.990-0.998) | elderly | 0.880 (0.880-0.880) | 0.999 (0.998-1.000) | 1.60 (0.00-4.08) | 1.25 (+4.0 s inactivity confirmation) |
+| random_forest | 0.997 (0.994-0.999) | adult | 0.918 (0.893-0.941) | 0.998 (0.996-1.000) | 0.42 (0.00-0.95) | 1.25 (+4.0 s inactivity confirmation) |
+| random_forest | 0.997 (0.994-0.999) | elderly | 0.560 (0.560-0.560) | 1.000 (1.000-1.000) | 0.00 (0.00-0.00) | 1.25 (+4.0 s inactivity confirmation) |
+| xgboost | 0.998 (0.995-0.999) | adult | 0.949 (0.931-0.966) | 0.997 (0.993-0.999) | 0.53 (0.00-1.21) | 1.25 (+4.0 s inactivity confirmation) |
+| xgboost | 0.998 (0.995-0.999) | elderly | 0.733 (0.733-0.733) | 0.998 (0.995-1.000) | 0.20 (0.00-0.74) | 1.25 (+4.0 s inactivity confirmation) |
 
-Paired XGBoost minus current RF: PR-AUC +0.0000 (-0.0013 to +0.0011); adult sensitivity +0.0063 (+0.0017 to +0.0128). Decision: keep current random forest.
+Paired XGBoost minus current RF: PR-AUC +0.0004 (-0.0001 to +0.0010); adult sensitivity +0.0313 (+0.0193 to +0.0455). Decision: keep current random forest.
 Detection delay is structural (one window per fall, decided at window end), not measured per model.
 Elderly sensitivity rests on one subject's falls: its bootstrap CI is degenerate (resamples without that subject are dropped) and says nothing about elderly people in general.
 
 <!-- model_selection:end -->
+
+<!-- fall_audit:start -->
+## Fall window audit (written by scripts/fall_audit.py)
+
+v1 fall windows were centred exactly on the max-magnitude sample while ADL windows were sliding windows, so the peak's position alone separated the classes (AUC of |peak offset from window centre|: v1 0.999, v2 0.501). v2 builds falls and ADL peak windows identically (own max sample, same length, +/- 0.5 s jitter) and keeps sliding ADL windows for false-alarm exposure. Random forest, threshold 0.5, identical subject-level folds:
+
+| Measure | v1 (old) | v2 (new) |
+|---|---|---|
+| PR-AUC (falls vs ADL windows as built) | 0.995 | 0.997 |
+| PR-AUC (falls vs sliding ADL) | 0.995 | 0.994 |
+| Adult sensitivity | 0.982 | 0.979 |
+| Adult specificity (ADL windows as built) | 0.999 | 0.989 |
+| Adult specificity (sliding windows) | 0.999 | 0.999 |
+| Elderly sensitivity (one subject, SE06) | 0.867 | 0.813 |
+| Adult false alarms / hour | 2.317 | 2.633 |
+
+Adult threshold curve, v2 windows (sensitivity / false alarms per hour):
+
+| Threshold | No confirmation | With post-fall inactivity |
+|---|---|---|
+| 0.5 | 0.979 / 2.63 | 0.943 / 1.37 |
+| 0.6 | 0.972 / 1.90 | 0.937 / 0.95 |
+| 0.7 | 0.965 / 1.58 | 0.930 / 0.74 |
+| 0.8 | 0.952 / 1.16 | 0.918 / 0.42 |
+| 0.9 | 0.907 / 0.74 | 0.873 / 0.32 |
+
+Chosen operating point: threshold 0.8, inactivity confirmation required (adult sensitivity 0.918, 0.42 false alarms/h). Rule: 0.5 false alarms/h or fewer with sensitivity >= 0.9 if possible, otherwise the inactivity-confirmed setting. tradeoff: no unconfirmed threshold has FA/h <= 0.5 with sensitivity >= 0.9 (best unconfirmed: none under the FA limit); inactivity-confirmed setting chosen.
+
+SisFall ADL trials are short, vigorous trials (running, jumping, stairs, sit-downs), so alarms per hour overstate daily life; SisFall falls are scripted on mats by young volunteers, and only one elderly subject performed falls.
+<!-- fall_audit:end -->

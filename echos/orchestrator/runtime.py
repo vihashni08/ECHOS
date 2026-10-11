@@ -51,7 +51,9 @@ class Handlers:
             fs, n = a3["fs"], int(a3["window_s"] * a3["fs"])
             pl = json.loads(ev.payload)
             a, s = self._load(pl["file"]), pl["win_start"]
-            r = fall.predict_window(a[s:s + n], fs, following=a[s + n // 2 + fs:], patient_id=ev.patient_id,
+            w = a[s:s + n]
+            pk = int(np.argmax(np.sqrt((w ** 2).sum(axis=1))))   # inactivity is measured from the window's OWN max sample (as in training)
+            r = fall.predict_window(w, fs, following=a[s + pk + fs:], patient_id=ev.patient_id,
                                     day=pd.Timestamp(ev.day).date())
             r.evidence.update({"event_id": ev.event_id, "ts": ev.ts})
             return r.model_dump(mode="json")

@@ -33,7 +33,10 @@ agent3:
   window_s: 2.5
   stride_s: 1.25
   inactivity: {seconds: 3.0, std_g: 0.05}
+  model_file: fall_v2.joblib   # v2 (unbiased windowing) model; fall.joblib = v1, kept
+  jitter_s: 0.5            # v2 windowing: fall AND ADL peak windows are shifted by U(-jitter, +jitter) s around their own max sample
   n_folds: 5
+  operating: {threshold: 0.8, require_inactivity: true}   # chosen by scripts/fall_audit.py (reports/metrics/fall_audit.json)
 db_path: data/echos.db
 checkpoint_db_path: data/langgraph_checkpoints.sqlite
 runtime:
@@ -57,8 +60,8 @@ triage:
   vitals_prob: 0.278       # calibrated OOF score: <= 1 alert / patient-week (scripts/choose_monitor_thresholds.py)
   agitation_prob: 0.129    # calibrated OOF score: the ONLY behaviour Monitor trigger; Monitor days <= 10% of patient-days
   drift_evidence_cusum: 10.4  # max per-feature CUSUM: report evidence only (routine_change fact), NOT a triage trigger
-  fall_prob_high: 0.90     # OOF: sens 0.905, 0.41 false alarms/h (no inactivity needed)
-  fall_prob: 0.50          # with post_fall_inactive: sens 0.942, 0.90 FA/h; without -> MONITOR only
+  fall_prob_high: null   # URGENT on probability alone; null = inactivity confirmation required (scripts/fall_audit.py)
+  fall_prob: 0.8   # URGENT with post-fall inactivity (MONITOR without, if fall_prob_high is null); scripts/fall_audit.py
   critical_vitals: {sys_high: 180, sys_low: 85, dia_high: 120, hr_high: 130, hr_low: 40}
   max_vitals_gap_days: 7   # readings exist on ~62% of days; >7 days silent -> data_gap
 llm:
@@ -69,6 +72,11 @@ llm:
   timeout_s: 45        # hard per-call timeout; a timeout is never retried
   max_requests_per_min: 5   # request-rate limiter
   max_pending: 200     # background report backlog; beyond it reports stay template (logged)
+alerts:   # immediate alerts (fall, critical vitals): fixed template, no LLM; see echos/alerts/
+  send_real: false          # false -> DryRunMailer: outbox rows only, SMTP is never used
+  max_attempts: 3
+  backoff_s: [1, 2, 4]      # wait before the next attempt (a 3rd failure -> FAILED)
+  critical_cooldown_sim_h: 12   # per patient: a second critical-vitals alert inside this many SIMULATED hours is suppressed
 report_gate:
   enabled: true       # NORMAL days get a template daily report (no LLM, no RAG); never affects triage or alerts
 rag:

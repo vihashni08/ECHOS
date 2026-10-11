@@ -25,9 +25,17 @@ agent_output = Table("agent_output", md, Column("event_id", Integer, primary_key
 case_state = Table("case_state", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True),
                    Column("status", String), Column("data_gap", Boolean), Column("days_since_vitals", Integer),
                    Column("reasons", Text), Column("report", String), Column("updated_ts", Float))
-alerts = Table("alerts", md, Column("alert_id", String, primary_key=True),   # unique per event: patient|day|type
+alerts = Table("alerts", md, Column("alert_id", String, primary_key=True),   # unique per event: patient|day|type|event_id
                Column("patient_id", String, index=True), Column("type", String), Column("time", Float),
-               Column("payload", Text), Column("status", String, default="SENT"))
+               Column("payload", Text), Column("status", String, default="PENDING"),   # PENDING / SENT / FAILED: derived from the outbox
+               Column("event_id", Integer), Column("event_time", String))
+# one row per (alert, recipient role): PENDING -> SENT | FAILED, up to 3 attempts. A failure stays visible (never looks delivered).
+outbox = Table("outbox", md, Column("outbox_id", Integer, primary_key=True, autoincrement=True),
+               Column("alert_id", String, index=True), Column("recipient_role", String), Column("address", String),
+               Column("channel", String), Column("subject", Text), Column("body", Text), Column("body_html", Text),
+               Column("status", String, default="PENDING"), Column("attempts", Integer, default=0), Column("error", Text),
+               Column("event_time", String), Column("queued_time", Float), Column("sent_time", Float),
+               UniqueConstraint("alert_id", "recipient_role", name="uq_outbox_alert_role"))
 gt_fall = Table("gt_fall", md, Column("event_id", Integer, primary_key=True), Column("patient_id", String),
                 Column("day", String), Column("ts", String), Column("subject", String), Column("file", String))
 restart_log = Table("restart_log", md, Column("id", Integer, primary_key=True, autoincrement=True),

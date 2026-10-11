@@ -160,9 +160,13 @@ def tihm_table(which):
 
 
 def fall_table():
-    df = F.build_windows().reset_index(drop=True)
+    df = F.build_windows_v2().reset_index(drop=True)      # unbiased windowing: falls and ADL peak windows built identically + sliding ADL windows
     assert_real_source(df, "sisfall")
+    op = cfg["agent3"]["operating"]
+    THR, CONF = op["threshold"], bool(op["require_inactivity"])
     y, subj = df.y.values, df.subject.values
+    kind = df.kind.values
+    matched = (kind == "fall") | (kind == "adl_peak")
     win_s = cfg["agent3"]["window_s"]
     folds = list(subject_folds(df, cfg["agent3"]["n_folds"], SEED))
     scores = {}
@@ -186,20 +190,18 @@ def fall_table():
         scores["xgboost"][te] = m.fit(df.iloc[tr][F.FEATURES], y[tr]).predict_proba(df.iloc[te][F.FEATURES])[:, 1]
     subs = np.array(sorted(set(subj)))
     grp = df.groupby("subject").group.first()
-    adl = df[df.y == 0]
-    hours = adl.groupby(["subject", "file"]).file_seconds.max().groupby("subject").sum() / 3600
+    slide_df = df[kind == "adl_slide"]
+    hours = slide_df.groupby(["subject", "file"]).file_seconds.max().groupby("subject").sum() / 3600
     agg = {}
     for n, s in scores.items():
-        al = s >= 0.5
-        ev = F._alert_events(df[df.y == 0], al[df.y.values == 0])        # not used per subject below; per-subject events computed next
+        al = (s >= THR) & (df.post_inactive.values if CONF else True)
         per = {}
         for sub in subs:
             m = subj == sub
-            d_ = df[m]
-            a_ = al[m]
-            adlm = (d_.y == 0).values
-            per[sub] = {"falls": int((d_.y == 1).sum()), "fall_hit": int(a_[~adlm].sum()), "adl_w": int(adlm.sum()), "adl_alert_w": int(a_[adlm].sum()),
-                        "hours": float(hours.get(sub, 0.0)), "events": F._alert_events(d_[adlm], a_[adlm]) if adlm.any() else 0}
+            d_, a_, k_ = df[m], al[m], kind[m]
+            sl, pk = k_ == "adl_slide", k_ == "adl_peak"
+            per[sub] = {"falls": int((k_ == "fall").sum()), "fall_hit": int(a_[k_ == "fall"].sum()), "adl_w": int(pk.sum()), "adl_alert_w": int(a_[pk].sum()),
+                        "hours": float(hours.get(sub, 0.0)), "events": F._alert_events(d_[sl], a_[sl]) if sl.any() else 0}
         agg[n] = per
     rng = np.random.RandomState(SEED)
     rows_by_sub = {s_: np.where(subj == s_)[0] for s_ in subs}
@@ -220,12 +222,13 @@ def fall_table():
     for sample in boots:
         rows = np.concatenate([rows_by_sub[s_] for s_ in sample])
         for n in scores:
-            r = {"pr_auc": average_precision_score(y[rows], scores[n][rows])}
+            rm = rows[matched[rows]]                                 # PR-AUC on the matched set (falls vs ADL peak windows)
+            r = {"pr_auc": average_precision_score(y[rm], scores[n][rm])}
             for g in ("adult", "elderly"):
                 r[g] = gmet(agg[n], sample, g)
             bs[n].append(r)
     for n in scores:
-        r = {"pr_auc": {"value": float(average_precision_score(y, scores[n])), "ci95": ci([b["pr_auc"] for b in bs[n]])},
+        r = {"pr_auc": {"value": float(average_precision_score(y[matched], scores[n][matched])), "ci95": ci([b["pr_auc"] for b in bs[n]])},
              "detection_delay_s": {"window_decision": win_s / 2, "with_post_fall_inactivity_confirmation": 1.0 + cfg["agent3"]["inactivity"]["seconds"],
                                    "note": "structural: each fall is one window centred on the impact, decided at window end; same for every model"}}
         for g in ("adult", "elderly"):
@@ -241,7 +244,8 @@ def fall_table():
     n_el = int(grp[grp == "elderly"].shape[0])
     el_fall = sorted(df[(df.group == "elderly") & (df.y == 1)].subject.unique().tolist())
     return {"n_windows": int(len(df)), "n_subjects": int(len(subs)), "adult_subjects": int((grp == "adult").sum()), "elderly_subjects": n_el,
-            "elderly_fall_subjects": el_fall, "threshold": 0.5, "models": res,
+            "elderly_fall_subjects": el_fall, "models": res,
+            "threshold": THR, "require_inactivity": CONF, "windowing": "v2",
             "decision": {"rule": "switch only if paired-bootstrap CI of PR-AUC difference vs current RF is above zero",
                          "keep_current": not d["pr_auc"]["better"]}}
 
@@ -277,8 +281,9 @@ def markdown(r):
             f"Decision: {'keep current XGBoost' if dec['keep_current'] else 'switch candidates: ' + ', '.join(dec['better_than_current'])}.", ""]
     if "fall" in r:
         t = r["fall"]
-        out += [f"### Fall (SisFall, subject-level folds, threshold 0.5): {t['n_subjects']} subjects ({t['adult_subjects']} adult, {t['elderly_subjects']} elderly; "
+        out += [f"### Fall (SisFall, subject-level folds, unbiased v2 windows, threshold {t['threshold']}{' + post-fall inactivity' if t['require_inactivity'] else ''}): {t['n_subjects']} subjects ({t['adult_subjects']} adult, {t['elderly_subjects']} elderly; "
                 f"only {len(t['elderly_fall_subjects'])} elderly subject performed falls: {', '.join(t['elderly_fall_subjects'])})", "",
+                "PR-AUC and specificity: falls vs ADL windows built identically (peak-centred); false alarms / hour: sliding ADL windows (SisFall ADL trials are short vigorous trials, so this overstates daily life).", "",
                 "| Model | PR-AUC | Group | Sensitivity | Specificity (windows) | False alarms / hour | Detection delay (s) |", "|---|---|---|---|---|---|---|"]
         for n, m in t["models"].items():
             for g in ("adult", "elderly"):

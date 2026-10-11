@@ -5,8 +5,9 @@ Threshold choice (from validation metrics, see scripts/choose_thresholds.py and 
 - MONITOR thresholds come from scripts/choose_monitor_thresholds.py (out-of-fold alert budget):
   vitals_prob <= 1 vitals alert per patient-week; agitation_prob alone keeps behaviour Monitor days <= 10% of patient-days; drift is report evidence only.
 - drift_level(): max per-feature CUSUM; used for report evidence (drift_evidence_cusum), never as a trigger.
-- fall_prob_high 0.90: OOF sensitivity 0.905 at 0.41 false alarms/h without needing any other evidence.
-- fall_prob 0.50 + post_fall_inactive: OOF sensitivity 0.942 at 0.90 FA/h; without inactivity it is only MONITOR.
+- fall_prob (+ post_fall_inactive) and fall_prob_high come from scripts/fall_audit.py (reports/metrics/fall_audit.json: threshold curve
+  with and without inactivity confirmation on unbiased v2 windows). fall_prob_high null = no URGENT without inactivity: a flagged
+  fall without it is only MONITOR. SisFall ADL trials are short and vigorous, so false alarms per hour overstate daily life.
 - critical vitals: absolute clinical limits, independent of any model.
 DATA_GAP (Agent 0: sensor gap, quality unchecked/missing, or no vitals for > max_vitals_gap_days) is never NORMAL: it yields MONITOR.
 Not a diagnostic tool; the LLM never takes part in these decisions.
@@ -37,6 +38,15 @@ def drift_level(drift: dict) -> float:
     return max((float(v) for v in (drift.get("cusum") or {}).values()), default=0.0)
 
 
+def is_urgent_fall(fall: Optional[dict], t: dict) -> bool:
+    """One fall-agent output meets the URGENT rule: p >= fall_prob_high, or p >= fall_prob with post-fall inactivity."""
+    if not fall:
+        return False
+    p, inactive = fall["score"], bool(fall["evidence"].get("post_fall_inactive"))
+    hi = t.get("fall_prob_high")      # null in config = an unconfirmed fall is never URGENT on its own
+    return (hi is not None and p >= hi) or (p >= t["fall_prob"] and inactive)
+
+
 def triage(results: dict, days_since_vitals: int = 0, cfg: Optional[dict] = None) -> TriageDecision:
     """results: {'quality': AgentResult-dict|None, 'health': HealthResult-dict|None, 'fall': AgentResult-dict|None}
     (None = agent output missing)."""
@@ -49,11 +59,8 @@ def triage(results: dict, days_since_vitals: int = 0, cfg: Optional[dict] = None
     # ---- URGENT
     if fall:
         p, inactive = fall["score"], bool(fall["evidence"].get("post_fall_inactive"))
-        if p >= t["fall_prob_high"]:
+        if is_urgent_fall(fall, t):
             urgent.append(f"fall p={p:.2f}" + (" + post-fall inactivity" if inactive else ""))
-            utypes.append("fall")
-        elif p >= t["fall_prob"] and inactive:
-            urgent.append(f"fall p={p:.2f} + post-fall inactivity")
             utypes.append("fall")
         elif p >= t["fall_prob"]:
             monitor.append(f"possible fall p={p:.2f} (no inactivity)")

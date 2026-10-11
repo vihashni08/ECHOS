@@ -20,18 +20,18 @@ from echos.data.guard import assert_real_source
 from echos.data.patient_day import load_patient_day
 from echos.orchestrator import state as S
 
-REPLAY_MODEL = ROOT / "models" / "fall_replay.joblib"
+REPLAY_MODEL = ROOT / "models" / "fall_replay_v2.joblib"   # v1: models/fall_replay.joblib (kept)
 
 
 def train_replay_fall_model(force: bool = False) -> Path:
     if REPLAY_MODEL.exists() and not force:
         return REPLAY_MODEL
     cfg = load_config()
-    df = fall.build_windows()
+    df = fall.build_windows_v2()
     assert_real_source(df, "sisfall")
     tr = df[~df.subject.isin(cfg["replay"]["holdout_subjects"])]
     m = fall._rf(cfg["seed"]).fit(tr[fall.FEATURES], tr.y)
-    joblib.dump({"model": m, "features": fall.FEATURES, "threshold": 0.5,
+    joblib.dump({"model": m, "features": fall.FEATURES, "threshold": cfg["agent3"]["operating"]["threshold"], "windowing": "v2",
                  "excluded_subjects": cfg["replay"]["holdout_subjects"]}, REPLAY_MODEL)
     return REPLAY_MODEL
 

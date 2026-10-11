@@ -35,12 +35,12 @@ Ablation (out-of-fold, from scripts/audit_agent2.py): per-patient z-scores only:
 
 Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. Top gain importance: total_events 0.19, room_transitions 0.13, total_events_delta 0.05, kitchen_cusum 0.04, night_bathroom_cusum 0.04, fridge_z 0.04, fridge 0.04, night_events 0.04, room_transitions_z 0.03, kitchen_z 0.03. Dropping absolute levels moves pooled ROC 0.859 to 0.658, while within-patient ROC moves 0.818 to 0.824: absolute levels mostly separate patients; personal-baseline z-scores carry the within-patient signal.
 
-### Agent 3 (falls, SisFall), subject-wise out-of-fold, threshold 0.5. Overall PR-AUC 0.995, 38 subjects
+### Agent 3 (falls, SisFall), subject-wise out-of-fold, threshold 0.8. Overall PR-AUC 0.997, 38 subjects
 
 | Group | Fall subjects | Fall trials | Sensitivity (Wilson 95% CI) | Specificity (windows) | False alarms / hour |
 |---|---|---|---|---|---|
-| adult | 23 | 1722 | 0.982 (0.975-0.987) | 0.9989 | 2.32 |
-| elderly | 1 | 75 | 0.867 (0.772-0.926) | 0.9993 | 1.60 |
+| adult | 23 | 1722 | 0.918 (0.904-0.930) | 0.9983 | 0.42 |
+| elderly | 1 | 75 | 0.560 (0.447-0.667) | 1.0000 | 0.00 |
 
 Wilson CIs treat trials as independent; trials are clustered within subjects, so true uncertainty is wider (elderly = one subject).
 
@@ -59,6 +59,19 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 | Days Normal / Monitor / Urgent | 65.6% / 28.7% / 5.8% |
 | Days with a data gap | 4.5% |
 | Duplicate alerts | 0 |
+
+### MONITOR thresholds re-selected from out-of-fold predictions (alert budget)
+
+Budgets: vitals <= 1 alert per patient-week; behaviour Monitor days <= 10% of patient-days; agitation_prob is the only behaviour trigger (drift is report evidence only). Score scale: calibrated; the previous column is the earlier run on the raw score scale.
+
+|  | Previous run (raw scale) | Current |
+|---|---|---|
+| vitals_prob | 0.443 | 0.278 |
+| agitation_prob | 0.592 | 0.129 |
+| Vitals alerts / patient-week | 1.00 | 1.00 |
+| Vitals recall (BP/pulse/water labels) | 0.724 | 0.721 |
+| Behaviour Monitor days, share of patient-days | 9.9% | 9.9% |
+| Agitation recall of behaviour Monitor | 0.527 | 0.509 |
 
 ### Fault injection (3 patients x 15 days; clean run 181.6 s)
 

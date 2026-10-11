@@ -9,7 +9,9 @@ Multi-agent decision-support system for home-dwelling elderly patients. Not a di
   O/E - muscle mass, Skin Temperature, Systolic blood pressure, Total body water.
 - Label types: Blood pressure 305, Agitation 135, Pulse 95, Body water 68, Weight 4, Body temperature 1.
 - Activity rooms: Kitchen, Hallway, Lounge, Bedroom, Fridge Door, Bathroom, Front Door, Back Door.
-- TIHM has NO falls and NO accelerometer. Fall model is trained on SisFall (data/sisfall/) only.
+- TIHM has NO falls and NO accelerometer. Fall model is trained on SisFall (data/sisfall/) only. Fall windows (v2, `build_windows_v2`): falls and
+  ADL "peak" windows are built IDENTICALLY (centred on own max-SVM sample, +/-0.5 s jitter) plus sliding ADL windows for false-alarm exposure; v1
+  (fall centred exactly on the peak, ADL sliding) leaked the peak position and is kept only for the audit (scripts/fall_audit.py). Model: models/fall_v2.joblib.
 - Date range 2019-04-01 to 2019-06-30. ~49 labelled patients: results will have wide confidence intervals.
 
 ## Architecture
@@ -19,9 +21,15 @@ personal-baseline and persistence evidence; drift/CUSUM is explanation-only) and
 of both) -> LangGraph orchestrator (rule-based triage Normal / Changed-monitor / Urgent, checkpointed) -> Report agent
 (LLM + tools + non-LLM validator) -> Streamlit dashboards. A supervisor runs three workers (quality, health_monitoring,
 fall), writes heartbeats to SQLite and restarts dead ones.
-- NO trained fusion model: triage is plain if-then rules. NO alert lifecycle: `alerts` rows are alert_id, patient_id,
-  type, time, payload, status 'SENT'.
-- Fall and critical-vitals alerts go immediately to caregiver and clinician as a fixed template (no LLM).
+- NO trained fusion model: triage is plain if-then rules. NO alert lifecycle (no ack/escalation): `alerts` rows record only PENDING/SENT/FAILED,
+  derived from the `outbox` table (one row per alert x recipient role: alert_id, recipient_role, address, channel, subject, body, status
+  PENDING->SENT|FAILED, attempts <=3 with backoff 1,2,4 s, error, event_time, queued_time, sent_time).
+- Fall and critical-vitals alerts (echos/alerts/: payload.py, dispatcher.py, mailer.py) go immediately to caregiver (ECHOS_CAREGIVER_EMAIL) and
+  clinician (ECHOS_CLINICIAN_EMAIL) as a fixed template built only from structured data (no LLM, no RAG, no PubMed anywhere in that path; de-identified
+  id + age band only). The orchestrator's immediate_alert node queues them BEFORE any report work; sending runs on background worker threads. Dedup: fall
+  alerts unique per event_id; critical-vitals per event plus a per-patient cooldown (alerts.critical_cooldown_sim_h). config alerts.send_real defaults
+  to false = DryRunMailer (outbox only, SMTP never used). NEVER send real email from tests or demos: tests use FakeMailer only (conftest blocks
+  smtplib.SMTP); scripts/send_test_email.py sends a labelled TEST mail only with --yes.
 - Daily report is dashboard-only; NORMAL days get a template report (gate: no LLM, no RAG; the gate never changes or
   delays triage or alerts). Weekly clinician report is a PDF sent by email.
 - Fallbacks: health_monitoring fails -> fixed vitals thresholds + "monitoring degraded"; quality fails -> pass-through +

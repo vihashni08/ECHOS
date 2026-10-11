@@ -15,6 +15,7 @@ from echos.orchestrator.triage import triage
 from echos.sim.replay import replay, train_replay_fall_model
 
 CFG = load_config()["triage"]
+FP = CFG["fall_prob"]
 
 
 def R(score=0.0, **ev):
@@ -46,9 +47,9 @@ def res(v=None, b=None, fall=None, quality=None):
 
 # ------------------------------------------------------------------ triage branches
 @pytest.mark.parametrize("r,status,gap", [
-    (res(fall=R(0.95, post_fall_inactive=False)), "URGENT", False),
-    (res(fall=R(0.6, post_fall_inactive=True)), "URGENT", False),
-    (res(fall=R(0.6, post_fall_inactive=False)), "MONITOR", False),       # possible fall, no inactivity
+    (res(fall=R(FP + 0.05, post_fall_inactive=True)), "URGENT", False),    # at/above the operating threshold, confirmed by inactivity
+    (res(fall=R(FP + 0.05, post_fall_inactive=False)), "URGENT" if CFG["fall_prob_high"] is not None and FP + 0.05 >= CFG["fall_prob_high"] else "MONITOR", False),
+    (res(fall=R(FP - 0.1, post_fall_inactive=True)), "NORMAL", False),     # below the operating threshold
     (res(v=vit(sys=190)), "URGENT", False),                             # critical vitals
     (res(v=vit(hr=35)), "URGENT", False),
     (res(v=vit(score=0.7)), "MONITOR", False),
@@ -76,7 +77,7 @@ def test_data_gap_never_normal(r, dsv):
 
 
 def test_urgent_beats_gap():
-    d = triage(res(fall=R(0.99), quality=qual(days_since_last_reading=CFG["max_vitals_gap_days"] + 3)), 0, CFG)
+    d = triage(res(fall=R(0.99, post_fall_inactive=True), quality=qual(days_since_last_reading=CFG["max_vitals_gap_days"] + 3)), 0, CFG)
     assert d.status.value == "URGENT" and d.data_gap
 
 
@@ -110,9 +111,11 @@ def test_interrupted_run_resumes_without_duplicate_alert(tmp_path):
     g2, conn2 = build_graph(eng, tmp_path / "cp.sqlite")
     assert process_case(g2, "p1", "2019-05-05") is True
     assert process_case(g2, "p1", "2019-05-05") is False       # finished threads are not re-run
+    assert g2.dispatcher.flush(10) and g.dispatcher.flush(10)   # mail goes out on a background thread
     with eng.begin() as c:
         assert c.execute(select(func.count()).select_from(S.alerts)).scalar() == 1
-        assert c.execute(select(S.alerts.c.status)).scalar() == "SENT"
+        assert c.execute(select(S.alerts.c.status)).scalar() == "SENT"      # derived from the outbox (DryRun mailer, send_real=false)
+        assert c.execute(select(func.count()).select_from(S.outbox)).scalar() == 2   # caregiver + clinician, once each despite the crash/resume
         st = c.execute(select(S.case_state)).first()
     assert st.status == "URGENT"
     conn2.close()

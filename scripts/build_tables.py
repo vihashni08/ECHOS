@@ -29,8 +29,8 @@ def main(which):
         assert_real_source(new_df, "tihm")
         out["patient_day"] = {"old": old, "new": summary(new_df, "patient_day")}
     if which in ("all", "sisfall"):
-        old = summary(pd.read_parquet(fall.CACHE), "sisfall")
-        new_df = fall.build_windows(force=True)
+        old = summary(pd.read_parquet(fall.CACHE_V2), "sisfall")
+        new_df = fall.build_windows_v2(force=True)
         assert_real_source(new_df, "sisfall")
         out["sisfall"] = {"old": old, "new": summary(new_df, "sisfall")}
     for k, v in out.items():

@@ -28,7 +28,7 @@ flowchart LR
     A2 --> AO
     A3 --> AO
     AO --> ORCH["LangGraph orchestrator<br/>rule-based triage, SQLite checkpoints<br/>DATA_GAP rule"]
-    ORCH -->|URGENT| AL[(alerts)]
+    ORCH -->|URGENT: fall / critical vitals| AL[(alerts + outbox)] --> MAIL[background mailer: caregiver + clinician, fixed template, no LLM]
     ORCH --> A4["Agent 4 Report<br/>template + optional LLM + validator"]
     AL --> A4
     KB[("Guideline PDFs<br/>echos/knowledge/raw")] -->|ingest: clean, chunk, MiniLM embed| VS[("Chroma<br/>data/rag")]
@@ -71,8 +71,8 @@ PYTHONPATH=. python3 -m echos.data.patient_day
 PYTHONPATH=. python3 -m echos.agents.health.vitals
 PYTHONPATH=. python3 -m echos.agents.health.behaviour
 PYTHONPATH=. python3 -m echos.agents.fall
-# 3. triage thresholds from out-of-fold results (fall URGENT points; MONITOR alert budgets + OOF scores for e2e)
-PYTHONPATH=. python3 scripts/choose_thresholds.py
+# 3. fall window audit + operating point -> config.yaml (agent3.operating, triage.fall_*); then MONITOR alert budgets + OOF scores for e2e
+PYTHONPATH=. python3 scripts/fall_audit.py --write-config   # (choose_thresholds.py = v1 windows, superseded for the fall thresholds)
 PYTHONPATH=. python3 scripts/choose_monitor_thresholds.py
 # 4. demo pipeline: replay -> agents -> orchestrator -> reports into data/echos.db
 PYTHONPATH=. python3 scripts/run_demo.py 4 28
@@ -100,7 +100,7 @@ The sidebar switches between the Caregiver page (daily report) and the Clinician
 
 - Agent 1 PR-AUC 0.70 vs 0.26 for the fixed BP rule (out-of-fold, patient-level).
 - Agent 2 PR-AUC 0.22 vs 0.05 base rate (within-patient ROC-AUC 0.82); drift alone is at chance and is report evidence only, not a Monitor trigger; the signal is mostly raw same-day activity.
-- Agent 3 sensitivity 0.982 adults / 0.867 elderly (one subject), on SisFall scripted falls.
+- Agent 3 sensitivity 0.918 adults / 0.560 elderly (one subject), on SisFall scripted falls.
 - End-to-end (20 patients, 60 injected falls): 57 detected (95%); days are 66% Normal / 29% Monitor / 6% Urgent with MONITOR thresholds chosen from out-of-fold alert budgets (<=1 vitals alert/patient-week, <=10% behaviour Monitor days, agitation_prob only) and out-of-fold agent scores.
 - Fault injection: 0 lost, 0 duplicate alerts across all five scenarios.
 
