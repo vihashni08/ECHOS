@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from echos.agents import behaviour as b
+from echos.agents.health import behaviour as b
 from echos.data.patient_day import load_patient_day
 from echos.schemas import AgentResult
 

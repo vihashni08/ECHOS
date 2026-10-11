@@ -17,6 +17,7 @@ from sqlalchemy import select
 
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
+from echos.orchestrator.alerts import send_alerts
 from echos.orchestrator.triage import triage as run_triage
 
 
@@ -31,15 +32,17 @@ class CaseState(TypedDict, total=False):
 
 
 def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]] = None, inline_agents=None,
-                report_llm="auto", report_root=None):
+                report_llm="auto", report_root=None, gate=None):
     """fault(node_name) may raise to simulate a crash. inline_agents: {agent_id: fn(event_row)->dict} used only
     when an agent's stored output is missing (tests / no-process mode). report_llm: "auto" = Gemini if configured
-    (llm.model + key), None/False = template mode."""
+    (llm.model + key), None/False = template mode. gate: NORMAL days get a template daily report (no LLM, no RAG);
+    None = config `report_gate.enabled`. The gate only touches the report node, never triage or alerts."""
     from echos.reports.agent import ReportAgent
     from echos.reports.facts import build_day_facts
     from echos.reports.llm import make_llm
     reporter = ReportAgent(eng, make_llm() if report_llm == "auto" else (report_llm or None), root=report_root)
     fault = fault or (lambda node: None)
+    gate_on = bool(load_config().get("report_gate", {}).get("enabled", True)) if gate is None else bool(gate)
     cp = checkpoint_path or ROOT / load_config()["checkpoint_db_path"]
     cp = str(cp)
     conn = sqlite3.connect(cp, check_same_thread=False)
@@ -63,22 +66,27 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
         res = {}
         with eng.begin() as c:
             for agent, kinds in S.AGENT_KINDS.items():
+                key = "health" if agent == "health_monitoring" else agent
                 eids = [i for k in kinds for i in st["events"].get(k, [])]
                 rows = c.execute(select(S.agent_output).where((S.agent_output.c.agent_id == agent) &
                                                               S.agent_output.c.event_id.in_(eids or [-1]))).fetchall()
                 outs = [json.loads(r.result) for r in rows]
+                if agent == "health_monitoring" and eids and not outs and not (inline_agents and agent in inline_agents) \
+                        and agent_down(eng, agent):
+                    from echos.agents.health_monitoring import fallback_predict  # worker down: fixed vitals thresholds
+                    outs = [fallback_predict(st["patient_id"], st["day"], "worker_down").model_dump(mode="json")]
+                    eids = []  # complete: the fallback stands in for the missing event output
                 if len(outs) < len(eids) and inline_agents and agent in inline_agents:
                     for e in c.execute(select(S.event_log).where(S.event_log.c.event_id.in_(eids))).fetchall():
                         if e.event_id not in {r.event_id for r in rows}:
                             outs.append(inline_agents[agent](e))
                 if eids and len(outs) < len(eids):
-                    res[agent] = None  # incomplete -> triage reports a data gap, never NORMAL
+                    res[key] = None  # incomplete -> triage reports a data gap, never NORMAL
                 elif outs:
-                    res[agent] = max(outs, key=lambda o: o["score"])  # worst case of the day
+                    res[key] = outs[-1] if agent == "health_monitoring" else max(outs, key=lambda o: o["score"])  # worst case
                 else:
-                    res[agent] = None if agent != "fall" else {"score": 0.0, "evidence": {}, "flag": False}
-        phys = res.get("physiological")
-        has_vitals = bool(phys and "current_vs_baseline" in phys["evidence"])
+                    res[key] = None if agent != "fall" else {"score": 0.0, "evidence": {}, "flag": False}
+        has_vitals = bool((res.get("health") or {}).get("vitals", {}).get("available"))
         prev = st["days_since_vitals"]
         dsv = 0 if has_vitals else (1 if prev < 0 else prev + 1)
         q = res.get("quality")
@@ -98,15 +106,14 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
         return "immediate_alert" if st["decision"]["status"] == "URGENT" else "daily_report"
 
     def immediate_alert(st: CaseState) -> dict:
-        with eng.begin() as c:
-            S.insert_ignore(c, S.alerts, patient_id=st["patient_id"], day=st["day"], level="URGENT",
-                            reasons=S.j(st["decision"]["reasons"]), created_ts=S.now())
+        send_alerts(eng, st["patient_id"], st["day"], st["decision"].get("urgent_types") or [], st["decision"]["reasons"])
         fault("immediate_alert")  # crash point AFTER the side effect: resume must not duplicate it
         return {}
 
     def daily_report(st: CaseState) -> dict:  # Report agent: also runs on URGENT days (alerts + times belong in the report)
         facts = build_day_facts(eng, st["patient_id"], st["day"], st["decision"], st["results"])
-        out = reporter.daily(facts, defer_llm=True)  # template now, LLM wording later: never blocks alerts / next cases
+        use_llm = not (gate_on and st["decision"]["status"] == "NORMAL")  # gate: NORMAL -> template, no LLM, no RAG
+        out = reporter.daily(facts, defer_llm=True, use_llm=use_llm)  # template now, LLM wording later: never blocks alerts / next cases
         with eng.begin() as c:
             c.execute(S.case_state.update().where((S.case_state.c.patient_id == st["patient_id"]) &
                                                   (S.case_state.c.day == st["day"])).values(report=str(out["path"].name)))
@@ -133,17 +140,23 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
     return g.compile(checkpointer=saver), conn
 
 
-def quality_down(eng) -> bool:
-    """Agent 0 is treated as down (its output is optional) when its heartbeat is missing or stale, the same rule the
-    workers use before passing events through. The day is then triaged with 'quality unchecked' (DATA_GAP), never NORMAL."""
+def agent_down(eng, agent: str) -> bool:
+    """An agent is treated as down when its heartbeat is missing or stale (the rule the workers use for Agent 0).
+    quality down -> days are triaged with 'quality unchecked'; health_monitoring down -> fixed vitals thresholds,
+    'monitoring degraded'. Either way the day is never NORMAL by omission."""
     with eng.begin() as c:
-        hb = c.execute(select(S.agent_heartbeat.c.ts).where(S.agent_heartbeat.c.agent_id == "quality")).first()
+        hb = c.execute(select(S.agent_heartbeat.c.ts).where(S.agent_heartbeat.c.agent_id == agent)).first()
     return hb is None or time.time() - hb[0] > 3 * load_config()["runtime"]["heartbeat_s"] + 10
 
 
-def day_ready(eng, patient_id: str, day: str, quality_optional: bool = False) -> bool:
+def quality_down(eng) -> bool:
+    return agent_down(eng, "quality")
+
+
+def day_ready(eng, patient_id: str, day: str, optional=frozenset()) -> bool:
     """All events of the day exist (the 'day' event is emitted last) and every agent has output for each.
-    quality_optional: Agent 0 is down, so its output is not required."""
+    optional: agents that are down, whose output is not required (a bool is accepted for the old quality flag)."""
+    optional = {"quality"} if optional is True else set() if optional is False else set(optional)
     with eng.begin() as c:
         evs = c.execute(select(S.event_log.c.event_id, S.event_log.c.kind).where(
             (S.event_log.c.patient_id == patient_id) & (S.event_log.c.day == day))).fetchall()
@@ -152,7 +165,7 @@ def day_ready(eng, patient_id: str, day: str, quality_optional: bool = False) ->
         done = {(r.agent_id, r.event_id) for r in c.execute(select(S.agent_output.c.agent_id, S.agent_output.c.event_id).where(
             (S.agent_output.c.patient_id == patient_id) & (S.agent_output.c.day == day)))}
     return all((a, eid) in done for a, kinds in S.AGENT_KINDS.items() for eid, k in evs
-               if k in kinds and not (quality_optional and a == "quality"))
+               if k in kinds and a not in optional)
 
 
 def process_case(graph, patient_id: str, day: str) -> bool:
@@ -174,7 +187,7 @@ def run_orchestrator(eng, graph, stop=None, poll_s=0.2, until_done=None, timeout
             days = c.execute(select(S.event_log.c.patient_id, S.event_log.c.day).where(S.event_log.c.kind == "day")
                              .order_by(S.event_log.c.day, S.event_log.c.patient_id)).fetchall()
         progressed, remaining = False, 0
-        q_opt = quality_down(eng)
+        q_opt = {a for a in ("quality", "health_monitoring") if agent_down(eng, a)}
         for p, d in days:
             if (p, d) in finished:
                 continue

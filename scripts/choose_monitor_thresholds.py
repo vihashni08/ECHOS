@@ -4,7 +4,7 @@ Writes models/oof_scores.parquet (used by scripts/e2e.py) and reports/metrics/mo
 import json
 import numpy as np
 import pandas as pd
-from echos.agents import behaviour as b, physiological as ph
+from echos.agents.health import behaviour as b, vitals as ph
 from echos.config import ROOT, load_config
 from echos.data.patient_day import load_patient_day
 from echos.data.splits import patient_folds

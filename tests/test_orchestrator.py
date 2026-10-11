@@ -22,7 +22,17 @@ def R(score=0.0, **ev):
 
 
 def vit(sys=120, dia=80, hr=70, score=0.0):
-    return R(score, current_vs_baseline={"sys": {"current": sys}, "dia": {"current": dia}, "hr": {"current": hr}})
+    return {"available": True, "probability": score, "flag": score >= 0.435, "current_vs_baseline":
+            {"sys": {"current": sys}, "dia": {"current": dia}, "hr": {"current": hr}}}
+
+
+def beh(prob=0.0, drift_cusum=None):
+    return {"available": True, "probability": prob, "flag": False,
+            "drift": {"note": "explanation_only", "cusum": drift_cusum or {}, "drifted_features": list(drift_cusum or [])}}
+
+
+def health(v=None, b=None, degraded=False):
+    return {"vitals": v or vit(), "behaviour": b or beh(), "degraded": degraded}
 
 
 def qual(**ev):
@@ -30,10 +40,8 @@ def qual(**ev):
     return R(0.0, **{**base, **ev})
 
 
-def res(phys=None, beh=None, fall=None, quality=None):
-    return {"quality": quality or qual(), "physiological": phys or vit(),
-            "behaviour": beh or R(0.0, drift_score=0.0, drifted_features=[]),
-            "fall": fall or R(0.0, post_fall_inactive=False)}
+def res(v=None, b=None, fall=None, quality=None):
+    return {"quality": quality or qual(), "health": health(v, b), "fall": fall or R(0.0, post_fall_inactive=False)}
 
 
 # ------------------------------------------------------------------ triage branches
@@ -41,11 +49,11 @@ def res(phys=None, beh=None, fall=None, quality=None):
     (res(fall=R(0.95, post_fall_inactive=False)), "URGENT", False),
     (res(fall=R(0.6, post_fall_inactive=True)), "URGENT", False),
     (res(fall=R(0.6, post_fall_inactive=False)), "MONITOR", False),       # possible fall, no inactivity
-    (res(phys=vit(sys=190)), "URGENT", False),                             # critical vitals
-    (res(phys=vit(hr=35)), "URGENT", False),
-    (res(phys=vit(score=0.7)), "MONITOR", False),
-    (res(beh=R(0.1, drift_score=0.6, drifted_features=["night_events"], cusum={"night_events": 11.0})), "NORMAL", False),                                  # drift is evidence only, not a trigger
-    (res(beh=R(0.8, drift_score=0.0, drifted_features=[])), "MONITOR", False),
+    (res(v=vit(sys=190)), "URGENT", False),                             # critical vitals
+    (res(v=vit(hr=35)), "URGENT", False),
+    (res(v=vit(score=0.7)), "MONITOR", False),
+    (res(b=beh(0.1, {"night_events": 11.0})), "NORMAL", False),                                  # drift is evidence only, not a trigger
+    (res(b=beh(0.8)), "MONITOR", False),
     (res(), "NORMAL", False),
 ])
 def test_triage_branches(r, status, gap):
@@ -59,7 +67,8 @@ def test_triage_branches(r, status, gap):
     (res(quality=qual(days_since_last_reading=CFG["max_vitals_gap_days"] + 1)), 0),  # no vitals for too long
     (res(quality=qual(quality_checked=False)), 0),       # Agent 0 failed: pass-through, unchecked
     ({**res(), "quality": None}, 0),                      # Agent 0 output missing
-    ({**res(), "physiological": None}, 0),               # agent output missing
+    ({**res(), "health": None}, 0),                       # health monitoring output missing
+    ({**res(), "health": {**health(), "degraded": True}}, 0),  # fallback: monitoring degraded
 ])
 def test_data_gap_never_normal(r, dsv):
     d = triage(r, dsv, CFG)
@@ -76,9 +85,9 @@ def _seed(eng):
     with eng.begin() as c:
         for k in ("day", "sensor"):
             eid = c.execute(S.event_log.insert().values(patient_id="p1", day="2019-05-05", ts="t", kind=k, payload="{}")).inserted_primary_key[0]
-            agents = ["quality", "physiological", "behaviour"] if k == "day" else ["fall"]
+            agents = ["quality", "health_monitoring"] if k == "day" else ["fall"]
             for a in agents:
-                r = {"quality": qual(), "physiological": vit(), "behaviour": R(0.0, drift_score=0, drifted_features=[]),
+                r = {"quality": qual(), "health_monitoring": health(),
                      "fall": R(0.97, post_fall_inactive=True)}[a]
                 S.insert_ignore(c, S.agent_output, event_id=eid, agent_id=a, patient_id="p1", day="2019-05-05", result=S.j(r), done_ts=1.0)
 
@@ -103,6 +112,7 @@ def test_interrupted_run_resumes_without_duplicate_alert(tmp_path):
     assert process_case(g2, "p1", "2019-05-05") is False       # finished threads are not re-run
     with eng.begin() as c:
         assert c.execute(select(func.count()).select_from(S.alerts)).scalar() == 1
+        assert c.execute(select(S.alerts.c.status)).scalar() == "SENT"
         st = c.execute(select(S.case_state)).first()
     assert st.status == "URGENT"
     conn2.close()

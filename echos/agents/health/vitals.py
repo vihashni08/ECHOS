@@ -1,4 +1,4 @@
-"""Agent 1 - Physiological. Day-level alert detection from BP / heart-rate readings.
+"""Health Monitoring sub-model 1 - Vitals. Day-level alert detection from BP / heart-rate readings.
 
 All baseline features are computed from PAST reading-days only (shift / closed='left').
 """
@@ -15,12 +15,13 @@ import xgboost as xgb
 from sklearn.metrics import average_precision_score
 
 from echos.agents import oof
+from echos.data.guard import assert_real_source
 from echos.config import ROOT, load_config
 from echos.data.patient_day import load_patient_day
 from echos.data.splits import patient_folds
 from echos.schemas import AgentResult
 
-AGENT = "physiological"
+AGENT = "physiological"  # name kept: oof_scores.parquet and the saved model are keyed on it
 VITALS = ["sys", "dia", "hr"]
 FEATURES = (
     [f"{v}_{s}" for v in VITALS for s in ("base", "z", "delta_prev", "trend7")]
@@ -99,6 +100,7 @@ def evaluate() -> dict:
     seed = cfg["seed"]
     pdy = load_patient_day()
     df = build_features(pdy)
+    assert_real_source(df, "tihm")
     pw_by_patient = pdy.groupby("patient_id").size() / 7.0  # monitored patient-weeks
     y = df.y.values
     oof = np.zeros(len(df))
@@ -219,6 +221,21 @@ def predict(patient_id: str, day) -> AgentResult:
     }
     return AgentResult(patient_id=patient_id, day=d.date(), agent=AGENT, score=score,
                        flag=score >= art["threshold"], evidence=ev, ts=ts)
+
+
+def persistence(patient_id: str, day, z_thr: float = 2.0, last_n: int = 3, need: int = 2) -> dict:
+    """Evidence only (not a model feature): True when `need` of the last `last_n` readings up to `day` are beyond the
+    patient's own past-only baseline band (any vital with |z| >= z_thr). Uses the same past-only z as the model."""
+    df = _state()["df"]
+    d = pd.Timestamp(day).normalize()
+    if patient_id not in df.index.get_level_values(0):
+        return {"persistent": False, "n_beyond": 0, "n_readings": 0, "last_n": last_n, "need": need, "z_threshold": z_thr}
+    g = df.loc[patient_id]
+    g = g[g.index <= d].sort_index().tail(last_n)
+    beyond = [bool(np.nanmax(np.abs(r[[f"{v}_z" for v in VITALS]].astype(float).values)) >= z_thr) if r[[f"{v}_z" for v in VITALS]].notna().any() else False
+              for _, r in g.iterrows()]
+    return {"persistent": sum(beyond) >= need, "n_beyond": int(sum(beyond)), "n_readings": int(len(g)),
+            "last_n": last_n, "need": need, "z_threshold": z_thr}
 
 
 if __name__ == "__main__":

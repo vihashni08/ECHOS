@@ -10,6 +10,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import average_precision_score, roc_auc_score
 
+from echos.data.guard import assert_real_source
 from echos.config import ROOT, load_config
 from echos.data import sisfall as sf
 from echos.data.splits import subject_folds
@@ -56,7 +57,7 @@ def build_windows(force: bool = False) -> pd.DataFrame:
     rows = []
     for r in sf.list_files().itertuples():
         a = sf.load_file(r.path)
-        base = {"subject": r.subject, "group": r.group, "activity": r.activity, "file": r.path.split("/")[-1]}
+        base = {"source": "sisfall", "subject": r.subject, "group": r.group, "activity": r.activity, "file": r.path.split("/")[-1]}
         if r.is_fall:
             w = sf.fall_window(a, n)
             if w is None:
@@ -91,6 +92,7 @@ def evaluate() -> dict:
     cfg = load_config()
     seed = cfg["seed"]
     df = build_windows().reset_index(drop=True)
+    assert_real_source(df, "sisfall")
     y = df.y.values
     oof = np.zeros(len(df))
     for tr, te in subject_folds(df, cfg["agent3"]["n_folds"], seed):

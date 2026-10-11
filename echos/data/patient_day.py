@@ -73,6 +73,7 @@ def build_patient_day(return_stats: bool = False):
     df[flag_cols] = df[flag_cols].fillna(0).astype(int)
     df = df.merge(demo, on="patient_id", how="left")
     df = df.sort_values(keys).reset_index(drop=True)
+    df["source"] = "tihm"  # training-table provenance (echos/data/guard.py)
 
     # ---- Agent 0 columns. SENSOR_GAP days keep NaN behaviour features (not zero) and are not usable activity days.
     df = df.merge(gaps[["patient_id", "day", "sensor_gap", "sensor_gap_reason"]], on=keys, how="left")

@@ -5,7 +5,7 @@ Writes reports/metrics/behaviour_triggers.json. Patient-level bootstrap CIs. Doe
 import json
 import numpy as np
 import pandas as pd
-from echos.agents import behaviour as b
+from echos.agents.health import behaviour as b
 from echos.config import ROOT, load_config
 from echos.data.patient_day import load_patient_day
 

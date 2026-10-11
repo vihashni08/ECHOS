@@ -34,3 +34,37 @@ class DataQualityResult(BaseModel):
     days_since_last_reading: Optional[int] = None     # 0 = reading today; counted from the patient's first record if never read
     completeness: float = Field(default=1.0, ge=0.0, le=1.0)
     quality_checked: bool = True                      # False = Agent 0 failed, data passed through unchecked
+
+
+class VitalsPart(BaseModel):
+    """Vitals sub-model output. `available` False = no reading that day (probability 0, never a trigger)."""
+    available: bool = False
+    probability: float = Field(default=0.0, ge=0.0, le=1.0)
+    flag: bool = False
+    threshold: Optional[float] = None
+    top_features: List[Dict[str, Any]] = Field(default_factory=list)       # SHAP
+    current_vs_baseline: Dict[str, Any] = Field(default_factory=dict)      # {sys|dia|hr: {current, baseline, z}}
+    persistence: Dict[str, Any] = Field(default_factory=dict)              # 2 of last 3 readings beyond personal band
+    fixed_rule_triggered: bool = False
+    n_prior_readings: int = 0
+
+
+class BehaviourPart(BaseModel):
+    available: bool = False
+    probability: float = Field(default=0.0, ge=0.0, le=1.0)                # agitation probability
+    flag: bool = False                                                     # probability >= threshold ONLY
+    threshold: Optional[float] = None
+    top_features: List[Dict[str, Any]] = Field(default_factory=list)       # SHAP
+    z: Dict[str, Any] = Field(default_factory=dict)                        # personal z-scores per routine feature
+    drift: Dict[str, Any] = Field(default_factory=dict)                    # CUSUM drift: explanation_only, never a trigger
+
+
+class HealthResult(BaseModel):
+    """Health Monitoring agent output for one patient-day (vitals + behaviour sub-models kept separate)."""
+    patient_id: str
+    day: date
+    vitals: VitalsPart = Field(default_factory=VitalsPart)
+    behaviour: BehaviourPart = Field(default_factory=BehaviourPart)
+    degraded: bool = False                                                 # True = model failed, fixed vitals thresholds used
+    degraded_reason: Optional[str] = None
+    ts: datetime = Field(default_factory=datetime.utcnow)

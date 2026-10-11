@@ -64,11 +64,12 @@ def caregiver(pid):
     st.dataframe(last.assign(status=last.status.map(ICON)).rename(columns={"day": "Day", "status": "Status", "data_gap": "Data gap"}),
                  hide_index=True, width="stretch")
     st.markdown("#### Alerts")
-    al = q("select day, level, reasons from alerts where patient_id=? order by day desc limit 10", (pid,))
+    al = q("select time, type, payload from alerts where patient_id=? order by time desc limit 10", (pid,))
     if al.empty:
         st.write("No alerts.")
     else:
-        al["reasons"] = al.reasons.map(lambda r: "; ".join(json.loads(r)))
+        al["payload"] = al.payload.map(lambda r: json.loads(r).get("message", ""))
+        al["time"] = pd.to_datetime(al.time, unit="s").dt.strftime("%Y-%m-%d %H:%M")
         st.dataframe(al, hide_index=True, width="stretch")
 
 

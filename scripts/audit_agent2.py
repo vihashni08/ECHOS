@@ -3,7 +3,7 @@ import json
 import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score
-from echos.agents import behaviour as b
+from echos.agents.health import behaviour as b
 from echos.config import load_config
 from echos.data.splits import patient_folds
 

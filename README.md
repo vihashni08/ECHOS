@@ -68,8 +68,8 @@ All commands from the repo root.
 # 1. patient-day table
 PYTHONPATH=. python3 -m echos.data.patient_day
 # 2. train + evaluate agents (writes models/ and reports/metrics/agent{1,2,3}.json)
-PYTHONPATH=. python3 -m echos.agents.physiological
-PYTHONPATH=. python3 -m echos.agents.behaviour
+PYTHONPATH=. python3 -m echos.agents.health.vitals
+PYTHONPATH=. python3 -m echos.agents.health.behaviour
 PYTHONPATH=. python3 -m echos.agents.fall
 # 3. triage thresholds from out-of-fold results (fall URGENT points; MONITOR alert budgets + OOF scores for e2e)
 PYTHONPATH=. python3 scripts/choose_thresholds.py

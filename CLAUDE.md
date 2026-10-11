@@ -13,11 +13,22 @@ Multi-agent decision-support system for home-dwelling elderly patients. Not a di
 - Date range 2019-04-01 to 2019-06-30. ~49 labelled patients: results will have wide confidence intervals.
 
 ## Architecture
-Simulator (replays TIHM day by day, injects SisFall fall windows) -> Agent 1 Physiological,
-Agent 2 Behaviour, Agent 3 Fall -> LangGraph orchestrator (rule-based triage, checkpointed) ->
-Agent 4 Report (LLM + tools + non-LLM validator; daily caregiver report, weekly clinician report)
--> Streamlit dashboards. A separate supervisor writes heartbeats to SQLite and restarts dead agents.
-NO trained fusion model: triage is plain if-then rules (Normal / Changed-monitor / Urgent).
+Simulator (replays TIHM day by day, injects SisFall fall windows; synthetic, tests/demos only) -> Data Quality agent
+(rule-based) -> Health Monitoring agent (vitals + behaviour sub-models, kept separate; returns HealthResult with SHAP,
+personal-baseline and persistence evidence; drift/CUSUM is explanation-only) and Fall agent (SisFall only, independent
+of both) -> LangGraph orchestrator (rule-based triage Normal / Changed-monitor / Urgent, checkpointed) -> Report agent
+(LLM + tools + non-LLM validator) -> Streamlit dashboards. A supervisor runs three workers (quality, health_monitoring,
+fall), writes heartbeats to SQLite and restarts dead ones.
+- NO trained fusion model: triage is plain if-then rules. NO alert lifecycle: `alerts` rows are alert_id, patient_id,
+  type, time, payload, status 'SENT'.
+- Fall and critical-vitals alerts go immediately to caregiver and clinician as a fixed template (no LLM).
+- Daily report is dashboard-only; NORMAL days get a template report (gate: no LLM, no RAG; the gate never changes or
+  delays triage or alerts). Weekly clinician report is a PDF sent by email.
+- Fallbacks: health_monitoring fails -> fixed vitals thresholds + "monitoring degraded"; quality fails -> pass-through +
+  "quality unchecked"; both are DATA_GAP, never NORMAL.
+- Gemini limits are per minute: budget requests (llm.max_requests_per_min), cache, never block alerts on the LLM.
+- Tests never use the real LLM (fake LLM objects only). Models train only on real data: every training table has a
+  `source` column (tihm / sisfall) and trainers call echos.data.guard.assert_real_source.
 
 ## Rules
 - Python 3.11, pydantic, pandas, scikit-learn, xgboost, shap, langgraph, streamlit, sqlalchemy/sqlite, pytest.

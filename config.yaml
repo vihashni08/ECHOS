@@ -49,6 +49,8 @@ replay:
   holdout_subjects: [SA03, SA11, SA19, SE06]   # fall model for replay is trained WITHOUT these subjects
   falls_per_patient: 3
   adl_windows_per_day: 2
+health:   # Health Monitoring agent (vitals + behaviour sub-models)
+  persistence: {z: 2.0, last_n: 3, need: 2}   # evidence only: 2 of last 3 readings beyond |z| >= 2 of the personal baseline
 triage:
   # chosen from reports/metrics/{agent1,agent2,triage_thresholds}.json (see docs in orchestrator/triage.py)
   vitals_prob: 0.435       # agent1 OOF: <= 1 alert / patient-week (scripts/choose_monitor_thresholds.py)
@@ -66,6 +68,8 @@ llm:
   timeout_s: 45        # hard per-call timeout; a timeout is never retried
   max_requests_per_min: 5   # request-rate limiter
   max_pending: 200     # background report backlog; beyond it reports stay template (logged)
+report_gate:
+  enabled: true       # NORMAL days get a template daily report (no LLM, no RAG); never affects triage or alerts
 rag:
   enabled: true                       # false -> reports have no guideline guidance (template mode still works)
   embedding_model: all-MiniLM-L6-v2   # local sentence-transformers model, no API key

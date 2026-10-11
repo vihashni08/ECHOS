@@ -1,4 +1,4 @@
-"""Agent 2 - Behaviour. Routine-drift score (past-only z + one-sided CUSUM) and same-day agitation classifier."""
+"""Health Monitoring sub-model 2 - Behaviour. Routine-drift score (past-only z + one-sided CUSUM) and same-day agitation classifier."""
 from __future__ import annotations
 
 import json
@@ -12,6 +12,7 @@ import xgboost as xgb
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 from echos.agents import oof
+from echos.data.guard import assert_real_source
 from echos.config import ROOT, load_config
 from echos.data.patient_day import load_patient_day
 from echos.data.splits import patient_folds
@@ -79,6 +80,7 @@ def evaluate() -> dict:
     cfg = load_config()
     seed, a2 = cfg["seed"], cfg["agent2"]
     df = build_features()
+    assert_real_source(df, "tihm")
     df = df[df.has_activity & df.total_events_delta.notna() & df.total_events_z.notna()].reset_index(drop=True)
     y = df.y.values
     oof = np.zeros(len(df))
@@ -161,6 +163,19 @@ def predict(patient_id: str, day) -> AgentResult:
           "threshold": art["threshold"]}
     return AgentResult(patient_id=patient_id, day=d.date(), agent=AGENT, score=prob,
                        flag=bool(prob >= art["threshold"] or drifted), evidence=ev, ts=ts)
+
+
+def top_features(patient_id: str, day, n: int = 3) -> list:
+    """Top SHAP features of the agitation classifier for one patient-day (explanation only)."""
+    st = _state()
+    if "expl" not in st:
+        import shap
+        st["expl"] = shap.TreeExplainer(st["art"]["model"])
+    r = st["df"].loc[(patient_id, pd.Timestamp(day).normalize())]
+    X = pd.DataFrame([r[st["art"]["features"]].astype(float)])
+    sv = st["expl"].shap_values(X)[0]
+    return [{"feature": st["art"]["features"][i], "value": None if pd.isna(X.iloc[0, i]) else float(X.iloc[0, i]),
+             "shap": float(sv[i])} for i in np.argsort(-np.abs(sv))[:n]]
 
 
 if __name__ == "__main__":

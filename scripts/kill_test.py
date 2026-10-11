@@ -91,7 +91,7 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
     drain_all(600)  # background LLM report upgrades
     sup.stop_all()
     with eng.begin() as c:
-        alerts = c.execute(select(S.alerts.c.patient_id, S.alerts.c.day)).fetchall()
+        alerts = c.execute(select(S.alerts.c.patient_id, S.alerts.c.alert_id)).fetchall()
         n_cases = c.execute(select(func.count()).select_from(S.case_state)).scalar()
         n_ev = c.execute(select(func.count()).select_from(S.event_log)).scalar()
         outs = c.execute(select(func.count()).select_from(S.agent_output)).scalar()
@@ -99,11 +99,11 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
         cases = {(r.patient_id, r.day): (r.status, r.reasons) for r in c.execute(select(S.case_state))}
         modes = [r.mode for r in c.execute(select(S.reports.c.mode))]
         fallbacks = [json.loads(r.validation).get("fallback_reason") for r in c.execute(select(S.reports.c.validation))]
-        passthru = c.execute(text("select min(o.done_ts) from agent_output o where o.agent_id in ('physiological','behaviour') and not exists "
+        passthru = c.execute(text("select min(o.done_ts) from agent_output o where o.agent_id in ('health_monitoring') and not exists "
                                   "(select 1 from agent_output q where q.event_id=o.event_id and q.agent_id='quality')")).scalar()
-        n_unchecked_out = c.execute(text("select count(*) from agent_output o where o.agent_id in ('physiological','behaviour') and not exists "
+        n_unchecked_out = c.execute(text("select count(*) from agent_output o where o.agent_id in ('health_monitoring') and not exists "
                                          "(select 1 from agent_output q where q.event_id=o.event_id and q.agent_id='quality')")).scalar()
-        alert_lat = [r.created_ts for r in c.execute(select(S.alerts.c.created_ts))]
+        alert_lat = [r.time for r in c.execute(select(S.alerts.c.time))]
     conn.close()
     if kill_agent and passthru:
         timing["passthrough_after_s"] = passthru - t_kill

@@ -67,7 +67,8 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
         b, _ = _past_baseline(pdf, v, d, cfg["agent2"]["baseline_window_days"], cfg["agent2"]["min_baseline_days"], True)
         routine[v] = {"value": cur, "baseline": _round(b)}
 
-    phys, beh, fall = (results.get(k) for k in ("physiological", "behaviour", "fall"))
+    health = results.get("health") or {}
+    vit, beh = health.get("vitals") or {}, health.get("behaviour") or {}
     flags, n = [], 0
 
     def add(ftype, **ev):
@@ -92,25 +93,25 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
         add("fall_inactivity" if f["post_fall_inactive"] else "fall", **f)
 
     # ---- vitals
-    if phys and "current_vs_baseline" in phys["evidence"]:
-        cv = phys["evidence"]["current_vs_baseline"]
+    if vit.get("current_vs_baseline"):
+        cv = vit["current_vs_baseline"]
         cur = {k: _r(v["current"]) for k, v in cv.items()}
         crit = t["critical_vitals"]
         s_, di_, h_ = cur.get("sys"), cur.get("dia"), cur.get("hr")
         if (s_ is not None and (s_ >= crit["sys_high"] or s_ < crit["sys_low"])) or (di_ is not None and di_ >= crit["dia_high"]) \
                 or (h_ is not None and (h_ >= crit["hr_high"] or h_ < crit["hr_low"])):
             add("vitals_news2", kind="critical", sys=s_, dia=di_, hr=h_)
-        if phys["score"] >= t["vitals_prob"]:
+        if vit["probability"] >= t["vitals_prob"] and not health.get("degraded"):
             z = {k: abs(cv.get(k, {}).get("z") or 0) for k in ("sys", "dia", "hr")}
             add("blood_pressure" if max(z["sys"], z["dia"]) >= z["hr"] else "vitals_news2",
-                kind="vitals_alert", risk=round(phys["score"], 2),
+                kind="vitals_alert", risk=round(vit["probability"], 2),
                 **{f"{k}_now": _r(v["current"]) for k, v in cv.items()},
                 **{f"{k}_baseline": _r(v["baseline"]) for k, v in cv.items()})
     # ---- behaviour
-    if beh and "reason" not in beh["evidence"]:
-        ev = beh["evidence"]
-        if beh["score"] >= t["agitation_prob"]:
-            add("agitation", risk=round(beh["score"], 2), night_events=routine["night_events"]["value"],
+    if beh.get("available") and not health.get("degraded"):
+        ev = beh.get("drift") or {}
+        if beh["probability"] >= t["agitation_prob"]:
+            add("agitation", risk=round(beh["probability"], 2), night_events=routine["night_events"]["value"],
                 night_events_baseline=routine["night_events"]["baseline"])
         if drift_level(ev) >= t["drift_evidence_cusum"]:
             add("routine_change", features=list(ev.get("drifted_features", [])), drift_score=_r(ev.get("drift_score"), 2))

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from echos.agents import physiological as p
+from echos.agents.health import vitals as p
 from echos.data.patient_day import load_patient_day
 from echos.schemas import AgentResult
 

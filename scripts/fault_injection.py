@@ -1,7 +1,7 @@
 """Fault injection: kill each agent, delay the LLM, remove the LLM key. Each run is compared with an identical clean run.
 
 Usage: PYTHONPATH=. python3 scripts/fault_injection.py     -> reports/metrics/fault_injection.json
-Alerts are written with a UNIQUE(patient, day, level) key, so 'duplicates' = 0 is also enforced by the schema; the
+Alerts are written with a unique alert_id (patient|day|type) key, so 'duplicates' = 0 is also enforced by the schema; the
 real checks are lost alerts, extra alerts and case results that differ from the clean run.
 """
 from __future__ import annotations
@@ -87,7 +87,7 @@ def main():
     try:
         stub = StubLLM()
         ref, ref_wall = timed(tmp / "ref", kill_agent=None, report_llm=stub)
-        for agent in ("quality", "physiological", "behaviour", "fall"):
+        for agent in ("quality", "health_monitoring", "fall"):
             r, w = timed(tmp / f"kill_{agent}", kill_agent=agent, report_llm=stub)
             rows.append(compare(ref, r, f"kill {agent}" + (" (Agent 0, supervisor restarts)" if agent == "quality" else ""), w, ref_wall))
         r, w = timed(tmp / "kill_q_perm", kill_agent="quality", no_restart=("quality",), report_llm=stub)

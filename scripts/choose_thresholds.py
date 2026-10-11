@@ -8,6 +8,8 @@ from echos.data.splits import subject_folds
 
 cfg = load_config()
 df = fall.build_windows().reset_index(drop=True)
+from echos.data.guard import assert_real_source  # noqa: E402
+assert_real_source(df, "sisfall")
 y = df.y.values
 oof = np.zeros(len(df))
 for tr, te in subject_folds(df, 5, cfg["seed"]):

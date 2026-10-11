@@ -417,9 +417,11 @@ class ReportAgent:
             S.upsert(c, S.reports, ["patient_id", "day", "kind"], patient_id=pid, day=day, kind=kind, mode=mode,
                      path=str(path), validation=S.j(validation), created_ts=S.now())
 
-    def daily(self, facts: dict, save: bool = True, defer_llm: bool = False) -> dict:
+    def daily(self, facts: dict, save: bool = True, defer_llm: bool = False, use_llm: bool = True) -> dict:
         if save:
             F.save_day_facts(self.eng, facts)
+        if not use_llm:  # NORMAL-day gate: template only, no LLM and no RAG
+            return self._daily(facts, None)
         if defer_llm and self.llm is not None:
             out = self._daily(facts, None)
             self._defer(self._daily, facts, self.llm, ctx=f"daily {facts['patient_id']} {facts['day']}")

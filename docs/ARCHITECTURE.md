@@ -36,7 +36,7 @@ flowchart LR
 
 - **Simulator:** replays TIHM day by day into SQLite `event_log` and injects SisFall fall windows (TIHM has no falls).
 - **Agent 0 (data quality, rules):** schema/type checks, duplicate and order handling, per-device range checks (implausible value -> NaN, listed, never imputed), activity SENSOR_GAP (zero events or < 5% of the patient's past median), completeness score. On error it passes data through with `quality_checked = False`; triage then treats the day as DATA_GAP. Details: [DATA_POLICY.md](DATA_POLICY.md).
-- **Agents 1-3:** physiological (XGBoost vs past-only baseline), behaviour (drift + agitation classifier; only `agitation_prob` triggers Monitor), fall (random forest on SisFall + post-fall inactivity). Agents 1-2 wait for Agent 0's output of the same event unless its heartbeat is stale.
+- **Health Monitoring agent (vitals + behaviour sub-models) and Fall agent:** physiological (XGBoost vs past-only baseline), behaviour (drift + agitation classifier; only `agitation_prob` triggers Monitor), fall (random forest on SisFall + post-fall inactivity). Agents 1-2 wait for Agent 0's output of the same event unless its heartbeat is stale.
 - **Orchestrator:** LangGraph, SQLite checkpoints, rules give Normal / Changed-monitor / Urgent. DATA_GAP can raise Normal to Monitor, never lower Urgent.
 - **Agent 4 (report):** daily caregiver and weekly clinician reports. Template is always built first; optional Gemini wording is produced in a background worker and replaces it only if the validator passes.
 - **Supervisor:** SQLite heartbeats, restarts dead or stalled agents.

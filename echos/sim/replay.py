@@ -1,5 +1,6 @@
 """Replay TIHM day by day into event_log and inject SisFall fall/ADL windows from HELD-OUT subjects.
 
+SYNTHETIC / SIMULATED data: for systems tests and demos only, never a training source (see echos/data/guard.py).
 Systems test only: agents 1-2 were final-fitted on all TIHM patients, so replayed predictions are not accuracy
 evidence (see reports/metrics for the out-of-fold numbers). The fall model used here excludes the held-out subjects.
 """
@@ -15,6 +16,7 @@ import pandas as pd
 from echos.agents import fall
 from echos.config import ROOT, load_config
 from echos.data import sisfall as sf
+from echos.data.guard import assert_real_source
 from echos.data.patient_day import load_patient_day
 from echos.orchestrator import state as S
 
@@ -26,6 +28,7 @@ def train_replay_fall_model(force: bool = False) -> Path:
         return REPLAY_MODEL
     cfg = load_config()
     df = fall.build_windows()
+    assert_real_source(df, "sisfall")
     tr = df[~df.subject.isin(cfg["replay"]["holdout_subjects"])]
     m = fall._rf(cfg["seed"]).fit(tr[fall.FEATURES], tr.y)
     joblib.dump({"model": m, "features": fall.FEATURES, "threshold": 0.5,

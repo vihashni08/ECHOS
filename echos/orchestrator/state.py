@@ -25,9 +25,9 @@ agent_output = Table("agent_output", md, Column("event_id", Integer, primary_key
 case_state = Table("case_state", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True),
                    Column("status", String), Column("data_gap", Boolean), Column("days_since_vitals", Integer),
                    Column("reasons", Text), Column("report", String), Column("updated_ts", Float))
-alerts = Table("alerts", md, Column("alert_id", Integer, primary_key=True, autoincrement=True),
-               Column("patient_id", String), Column("day", String), Column("level", String), Column("reasons", Text),
-               Column("created_ts", Float), UniqueConstraint("patient_id", "day", "level", name="uq_alert"))
+alerts = Table("alerts", md, Column("alert_id", String, primary_key=True),   # unique per event: patient|day|type
+               Column("patient_id", String, index=True), Column("type", String), Column("time", Float),
+               Column("payload", Text), Column("status", String, default="SENT"))
 gt_fall = Table("gt_fall", md, Column("event_id", Integer, primary_key=True), Column("patient_id", String),
                 Column("day", String), Column("ts", String), Column("subject", String), Column("file", String))
 restart_log = Table("restart_log", md, Column("id", Integer, primary_key=True, autoincrement=True),
@@ -35,9 +35,10 @@ restart_log = Table("restart_log", md, Column("id", Integer, primary_key=True, a
                     Column("restarted_ts", Float))
 
 # which event kinds each agent consumes
-AGENT_KINDS = {"quality": ["day"], "physiological": ["day"], "behaviour": ["day"], "fall": ["sensor"]}
-# Agent 0 runs first: these agents wait for its output of the same event (unless its heartbeat is stale; then pass-through)
-AFTER_QUALITY = ("physiological", "behaviour")
+AGENT_KINDS = {"quality": ["day"], "health_monitoring": ["day"], "fall": ["sensor"]}
+# Agent 0 runs first: health monitoring waits for its output of the same event (unless its heartbeat is stale; then pass-through).
+# The fall agent is independent of both.
+AFTER_QUALITY = ("health_monitoring",)
 
 
 def db_url(path=None) -> str:

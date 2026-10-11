@@ -36,15 +36,16 @@ def main(n=20):
         eng = S.get_engine(work / "echos.db")
         with eng.begin() as c:
             cases = c.execute(select(S.case_state)).fetchall()
-            alerts = c.execute(select(S.alerts)).fetchall()
+            alerts = [type("A", (), {"patient_id": a.patient_id, "day": a.alert_id.split("|")[1], "type": a.type, "created_ts": a.time})
+                      for a in c.execute(select(S.alerts)).fetchall()]
             gt = c.execute(select(S.gt_fall)).fetchall()
             outs = c.execute(select(S.agent_output.c.patient_id, S.agent_output.c.day, S.agent_output.c.done_ts)).fetchall()
     finally:
         shutil.rmtree(work, ignore_errors=True)
     wall = time.time() - t0
     pw = len(cases) / 7
-    fall_alert = {(a.patient_id, a.day): a for a in alerts if any(x.startswith("fall") for x in json.loads(a.reasons))}
-    crit_alert = {(a.patient_id, a.day) for a in alerts if any(x.startswith("critical") for x in json.loads(a.reasons))}
+    fall_alert = {(a.patient_id, a.day): a for a in alerts if a.type == "fall"}
+    crit_alert = {(a.patient_id, a.day) for a in alerts if a.type == "critical_vitals"}
     gt_keys = {(g.patient_id, g.day): g for g in gt}
     detected = [k for k in gt_keys if k in fall_alert]
     delay_h = [(pd.Timestamp(k[1]) + pd.Timedelta(seconds=86399) - pd.Timestamp(gt_keys[k].ts)).total_seconds() / 3600 for k in detected]

@@ -35,12 +35,12 @@ class Handlers:
         if agent_id == "quality":
             from echos.agents import data_quality as m
             return m.predict(ev.patient_id, ev.day).model_dump(mode="json")  # never raises: pass-through + 'unchecked'
-        if agent_id == "physiological":
-            from echos.agents import physiological as m
-            return m.predict(ev.patient_id, ev.day).model_dump(mode="json")
-        if agent_id == "behaviour":
-            from echos.agents import behaviour as m
-            return m.predict(ev.patient_id, ev.day).model_dump(mode="json")
+        if agent_id == "health_monitoring":
+            from echos.agents import health_monitoring as m
+            try:
+                return m.predict(ev.patient_id, ev.day).model_dump(mode="json")
+            except Exception as ex:  # noqa: BLE001 - never block the pipeline: fixed vitals thresholds, 'monitoring degraded'
+                return m.fallback_predict(ev.patient_id, ev.day, type(ex).__name__).model_dump(mode="json")
         if agent_id == "fall":
             import json
             import pandas as pd
