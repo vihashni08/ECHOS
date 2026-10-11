@@ -11,6 +11,7 @@ import os
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import func, select
@@ -75,6 +76,29 @@ class AlertDispatcher:
                 log.error("alert %s: recipient has no address", p.alert_id)
         return True
 
+    def dispatch_weekly(self, patient_id: str, week: str, subject: str, body: str, body_html: str, pdf_path: str, week_end: str = "",
+                        force: bool = False) -> Optional[str]:
+        """Queue the weekly report email to the CLINICIAN only, PDF attached. Unique per (patient, ISO week): a second call returns None unless
+        force=True (send now), which queues a new 'resend-N' row. Same worker pool and retry/backoff as alerts; send_real=false -> DryRunMailer."""
+        base = f"weekly|{patient_id}|{week}"
+        addr = self.to.get("clinician", "")
+        with self.eng.begin() as c:
+            n = c.execute(select(func.count()).select_from(S.outbox).where((S.outbox.c.alert_id == base) | S.outbox.c.alert_id.like(base + "|resend-%"))).scalar()
+            if n and not force:
+                return None
+            aid = base if not n else f"{base}|resend-{n}"
+            st, err = ("PENDING", None) if addr else ("FAILED", "no recipient address configured")
+            r = c.execute(S.outbox.insert().values(alert_id=aid, recipient_role="clinician", address=addr, channel=self.mailer.channel, subject=subject, body=body,
+                                                   body_html=body_html, status=st, attempts=0, error=err, event_time=week_end, queued_time=time.time(),
+                                                   attachment_name=Path(pdf_path).name, attachment_path=str(pdf_path)))
+            oid = r.inserted_primary_key[0]
+        if st == "PENDING":
+            self._push(oid, 0.0, {"address": addr, "subject": subject, "body": body, "body_html": body_html, "alert_id": aid, "role": "clinician",
+                                  "attempts": 0, "attachment": {"name": Path(pdf_path).name, "path": str(pdf_path)}})
+        else:
+            log.error("weekly report %s: clinician address missing", aid)
+        return aid
+
     def _in_cooldown(self, p: P.AlertPayload) -> bool:
         try:
             t = datetime.fromisoformat(p.event_time)
@@ -110,7 +134,8 @@ class AlertDispatcher:
             rs = c.execute(select(S.outbox).where(S.outbox.c.status == "PENDING")).fetchall()
         for r in rs:
             self._push(r.outbox_id, 0.0, {"address": r.address, "subject": r.subject, "body": r.body, "body_html": r.body_html,
-                                          "alert_id": r.alert_id, "role": r.recipient_role, "attempts": r.attempts})
+                                          "alert_id": r.alert_id, "role": r.recipient_role, "attempts": r.attempts,
+                                          **({"attachment": {"name": r.attachment_name, "path": r.attachment_path}} if r.attachment_path else {})})
         return len(rs)
 
     def _run(self):
@@ -139,7 +164,12 @@ class AlertDispatcher:
         n = job["attempts"] + 1
         err = None
         try:
-            self.mailer.send(job["address"], job["subject"], job["body"], job["body_html"])
+            if job.get("attachment"):
+                a = job["attachment"]
+                self.mailer.send(job["address"], job["subject"], job["body"], job["body_html"],
+                                 attachments=[{"filename": a["name"], "data": Path(a["path"]).read_bytes(), "mime": "application/pdf"}])
+            else:
+                self.mailer.send(job["address"], job["subject"], job["body"], job["body_html"])
         except Exception as ex:  # noqa: BLE001
             err = _redact(f"{type(ex).__name__}: {ex}")
         final = err is not None and n >= self.max_attempts

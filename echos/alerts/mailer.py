@@ -29,7 +29,8 @@ def recipients() -> dict:
 class Mailer:
     channel = "base"
 
-    def send(self, to: str, subject: str, body: str, body_html: str | None = None) -> None:   # raises on failure
+    def send(self, to: str, subject: str, body: str, body_html: str | None = None, attachments: list | None = None) -> None:   # raises on failure
+        """attachments: [{"filename": str, "data": bytes, "mime": "application/pdf"}] (weekly report); None for alerts."""
         raise NotImplementedError
 
 
@@ -37,7 +38,7 @@ class DryRunMailer(Mailer):
     """Outbox only. Marks the row delivered to the dry-run channel; no network, no SMTP."""
     channel = "dryrun"
 
-    def send(self, to, subject, body, body_html=None):
+    def send(self, to, subject, body, body_html=None, attachments=None):
         return None
 
 
@@ -49,7 +50,7 @@ class FakeMailer(Mailer):
         self.sent, self.attempts, self.fail_for, self.fail_times, self.delay_s = [], [], set(fail_for), fail_times, delay_s
         self._lock = threading.Lock()
 
-    def send(self, to, subject, body, body_html=None):
+    def send(self, to, subject, body, body_html=None, attachments=None):
         import time
         if self.delay_s:
             time.sleep(self.delay_s)
@@ -59,7 +60,8 @@ class FakeMailer(Mailer):
             if "*" in self.fail_for or to in self.fail_for:
                 if self.fail_times is None or n <= self.fail_times:
                     raise ConnectionError("fake SMTP failure")
-            self.sent.append({"to": to, "subject": subject, "body": body, "html": body_html, "t": time.time()})
+            self.sent.append({"to": to, "subject": subject, "body": body, "html": body_html, "t": time.time(),
+                              "attachments": [{"filename": a["filename"], "data": a["data"], "mime": a.get("mime", "application/octet-stream")} for a in attachments or []]})
 
 
 class SMTPMailer(Mailer):
@@ -74,7 +76,7 @@ class SMTPMailer(Mailer):
     def configured(self) -> bool:
         return bool(self.host and self.user and self.password)
 
-    def send(self, to, subject, body, body_html=None):
+    def send(self, to, subject, body, body_html=None, attachments=None):
         if not self.configured():
             raise RuntimeError("SMTP not configured (ECHOS_SMTP_HOST/USER/PASSWORD)")
         m = EmailMessage()
@@ -82,6 +84,9 @@ class SMTPMailer(Mailer):
         m.set_content(body)
         if body_html:
             m.add_alternative(body_html, subtype="html")
+        for a in attachments or []:
+            mt, _, st = a.get("mime", "application/octet-stream").partition("/")
+            m.add_attachment(a["data"], maintype=mt, subtype=st or "octet-stream", filename=a["filename"])
         with smtplib.SMTP(self.host, self.port, timeout=self.timeout_s) as s:
             s.starttls(context=ssl.create_default_context())
             s.login(self.user, self.password)

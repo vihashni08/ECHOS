@@ -160,7 +160,7 @@ def test_orchestrator_gate_normal_days_never_reach_the_llm(tmp_path, monkeypatch
     eng = S.get_engine(tmp_path / "g.db")
     _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.0)})
     llm = FakeLLM([{"error": {"code": 400}}])
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=llm, report_root=tmp_path, gate=True)
+    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=llm, report_root=tmp_path, gate=True, weekly_pdf=False)
     process_case(g, "p1", "2019-05-05")
     drain_all(20)
     with eng.begin() as c:

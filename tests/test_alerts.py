@@ -188,7 +188,7 @@ def test_alerts_still_go_out_when_llm_rag_pubmed_are_down(tmp_path, monkeypatch)
     eng = S.get_engine(tmp_path / "t.db")
     _seed(eng)
     m = FakeMailer()
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=FakeLLM([{"error": {"code": 503, "status": "UNAVAILABLE"}}]), dispatcher=disp(eng, m))
+    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=FakeLLM([{"error": {"code": 503, "status": "UNAVAILABLE"}}]), dispatcher=disp(eng, m), weekly_pdf=False)
     assert process_case(g, "p1", "2019-05-05") is True
     assert g.dispatcher.flush(5)
     assert sorted(x["to"] for x in m.sent) == sorted(TO.values())
@@ -207,7 +207,7 @@ def test_orchestrator_alert_is_queued_before_report(tmp_path):
         if node == "daily_report_never":
             pass
     d = disp(eng)
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=None, dispatcher=d)
+    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=None, dispatcher=d, weekly_pdf=False)
     orig = OA.queue_alerts
     process_case(g, "p1", "2019-05-05")
     with eng.begin() as c:

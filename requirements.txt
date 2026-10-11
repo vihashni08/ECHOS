@@ -18,3 +18,4 @@ matplotlib
 pypdf
 chromadb
 sentence-transformers
+reportlab

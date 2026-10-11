@@ -34,7 +34,7 @@ class CaseState(TypedDict, total=False):
 
 
 def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]] = None, inline_agents=None,
-                report_llm="auto", report_root=None, gate=None, dispatcher=None):
+                report_llm="auto", report_root=None, gate=None, dispatcher=None, weekly_pdf=None):
     """fault(node_name) may raise to simulate a crash. inline_agents: {agent_id: fn(event_row)->dict} used only
     when an agent's stored output is missing (tests / no-process mode). report_llm: "auto" = Gemini if configured
     (llm.model + key), None/False = template mode. gate: NORMAL days get a template daily report (no LLM, no retrieval);
@@ -48,6 +48,9 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
     reporter = ReportAgent(eng, make_llm() if auto else (report_llm or None), root=report_root, budget=make_budget() if auto else None)
     fault = fault or (lambda node: None)
     dispatcher = dispatcher or AlertDispatcher(eng, make_mailer())
+    wc = load_config().get("weekly", {})
+    weekly_on = bool(wc.get("enabled", True)) if weekly_pdf is None else bool(weekly_pdf)
+    weekly_llm = bool(wc.get("llm_narrative_in_simulation", False))
     gate_on = bool(load_config().get("report_gate", {}).get("enabled", True)) if gate is None else bool(gate)
     cp = checkpoint_path or ROOT / load_config()["checkpoint_db_path"]
     cp = str(cp)
@@ -126,7 +129,15 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
         return {}
 
     def weekly_report(st: CaseState) -> dict:
-        reporter.weekly(st["patient_id"], st["day"], defer_llm=True)
+        """Week end: weekly PDF (data -> narrative -> PDF -> email to the clinician) in the report background worker, so it never blocks the next
+        case, triage or alerts. Any failure is logged and the day goes on."""
+        if not weekly_on:
+            return {}
+        from echos.reports.weekly_report import make_weekly
+        pid, day = st["patient_id"], st["day"]
+        use_llm = bool(weekly_llm and reporter.budget is not None)
+        reporter._defer(lambda: make_weekly(eng, pid, day, dispatcher, budget=reporter.budget, retriever=reporter.retriever, use_llm=use_llm,
+                                            root=reporter.root), ctx=f"weekly_pdf {pid} {day}")
         return {}
 
     def after(st: CaseState) -> str:

@@ -35,6 +35,7 @@ outbox = Table("outbox", md, Column("outbox_id", Integer, primary_key=True, auto
                Column("channel", String), Column("subject", Text), Column("body", Text), Column("body_html", Text),
                Column("status", String, default="PENDING"), Column("attempts", Integer, default=0), Column("error", Text),
                Column("event_time", String), Column("queued_time", Float), Column("sent_time", Float),
+               Column("attachment_name", String), Column("attachment_path", String),   # weekly report PDF
                UniqueConstraint("alert_id", "recipient_role", name="uq_outbox_alert_role"))
 gt_fall = Table("gt_fall", md, Column("event_id", Integer, primary_key=True), Column("patient_id", String),
                 Column("day", String), Column("ts", String), Column("subject", String), Column("file", String))
@@ -66,9 +67,10 @@ def get_engine(path=None):
         c.close()
 
     md.create_all(eng)
-    with eng.begin() as c:   # databases created before the provenance column existed
-        if "provenance" not in {r[1] for r in c.execute(text("PRAGMA table_info(reports)"))}:
-            c.execute(text("ALTER TABLE reports ADD COLUMN provenance TEXT"))
+    with eng.begin() as c:   # databases created before these columns existed
+        for table, col in (("reports", "provenance"), ("outbox", "attachment_name"), ("outbox", "attachment_path")):
+            if col not in {r[1] for r in c.execute(text(f"PRAGMA table_info({table})"))}:
+                c.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} TEXT"))
     return eng
 
 

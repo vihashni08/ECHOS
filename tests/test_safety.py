@@ -96,7 +96,7 @@ def test_hostile_llm_cannot_change_status(tmp_path, monkeypatch):
     eng = S.get_engine(tmp_path / "t.db")
     _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.97, post_fall_inactive=True)})
     llm = hostile_llm()
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=llm, report_root=tmp_path, gate=True)
+    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=llm, report_root=tmp_path, gate=True, weekly_pdf=False)
     process_case(g, "p1", "2019-05-05")
     from echos.reports.agent import drain_all
     drain_all(30)
@@ -121,7 +121,7 @@ def _gate_run(tmp_path, gate, pats, days):
                                 result=S.j(m.predict(p, d).model_dump(mode="json")), done_ts=1.0)
 
     llm = FakeLLM([{"error": {"code": 400, "status": "INVALID_ARGUMENT"}}])   # not retried: exactly one request per report that reaches the LLM
-    g, conn = build_graph(eng, tmp_path / f"cp{int(gate)}.sqlite", report_llm=llm, report_root=tmp_path / f"r{int(gate)}", gate=gate)
+    g, conn = build_graph(eng, tmp_path / f"cp{int(gate)}.sqlite", report_llm=llm, report_root=tmp_path / f"r{int(gate)}", gate=gate, weekly_pdf=False)
     for p in pats:
         for d in days[p]:
             process_case(g, p, d)

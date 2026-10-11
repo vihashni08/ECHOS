@@ -86,6 +86,12 @@ pubmed:   # live PubMed (NCBI E-utilities) for MONITOR / URGENT daily reports on
   timeout_s: 10
   max_rps: 3            # NCBI limit without an API key
   cache_path: data/pubmed_cache.sqlite
+weekly:   # weekly clinician report (PDF by email to the clinician only)
+  enabled: true
+  llm_narrative_in_simulation: false   # false: replays use the template Key findings (protects the Gemini quota); send-now may use the LLM
+  dir: data/reports/weekly
+  band_sd: 2.0          # personal band = past mean +/- band_sd * past sd
+  max_pages: 3
 report_gate:
   enabled: true       # NORMAL days get a template daily report (no LLM, no RAG); never affects triage or alerts
 rag:

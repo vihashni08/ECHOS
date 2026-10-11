@@ -103,12 +103,12 @@ def test_interrupted_run_resumes_without_duplicate_alert(tmp_path):
             boom["n"] += 1
             raise RuntimeError("crash after alert write")
 
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", fault=fault)
+    g, conn = build_graph(eng, tmp_path / "cp.sqlite", fault=fault, weekly_pdf=False)
     with pytest.raises(RuntimeError):
         process_case(g, "p1", "2019-05-05")
     conn.close()
     # new "process": fresh graph object on the same checkpoint file resumes the unfinished thread
-    g2, conn2 = build_graph(eng, tmp_path / "cp.sqlite")
+    g2, conn2 = build_graph(eng, tmp_path / "cp.sqlite", weekly_pdf=False)
     assert process_case(g2, "p1", "2019-05-05") is True
     assert process_case(g2, "p1", "2019-05-05") is False       # finished threads are not re-run
     assert g2.dispatcher.flush(10) and g.dispatcher.flush(10)   # mail goes out on a background thread
