@@ -65,8 +65,8 @@ triage:
   critical_vitals: {sys_high: 180, sys_low: 85, dia_high: 120, hr_high: 130, hr_low: 40}
   max_vitals_gap_days: 7   # readings exist on ~62% of days; >7 days silent -> data_gap
 llm:
-  model: gemini-2.5-flash-lite
-  fallback_model: gemini-2.5-flash         # Gemini model name, set by the user; null -> template mode (no LLM calls)
+  model: gemini-3.5-flash-lite
+  fallback_model: gemini-3.5-flash         # Gemini model name, set by the user; null -> template mode (no LLM calls)
   temperature: 0.2
   retries: 1           # failed (non-timeout) LLM output is retried at most this many times, then Jinja2 template fallback
   timeout_s: 45        # hard per-call timeout; a timeout is never retried
