@@ -11,3 +11,4 @@ data/rag/
 echos/knowledge/raw/*.pdf
 reports/samples/
 data/reports/weekly/
+.venv/
