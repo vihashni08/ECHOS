@@ -49,6 +49,7 @@ class Ctx:
     demo: Optional[pd.DataFrame] = None
     activity: Optional[pd.DataFrame] = None
     allow_kill: bool = False
+    report_root: Optional[Path] = None           # where report files live (default: root); a dev copy of the database has its own
     dispatcher: Any = None                       # AlertDispatcher (created lazily; shared worker pool)
     weekly_kwargs: dict = field(default_factory=dict)   # tests: budget=..., retriever=..., frames
     health_state: dict = field(default_factory=dict)
@@ -58,6 +59,7 @@ class Ctx:
     def __post_init__(self):
         import threading
         self.lock = threading.Lock()
+        self.report_root = Path(self.report_root) if self.report_root else self.root
         self.metrics_dir = Path(self.metrics_dir) if self.metrics_dir else self.root / self.cfg["paths"]["metrics"]
 
     # lazily loaded frames (cached for the process)
@@ -263,8 +265,8 @@ def routine(ctx: Ctx, pid: str, a: Optional[str], b: Optional[str]) -> dict:
 
 # ------------------------------------------------------------------ reports
 def _inside(ctx: Ctx, rel: str) -> Path:
-    p = (ctx.root / rel).resolve()
-    if ctx.root.resolve() not in p.parents:
+    p = (ctx.report_root / rel).resolve()
+    if ctx.report_root.resolve() not in p.parents:
         raise NotFound("report file outside the project")
     return p
 
@@ -409,7 +411,7 @@ def fall_detail(ctx: Ctx, fid: int) -> dict:
     subj = pl.get("subject")
     return {**item, "inactivity_observed_s": ev.get("inactivity_observed_s"), "inactivity_required_s": a3["inactivity"]["seconds"], "threshold": ev.get("threshold"),
             "injected": bool(pl.get("injected")), "in_training_set_of_worker_model": (subj not in hold) if subj else None, "in_training_set_of_final_model": True if subj else None,
-            "waveform": wave, "alert": alert_out(al) if al else None, "outbox": [outbox_out(r) for r in ob]}
+            "waveform": wave, "alert": alert_out(al) if al else None, "outbox": [{**outbox_out(r), "body": scrub(r.body)} for r in ob]}
 
 
 # ------------------------------------------------------------------ simulation + agents
@@ -434,7 +436,7 @@ def send_command(ctx: Ctx, cmd: str, args: dict, wait_s: float) -> tuple[int, Op
     return cid, "NEW", None
 
 
-def pick_fall_window(ctx: Ctx, subject: Optional[str]) -> dict:
+def pick_fall_window(ctx: Ctx, subject: Optional[str], activity: Optional[str] = None) -> dict:
     import random
     import numpy as np
     from echos.data import sisfall as sf
@@ -445,6 +447,8 @@ def pick_fall_window(ctx: Ctx, subject: Optional[str]) -> dict:
         ctx.sisfall_files = sf.list_files()
     fl = ctx.sisfall_files
     fl = fl[fl.subject.isin([subject] if subject else hold) & fl.is_fall]
+    if activity:
+        fl = fl[fl.activity == activity]
     if fl.empty:
         raise ValueError("no SisFall fall recording available on this machine")
     r = fl.iloc[random.randrange(len(fl))]

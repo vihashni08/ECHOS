@@ -21,7 +21,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from echos.api import services as V
 from echos.api.models import (AgentHealth, AlertOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
-                              Page, PatientOut, QualityOut, RoutineOut, SimControlIn, SimFallIn, SimFallOut, SimStateOut, SummaryOut, VitalsOut, WeeklyReportOut,
+                              Page, PatientOut, QualityOut, RoutineOut, SystemConfigOut, SimControlIn, SimFallIn, SimFallOut, SimStateOut, SummaryOut, VitalsOut, WeeklyReportOut,
                               WeeklySendIn, WeeklySendOut)
 from echos.config import load_config
 from echos.orchestrator import state as S
@@ -39,7 +39,8 @@ def ctx_of(request: Request) -> V.Ctx:
 def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
     cfg = ctx.cfg if ctx else load_config()
     app = FastAPI(title="ECHOS API", version="1.0", description=DESCRIPTION)
-    app.state.ctx = ctx or V.Ctx(eng=S.get_engine(os.environ.get("ECHOS_DB")), cfg=cfg, allow_kill=bool(cfg.get("api", {}).get("allow_kill", False)))
+    app.state.ctx = ctx or V.Ctx(eng=S.get_engine(os.environ.get("ECHOS_DB")), cfg=cfg, allow_kill=bool(cfg.get("api", {}).get("allow_kill", False)) or os.environ.get("ECHOS_ALLOW_KILL") == "1",
+        report_root=os.environ.get("ECHOS_REPORT_ROOT") or None)
     app.add_middleware(CORSMiddleware, allow_origins=[cfg.get("api", {}).get("cors_origin", "http://localhost:5173")], allow_methods=["GET", "POST"], allow_headers=["*"])
 
     def err(status: int, msg: str) -> JSONResponse:
@@ -115,7 +116,7 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         with ctx.lock:
             if ctx.dispatcher is None:
                 ctx.dispatcher = AlertDispatcher(ctx.eng, make_mailer(ctx.cfg))
-        kw = {"budget": "auto", "retriever": None, "root": ctx.root, **{k: v for k, v in {"pdy": ctx.pdy, "phys": ctx.phys, "demo": ctx.demo}.items() if v is not None}, **ctx.weekly_kwargs}
+        kw = {"budget": "auto", "retriever": None, "root": ctx.report_root, **{k: v for k, v in {"pdy": ctx.pdy, "phys": ctx.phys, "demo": ctx.demo}.items() if v is not None}, **ctx.weekly_kwargs}
         res = WR.send_weekly_now(pid, wk, force=body.force, eng=ctx.eng, dispatcher=ctx.dispatcher, **kw)
         ctx.dispatcher.flush(5)
         aid = res["queued_alert_id"]
@@ -152,7 +153,7 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         that subject was in the training set of the model used by the Fall worker (the replay model excludes the held-out subjects) and of the final model."""
         ctx = ctx_of(request)
         V.require_patient(ctx, body.patient_id)
-        w = V.pick_fall_window(ctx, body.subject)
+        w = V.pick_fall_window(ctx, body.subject, body.activity)
         hold = set(ctx.cfg["replay"]["holdout_subjects"])
         cid, st, res = V.send_command(ctx, "inject_fall", {"patient_id": body.patient_id, **w}, wait_s=5.0)
         if st == "ERROR":
@@ -256,6 +257,13 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         return {"agent": name, "killed_pid": h["pid"], "recovered": False, "recovery_s": None}
 
     # ------------------------------------------------------------ system
+    @r.get("/system/config", response_model=SystemConfigOut, tags=["system"])
+    def sys_config(request: Request):
+        """Flags the UI needs: whether agent kill is enabled and whether mail is real (never secrets)."""
+        ctx = ctx_of(request)
+        return {"allow_kill": ctx.allow_kill, "dry_run_mail": os.environ.get("ECHOS_DRY_RUN") == "1" or not ctx.cfg.get("alerts", {}).get("send_real", False),
+                "llm_enabled": os.environ.get("ECHOS_REPORT_LLM") != "off"}
+
     @r.get("/system/quality", response_model=QualityOut, tags=["system"])
     def sys_quality(request: Request):
         return V.quality(ctx_of(request))

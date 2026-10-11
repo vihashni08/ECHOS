@@ -1,0 +1,4012 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "ECHOS API",
+  "description": "Decision-support demo API for ECHOS (not a diagnostic tool). **No authentication**: for local demos only, bound to 127.0.0.1. Lists are paginated with `limit` and `offset`. Errors have the shape `{\"error\": {\"status\": 404, \"message\": \"...\"}}`.",
+  "version": "1.0"
+ },
+ "paths": {
+  "/api/patients": {
+   "get": {
+    "tags": [
+     "patients"
+    ],
+    "summary": "Patients",
+    "operationId": "patients_api_patients_get",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "minimum": 1,
+       "default": 50,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Page_PatientOut_"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/patients/{pid}/summary": {
+   "get": {
+    "tags": [
+     "patients"
+    ],
+    "summary": "Summary",
+    "operationId": "summary_api_patients__pid__summary_get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "day",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Day"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SummaryOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/patients/{pid}/statuses": {
+   "get": {
+    "tags": [
+     "patients"
+    ],
+    "summary": "Statuses",
+    "operationId": "statuses_api_patients__pid__statuses_get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "days",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 120,
+       "minimum": 1,
+       "default": 7,
+       "title": "Days"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/DayStatus"
+         },
+         "title": "Response Statuses Api Patients  Pid  Statuses Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/patients/{pid}/vitals": {
+   "get": {
+    "tags": [
+     "patients"
+    ],
+    "summary": "Vitals",
+    "operationId": "vitals_api_patients__pid__vitals_get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "from",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "From"
+      }
+     },
+     {
+      "name": "to",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "To"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/VitalsOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/patients/{pid}/routine": {
+   "get": {
+    "tags": [
+     "patients"
+    ],
+    "summary": "Routine",
+    "operationId": "routine_api_patients__pid__routine_get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "from",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "From"
+      }
+     },
+     {
+      "name": "to",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "To"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RoutineOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/patients/{pid}/reports/daily": {
+   "get": {
+    "tags": [
+     "reports"
+    ],
+    "summary": "Daily",
+    "operationId": "daily_api_patients__pid__reports_daily_get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "day",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Day"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/DailyReportOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/patients/{pid}/reports/weekly": {
+   "get": {
+    "tags": [
+     "reports"
+    ],
+    "summary": "Weekly",
+    "operationId": "weekly_api_patients__pid__reports_weekly_get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "week",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "ISO week, e.g. 2019-W19",
+       "title": "Week"
+      },
+      "description": "ISO week, e.g. 2019-W19"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WeeklyReportOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/patients/{pid}/reports/weekly/pdf": {
+   "get": {
+    "tags": [
+     "reports"
+    ],
+    "summary": "Weekly Pdf",
+    "operationId": "weekly_pdf_api_patients__pid__reports_weekly_pdf_get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "week",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Week"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/patients/{pid}/reports/weekly/send": {
+   "post": {
+    "tags": [
+     "reports"
+    ],
+    "summary": "Weekly Send",
+    "description": "Build (or rebuild) the weekly PDF and email it to the CLINICIAN. Respects alerts.send_real (false = outbox only, DryRun).\nWithout `force` a week that was already sent is not sent again.",
+    "operationId": "weekly_send_api_patients__pid__reports_weekly_send_post",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "week",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Week"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/WeeklySendIn",
+        "default": {
+         "force": false
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WeeklySendOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/alerts": {
+   "get": {
+    "tags": [
+     "alerts"
+    ],
+    "summary": "Alerts",
+    "operationId": "alerts_api_alerts_get",
+    "parameters": [
+     {
+      "name": "patient_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Patient Id"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "minimum": 1,
+       "default": 50,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Page_AlertOut_"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/outbox": {
+   "get": {
+    "tags": [
+     "alerts"
+    ],
+    "summary": "Outbox",
+    "operationId": "outbox_api_outbox_get",
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "minimum": 1,
+       "default": 50,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Page_OutboxOut_"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/falls": {
+   "get": {
+    "tags": [
+     "falls"
+    ],
+    "summary": "Falls",
+    "operationId": "falls_api_falls_get",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "minimum": 1,
+       "default": 50,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Page_FallItem_"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/falls/{fid}": {
+   "get": {
+    "tags": [
+     "falls"
+    ],
+    "summary": "Fall",
+    "operationId": "fall_api_falls__fid__get",
+    "parameters": [
+     {
+      "name": "fid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Fid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FallDetail"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/sim/fall": {
+   "post": {
+    "tags": [
+     "simulation"
+    ],
+    "summary": "Sim Fall",
+    "description": "Inject a SisFall fall window for a patient at the current simulated time. The response states which SisFall subject it came from and whether\nthat subject was in the training set of the model used by the Fall worker (the replay model excludes the held-out subjects) and of the final model.",
+    "operationId": "sim_fall_api_sim_fall_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SimFallIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SimFallOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/sim/state": {
+   "get": {
+    "tags": [
+     "simulation"
+    ],
+    "summary": "Sim State",
+    "operationId": "sim_state_api_sim_state_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SimStateOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/sim/control": {
+   "post": {
+    "tags": [
+     "simulation"
+    ],
+    "summary": "Sim Control",
+    "operationId": "sim_control_api_sim_control_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SimControlIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SimStateOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/events": {
+   "get": {
+    "tags": [
+     "simulation"
+    ],
+    "summary": "Events",
+    "description": "Server-Sent Events: alert, day_status, report_ready, agent_health, outbox_status. Comment heartbeat every 15 s. Reconnect with Last-Event-ID.",
+    "operationId": "events_api_events_get",
+    "parameters": [
+     {
+      "name": "last_event_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "same as the Last-Event-ID header",
+       "title": "Last Event Id"
+      },
+      "description": "same as the Last-Event-ID header"
+     },
+     {
+      "name": "max_seconds",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "close the stream after this many seconds (tests)",
+       "title": "Max Seconds"
+      },
+      "description": "close the stream after this many seconds (tests)"
+     },
+     {
+      "name": "Last-Event-ID",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Last-Event-Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response"
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/agents/health": {
+   "get": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Agents Health",
+    "operationId": "agents_health_api_agents_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/AgentHealth"
+         },
+         "type": "array",
+         "title": "Response Agents Health Api Agents Health Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/agents/{name}/kill": {
+   "post": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Agents Kill",
+    "description": "Fault demo: SIGKILL a worker; the supervisor restarts it. Refused unless config api.allow_kill is true.",
+    "operationId": "agents_kill_api_agents__name__kill_post",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     },
+     {
+      "name": "wait_s",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "number",
+       "maximum": 300,
+       "minimum": 1,
+       "default": 90,
+       "title": "Wait S"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/KillOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/system/config": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Sys Config",
+    "description": "Flags the UI needs: whether agent kill is enabled and whether mail is real (never secrets).",
+    "operationId": "sys_config_api_system_config_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SystemConfigOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/system/quality": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Sys Quality",
+    "operationId": "sys_quality_api_system_quality_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QualityOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/system/metrics": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Sys Metrics",
+    "operationId": "sys_metrics_api_system_metrics_get",
+    "parameters": [
+     {
+      "name": "names",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "comma-separated metrics file names (default model_selection,calibration,fall_audit)",
+       "title": "Names"
+      },
+      "description": "comma-separated metrics file names (default model_selection,calibration,fall_audit)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MetricsOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/system/llm-budget": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Sys Llm",
+    "operationId": "sys_llm_api_system_llm_budget_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LLMBudgetOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/system/limitations": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Sys Limits",
+    "operationId": "sys_limits_api_system_limitations_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LimitationsOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "AgentHealth": {
+    "properties": {
+     "agent": {
+      "type": "string",
+      "title": "Agent"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "alive": {
+      "type": "boolean",
+      "title": "Alive"
+     },
+     "heartbeat_age_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Heartbeat Age S"
+     },
+     "last_event_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Event Id"
+     },
+     "pid": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pid"
+     },
+     "restarts": {
+      "type": "integer",
+      "title": "Restarts",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "agent",
+     "status",
+     "alive"
+    ],
+    "title": "AgentHealth"
+   },
+   "AlertOut": {
+    "properties": {
+     "alert_id": {
+      "type": "string",
+      "title": "Alert Id"
+     },
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "type": {
+      "type": "string",
+      "title": "Type"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "event_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Event Id"
+     },
+     "event_time": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Event Time"
+     },
+     "time": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Time"
+     }
+    },
+    "type": "object",
+    "required": [
+     "alert_id",
+     "patient_id",
+     "type",
+     "status"
+    ],
+    "title": "AlertOut"
+   },
+   "Completeness": {
+    "properties": {
+     "days": {
+      "type": "integer",
+      "title": "Days",
+      "default": 0
+     },
+     "days_with_activity": {
+      "type": "integer",
+      "title": "Days With Activity",
+      "default": 0
+     },
+     "days_with_vitals": {
+      "type": "integer",
+      "title": "Days With Vitals",
+      "default": 0
+     },
+     "sensor_gap_days": {
+      "type": "integer",
+      "title": "Sensor Gap Days",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "title": "Completeness"
+   },
+   "DailyReportOut": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "mode": {
+      "type": "string",
+      "title": "Mode"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "created_ts": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created Ts"
+     },
+     "validation": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Validation"
+     },
+     "provenance": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Provenance"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "day",
+     "mode",
+     "text"
+    ],
+    "title": "DailyReportOut"
+   },
+   "DayBand": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "lo": {
+      "type": "number",
+      "title": "Lo"
+     },
+     "hi": {
+      "type": "number",
+      "title": "Hi"
+     },
+     "base": {
+      "type": "number",
+      "title": "Base"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "lo",
+     "hi",
+     "base"
+    ],
+    "title": "DayBand"
+   },
+   "DayStatus": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "reasons": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Reasons"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "status",
+     "reasons"
+    ],
+    "title": "DayStatus"
+   },
+   "ErrorBody": {
+    "properties": {
+     "status": {
+      "type": "integer",
+      "title": "Status"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "message"
+    ],
+    "title": "ErrorBody"
+   },
+   "ErrorOut": {
+    "properties": {
+     "error": {
+      "$ref": "#/components/schemas/ErrorBody"
+     }
+    },
+    "type": "object",
+    "required": [
+     "error"
+    ],
+    "title": "ErrorOut"
+   },
+   "FallDetail": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "ts": {
+      "type": "string",
+      "title": "Ts"
+     },
+     "sisfall_subject": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sisfall Subject"
+     },
+     "probability": {
+      "type": "number",
+      "title": "Probability"
+     },
+     "probability_text": {
+      "type": "string",
+      "title": "Probability Text"
+     },
+     "peak_g": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Peak G"
+     },
+     "inactivity": {
+      "type": "boolean",
+      "title": "Inactivity"
+     },
+     "day_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Day Status"
+     },
+     "alert_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alert Status"
+     },
+     "inactivity_observed_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Inactivity Observed S"
+     },
+     "inactivity_required_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Inactivity Required S"
+     },
+     "threshold": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Threshold"
+     },
+     "injected": {
+      "type": "boolean",
+      "title": "Injected",
+      "default": false
+     },
+     "in_training_set_of_worker_model": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "In Training Set Of Worker Model"
+     },
+     "in_training_set_of_final_model": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "In Training Set Of Final Model"
+     },
+     "waveform": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/Waveform"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "alert": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/AlertOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "outbox": {
+      "items": {
+       "$ref": "#/components/schemas/OutboxOut"
+      },
+      "type": "array",
+      "title": "Outbox",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "patient_id",
+     "day",
+     "ts",
+     "probability",
+     "probability_text",
+     "inactivity"
+    ],
+    "title": "FallDetail"
+   },
+   "FallItem": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "ts": {
+      "type": "string",
+      "title": "Ts"
+     },
+     "sisfall_subject": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sisfall Subject"
+     },
+     "probability": {
+      "type": "number",
+      "title": "Probability"
+     },
+     "probability_text": {
+      "type": "string",
+      "title": "Probability Text"
+     },
+     "peak_g": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Peak G"
+     },
+     "inactivity": {
+      "type": "boolean",
+      "title": "Inactivity"
+     },
+     "day_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Day Status"
+     },
+     "alert_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alert Status"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "patient_id",
+     "day",
+     "ts",
+     "probability",
+     "probability_text",
+     "inactivity"
+    ],
+    "title": "FallItem"
+   },
+   "KillOut": {
+    "properties": {
+     "agent": {
+      "type": "string",
+      "title": "Agent"
+     },
+     "killed_pid": {
+      "type": "integer",
+      "title": "Killed Pid"
+     },
+     "recovered": {
+      "type": "boolean",
+      "title": "Recovered"
+     },
+     "recovery_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Recovery S"
+     }
+    },
+    "type": "object",
+    "required": [
+     "agent",
+     "killed_pid",
+     "recovered"
+    ],
+    "title": "KillOut"
+   },
+   "LLMBudgetOut": {
+    "properties": {
+     "models": {
+      "items": {
+       "$ref": "#/components/schemas/ModelBudget"
+      },
+      "type": "array",
+      "title": "Models"
+     },
+     "cache_hits": {
+      "type": "integer",
+      "title": "Cache Hits"
+     },
+     "model_requests": {
+      "type": "integer",
+      "title": "Model Requests"
+     },
+     "cache_hit_rate": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cache Hit Rate"
+     },
+     "recent_events": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Recent Events"
+     }
+    },
+    "type": "object",
+    "required": [
+     "models",
+     "cache_hits",
+     "model_requests",
+     "recent_events"
+    ],
+    "title": "LLMBudgetOut"
+   },
+   "LimitationsOut": {
+    "properties": {
+     "source": {
+      "type": "string",
+      "title": "Source"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "source",
+     "text"
+    ],
+    "title": "LimitationsOut"
+   },
+   "MetricsOut": {
+    "properties": {
+     "available": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Available"
+     },
+     "files": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Files"
+     }
+    },
+    "type": "object",
+    "required": [
+     "available",
+     "files"
+    ],
+    "title": "MetricsOut"
+   },
+   "ModelBudget": {
+    "properties": {
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "rpm_limit": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rpm Limit"
+     },
+     "effective_rpm_cap": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Effective Rpm Cap"
+     },
+     "requests_last_minute": {
+      "type": "integer",
+      "title": "Requests Last Minute"
+     },
+     "requests_last_24h": {
+      "type": "integer",
+      "title": "Requests Last 24H"
+     },
+     "cooldown_remaining_s": {
+      "type": "number",
+      "title": "Cooldown Remaining S"
+     },
+     "failures_last_24h": {
+      "type": "integer",
+      "title": "Failures Last 24H"
+     }
+    },
+    "type": "object",
+    "required": [
+     "model",
+     "requests_last_minute",
+     "requests_last_24h",
+     "cooldown_remaining_s",
+     "failures_last_24h"
+    ],
+    "title": "ModelBudget"
+   },
+   "OutboxOut": {
+    "properties": {
+     "outbox_id": {
+      "type": "integer",
+      "title": "Outbox Id"
+     },
+     "alert_id": {
+      "type": "string",
+      "title": "Alert Id"
+     },
+     "recipient_role": {
+      "type": "string",
+      "title": "Recipient Role"
+     },
+     "address": {
+      "type": "string",
+      "title": "Address"
+     },
+     "channel": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Channel"
+     },
+     "subject": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Subject"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "attempts": {
+      "type": "integer",
+      "title": "Attempts",
+      "default": 0
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     },
+     "event_time": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Event Time"
+     },
+     "queued_time": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Queued Time"
+     },
+     "sent_time": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sent Time"
+     },
+     "attachment_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attachment Name"
+     },
+     "body": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Body"
+     }
+    },
+    "type": "object",
+    "required": [
+     "outbox_id",
+     "alert_id",
+     "recipient_role",
+     "address",
+     "status"
+    ],
+    "title": "OutboxOut"
+   },
+   "Page_AlertOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/AlertOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "limit": {
+      "type": "integer",
+      "title": "Limit"
+     },
+     "offset": {
+      "type": "integer",
+      "title": "Offset"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "limit",
+     "offset"
+    ],
+    "title": "Page[AlertOut]"
+   },
+   "Page_FallItem_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/FallItem"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "limit": {
+      "type": "integer",
+      "title": "Limit"
+     },
+     "offset": {
+      "type": "integer",
+      "title": "Offset"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "limit",
+     "offset"
+    ],
+    "title": "Page[FallItem]"
+   },
+   "Page_OutboxOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/OutboxOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "limit": {
+      "type": "integer",
+      "title": "Limit"
+     },
+     "offset": {
+      "type": "integer",
+      "title": "Offset"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "limit",
+     "offset"
+    ],
+    "title": "Page[OutboxOut]"
+   },
+   "Page_PatientOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/PatientOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "limit": {
+      "type": "integer",
+      "title": "Limit"
+     },
+     "offset": {
+      "type": "integer",
+      "title": "Offset"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "limit",
+     "offset"
+    ],
+    "title": "Page[PatientOut]"
+   },
+   "PatientOut": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "age_band": {
+      "type": "string",
+      "title": "Age Band"
+     },
+     "sex": {
+      "type": "string",
+      "title": "Sex"
+     },
+     "latest_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latest Status"
+     },
+     "latest_day": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latest Day"
+     },
+     "last_alert_time": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Alert Time"
+     },
+     "last_alert_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Alert Type"
+     },
+     "completeness": {
+      "$ref": "#/components/schemas/Completeness"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "age_band",
+     "sex",
+     "completeness"
+    ],
+    "title": "PatientOut"
+   },
+   "Provenance": {
+    "properties": {
+     "model": {
+      "type": "string",
+      "title": "Model",
+      "default": "template"
+     },
+     "mode": {
+      "type": "string",
+      "title": "Mode",
+      "default": "template"
+     },
+     "cache_hit": {
+      "type": "boolean",
+      "title": "Cache Hit",
+      "default": false
+     },
+     "tools": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Tools",
+      "default": []
+     },
+     "sources_retrieved": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Sources Retrieved",
+      "default": []
+     },
+     "sources_cited": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Sources Cited",
+      "default": []
+     },
+     "validator": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Validator"
+     },
+     "fallback_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fallback Reason"
+     },
+     "requests": {
+      "type": "integer",
+      "title": "Requests",
+      "default": 0
+     },
+     "tokens": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Tokens",
+      "default": {}
+     },
+     "models_tried": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Models Tried",
+      "default": []
+     },
+     "events": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Events",
+      "default": []
+     },
+     "retrieval_events": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Retrieval Events",
+      "default": []
+     },
+     "pubmed_failure": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pubmed Failure"
+     }
+    },
+    "type": "object",
+    "title": "Provenance"
+   },
+   "QualityOut": {
+    "properties": {
+     "live": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Live"
+     },
+     "static": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Static"
+     }
+    },
+    "type": "object",
+    "required": [
+     "live"
+    ],
+    "title": "QualityOut"
+   },
+   "RoutineDay": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "has_activity": {
+      "type": "boolean",
+      "title": "Has Activity"
+     },
+     "metrics": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/RoutineMetric"
+      },
+      "type": "object",
+      "title": "Metrics"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "has_activity",
+     "metrics"
+    ],
+    "title": "RoutineDay"
+   },
+   "RoutineMetric": {
+    "properties": {
+     "value": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value"
+     },
+     "lo": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lo"
+     },
+     "hi": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hi"
+     },
+     "base": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base"
+     },
+     "z": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Z"
+     }
+    },
+    "type": "object",
+    "title": "RoutineMetric"
+   },
+   "RoutineOut": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "start": {
+      "type": "string",
+      "title": "Start"
+     },
+     "end": {
+      "type": "string",
+      "title": "End"
+     },
+     "rooms": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Rooms"
+     },
+     "hours": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Hours"
+     },
+     "counts": {
+      "items": {
+       "items": {
+        "type": "integer"
+       },
+       "type": "array"
+      },
+      "type": "array",
+      "title": "Counts"
+     },
+     "days": {
+      "items": {
+       "$ref": "#/components/schemas/RoutineDay"
+      },
+      "type": "array",
+      "title": "Days"
+     },
+     "min_history_days": {
+      "type": "integer",
+      "title": "Min History Days"
+     },
+     "baseline_note": {
+      "type": "string",
+      "title": "Baseline Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "start",
+     "end",
+     "rooms",
+     "hours",
+     "counts",
+     "days",
+     "min_history_days",
+     "baseline_note"
+    ],
+    "title": "RoutineOut"
+   },
+   "SimControlIn": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "enum": [
+       "play",
+       "pause",
+       "speed",
+       "reset"
+      ],
+      "title": "Action"
+     },
+     "speed": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Speed",
+      "description": "events per second, for action=speed"
+     }
+    },
+    "type": "object",
+    "required": [
+     "action"
+    ],
+    "title": "SimControlIn"
+   },
+   "SimFallIn": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "subject": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Subject",
+      "description": "optional held-out SisFall subject (SA03, SA11, SA19, SE06)"
+     },
+     "activity": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Activity",
+      "description": "optional SisFall fall type, e.g. F02 (default: random)"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id"
+    ],
+    "title": "SimFallIn"
+   },
+   "SimFallOut": {
+    "properties": {
+     "command_id": {
+      "type": "integer",
+      "title": "Command Id"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "DONE",
+       "QUEUED"
+      ],
+      "title": "Status"
+     },
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "day": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Day"
+     },
+     "event_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Event Id"
+     },
+     "sisfall_subject": {
+      "type": "string",
+      "title": "Sisfall Subject"
+     },
+     "activity": {
+      "type": "string",
+      "title": "Activity"
+     },
+     "file": {
+      "type": "string",
+      "title": "File"
+     },
+     "in_training_set_of_worker_model": {
+      "type": "boolean",
+      "title": "In Training Set Of Worker Model"
+     },
+     "in_training_set_of_final_model": {
+      "type": "boolean",
+      "title": "In Training Set Of Final Model"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "command_id",
+     "status",
+     "patient_id",
+     "sisfall_subject",
+     "activity",
+     "file",
+     "in_training_set_of_worker_model",
+     "in_training_set_of_final_model",
+     "note"
+    ],
+    "title": "SimFallOut"
+   },
+   "SimStateOut": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "speed": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Speed"
+     },
+     "cursor": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cursor"
+     },
+     "total": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Total"
+     },
+     "sim_time": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sim Time"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message",
+      "default": ""
+     },
+     "runtime_alive": {
+      "type": "boolean",
+      "title": "Runtime Alive"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "runtime_alive"
+    ],
+    "title": "SimStateOut"
+   },
+   "SummaryOut": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "status_text": {
+      "type": "string",
+      "title": "Status Text"
+     },
+     "reasons": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Reasons"
+     },
+     "alerts": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Alerts",
+      "default": []
+     },
+     "data_note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Data Note"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "day",
+     "status",
+     "status_text",
+     "reasons"
+    ],
+    "title": "SummaryOut"
+   },
+   "SystemConfigOut": {
+    "properties": {
+     "allow_kill": {
+      "type": "boolean",
+      "title": "Allow Kill"
+     },
+     "dry_run_mail": {
+      "type": "boolean",
+      "title": "Dry Run Mail"
+     },
+     "llm_enabled": {
+      "type": "boolean",
+      "title": "Llm Enabled"
+     }
+    },
+    "type": "object",
+    "required": [
+     "allow_kill",
+     "dry_run_mail",
+     "llm_enabled"
+    ],
+    "title": "SystemConfigOut"
+   },
+   "VitalPoint": {
+    "properties": {
+     "t": {
+      "type": "string",
+      "title": "T"
+     },
+     "value": {
+      "type": "number",
+      "title": "Value"
+     },
+     "flagged": {
+      "type": "boolean",
+      "title": "Flagged"
+     },
+     "base": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Base"
+     },
+     "lo": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lo"
+     },
+     "hi": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Hi"
+     }
+    },
+    "type": "object",
+    "required": [
+     "t",
+     "value",
+     "flagged"
+    ],
+    "title": "VitalPoint"
+   },
+   "VitalSeries": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "unit": {
+      "type": "string",
+      "title": "Unit"
+     },
+     "baseline_established": {
+      "type": "boolean",
+      "title": "Baseline Established"
+     },
+     "baseline_note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Baseline Note"
+     },
+     "points": {
+      "items": {
+       "$ref": "#/components/schemas/VitalPoint"
+      },
+      "type": "array",
+      "title": "Points"
+     },
+     "bands": {
+      "items": {
+       "$ref": "#/components/schemas/DayBand"
+      },
+      "type": "array",
+      "title": "Bands"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "unit",
+     "baseline_established",
+     "points",
+     "bands"
+    ],
+    "title": "VitalSeries"
+   },
+   "VitalsOut": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "start": {
+      "type": "string",
+      "title": "Start"
+     },
+     "end": {
+      "type": "string",
+      "title": "End"
+     },
+     "min_history_readings": {
+      "type": "integer",
+      "title": "Min History Readings"
+     },
+     "series": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/VitalSeries"
+      },
+      "type": "object",
+      "title": "Series"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "start",
+     "end",
+     "min_history_readings",
+     "series"
+    ],
+    "title": "VitalsOut"
+   },
+   "Waveform": {
+    "properties": {
+     "fs_hz": {
+      "type": "integer",
+      "title": "Fs Hz"
+     },
+     "downsample_stride": {
+      "type": "integer",
+      "title": "Downsample Stride"
+     },
+     "t_s": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "T S"
+     },
+     "x_g": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "X G"
+     },
+     "y_g": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Y G"
+     },
+     "z_g": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Z G"
+     },
+     "magnitude_g": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Magnitude G"
+     },
+     "impact_index": {
+      "type": "integer",
+      "title": "Impact Index"
+     },
+     "impact_time_s": {
+      "type": "number",
+      "title": "Impact Time S"
+     }
+    },
+    "type": "object",
+    "required": [
+     "fs_hz",
+     "downsample_stride",
+     "t_s",
+     "x_g",
+     "y_g",
+     "z_g",
+     "magnitude_g",
+     "impact_index",
+     "impact_time_s"
+    ],
+    "title": "Waveform"
+   },
+   "WeeklyReportOut": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "week": {
+      "type": "string",
+      "title": "Week"
+     },
+     "week_start": {
+      "type": "string",
+      "title": "Week Start"
+     },
+     "week_end": {
+      "type": "string",
+      "title": "Week End"
+     },
+     "mode": {
+      "type": "string",
+      "title": "Mode"
+     },
+     "narrative": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Narrative"
+     },
+     "provenance": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Provenance"
+     },
+     "validation": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Validation"
+     },
+     "pdf_available": {
+      "type": "boolean",
+      "title": "Pdf Available"
+     },
+     "pdf_pages": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pdf Pages"
+     },
+     "data": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Data"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "week",
+     "week_start",
+     "week_end",
+     "mode",
+     "pdf_available"
+    ],
+    "title": "WeeklyReportOut"
+   },
+   "WeeklySendIn": {
+    "properties": {
+     "force": {
+      "type": "boolean",
+      "title": "Force",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "WeeklySendIn"
+   },
+   "WeeklySendOut": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "week": {
+      "type": "string",
+      "title": "Week"
+     },
+     "queued": {
+      "type": "boolean",
+      "title": "Queued"
+     },
+     "deduplicated": {
+      "type": "boolean",
+      "title": "Deduplicated"
+     },
+     "alert_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alert Id"
+     },
+     "send_real": {
+      "type": "boolean",
+      "title": "Send Real"
+     },
+     "mode": {
+      "type": "string",
+      "title": "Mode"
+     },
+     "outbox": {
+      "items": {
+       "$ref": "#/components/schemas/OutboxOut"
+      },
+      "type": "array",
+      "title": "Outbox"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "week",
+     "queued",
+     "deduplicated",
+     "send_real",
+     "mode",
+     "outbox"
+    ],
+    "title": "WeeklySendOut"
+   }
+  }
+ }
+}

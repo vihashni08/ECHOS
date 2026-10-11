@@ -12,3 +12,7 @@ echos/knowledge/raw/*.pdf
 reports/samples/
 data/reports/weekly/
 .venv/
+web/node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/

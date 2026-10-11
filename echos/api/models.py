@@ -182,6 +182,7 @@ class OutboxOut(BaseModel):
     queued_time: Optional[float] = None
     sent_time: Optional[float] = None
     attachment_name: Optional[str] = None
+    body: Optional[str] = None                     # message text; only on /falls/{id} (fixed template, de-identified)
 
 
 class WeeklySendIn(BaseModel):
@@ -240,6 +241,7 @@ class FallDetail(FallItem):
 class SimFallIn(BaseModel):
     patient_id: str
     subject: Optional[str] = Field(None, description="optional held-out SisFall subject (SA03, SA11, SA19, SE06)")
+    activity: Optional[str] = Field(None, description="optional SisFall fall type, e.g. F02 (default: random)")
 
 
 class SimFallOut(BaseModel):
@@ -319,3 +321,9 @@ class MetricsOut(BaseModel):
 class QualityOut(BaseModel):
     live: dict[str, Any]
     static: Optional[dict[str, Any]] = None
+
+
+class SystemConfigOut(BaseModel):
+    allow_kill: bool
+    dry_run_mail: bool
+    llm_enabled: bool

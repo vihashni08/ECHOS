@@ -66,7 +66,7 @@ def api(world, tmp_path, monkeypatch):
 
 GETS = ["/patients", f"/patients/{PID}/summary?day=2019-05-07", f"/patients/{PID}/summary", f"/patients/{PID}/statuses?days=7", f"/patients/{PID}/vitals?from=2019-05-06&to=2019-05-12",
         f"/patients/{PID}/routine?from=2019-05-06&to=2019-05-12", f"/patients/{PID}/reports/daily?day=2019-05-07", "/alerts", "/outbox", "/falls", "/falls/5", "/sim/state",
-        "/agents/health", "/system/quality", "/system/metrics", "/system/llm-budget", "/system/limitations"]
+        "/agents/health", "/system/quality", "/system/metrics", "/system/llm-budget", "/system/limitations", "/system/config"]
 
 
 def test_every_endpoint_returns_200_and_validates(api):
@@ -92,6 +92,9 @@ def test_every_endpoint_returns_200_and_validates(api):
     if f.waveform:
         w = f.waveform
         assert len(w.t_s) == len(w.magnitude_g) <= 260 and w.magnitude_g[w.impact_index] == max(w.magnitude_g)
+    assert f.outbox[0].body == "b" and c.get("/api/outbox").json()["items"][0]["body"] is None
+    cfg = c.get("/api/system/config").json()
+    assert cfg == {"allow_kill": False, "dry_run_mail": True, "llm_enabled": True}
     assert c.get("/api/system/limitations").json()["text"].startswith("- TIHM has no falls")
     assert c.get("/openapi.json").status_code == 200 and c.get("/docs").status_code == 200
 

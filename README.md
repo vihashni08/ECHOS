@@ -94,6 +94,14 @@ scripts/run_api.sh --no-runtime        # API only, reads the existing data/echos
 `--dry` forces DryRun mail (outbox rows only). The API has **no authentication** (local demo, bound to 127.0.0.1, CORS for http://localhost:5173) and never loads models:
 it reads SQLite / reports / `reports/metrics/*.json` and sends commands to the runtime through the database. See `docs/API.md` for the endpoint list.
 
+## Web app
+```bash
+scripts/make_ui_dev_copy.sh                                   # data/echos_ui_dev.db: a copy, so the UI never touches data/echos.db
+scripts/run_api.sh --dry --no-llm --demo --db data/echos_ui_dev.db   # API on http://127.0.0.1:8000 (dry mail, no Gemini, agent kill enabled)
+cd web && npm install && npm run dev                          # UI on http://localhost:5173 (open it via localhost, CORS allows only that origin)
+```
+`npm run build` / `npx tsc -b` verify the app; `npx playwright test` (servers running) runs the smoke tests; `npm run gen:api` regenerates the typed API client.
+
 ## Dashboard
 
 After step 4 (or any run that fills `data/echos.db`):

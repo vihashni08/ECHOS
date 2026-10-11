@@ -50,6 +50,13 @@ fall), writes heartbeats to SQLite and restarts dead ones.
   triggers. Never returns raw secrets or full e-mail addresses (masked `ab***@domain`); `api.allow_kill` (default false) guards POST /api/agents/{name}/kill.
   Injected falls are synthetic SisFall windows; the response states whether the subject was in the training set of the Fall worker's model / the final model.
 
+## Web app (web/)
+- Vite + React + TypeScript + Tailwind v4 + shadcn/ui + Recharts + React Router + TanStack Query; fonts self-hosted (@fontsource), no runtime CDN. Typed client from the
+  FastAPI schema: `cd web && npm run gen:api`. Dev: backend `scripts/run_api.sh --dry --no-llm [--demo] --db data/echos_ui_dev.db` (copy made by
+  `scripts/make_ui_dev_copy.sh`; never develop against data/echos.db), then `cd web && npm run dev` -> http://localhost:5173 (the API allows CORS for exactly that origin).
+  Checks: `npm run build`, `npx tsc -b`, `node contrast.mjs` (WCAG AA tokens), `npx playwright test` (assumes both servers running; its Simulate-fall test RESETS the dev DB),
+  `node scripts/ui_screenshots.mjs` -> web/screenshots/. `--demo` enables agent kill (api.allow_kill stays false by default).
+
 ## Rules
 - Python 3.11, pydantic, pandas, scikit-learn, xgboost, shap, langgraph, streamlit, sqlalchemy/sqlite, pytest.
 - Split by PATIENT (GroupKFold) for TIHM and by SUBJECT for SisFall. Never random rows.

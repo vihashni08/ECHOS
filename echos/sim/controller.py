@@ -17,6 +17,7 @@ import logging
 import sqlite3
 import threading
 import time
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
@@ -174,14 +175,15 @@ class SimController:
 
 class Runtime:
     """Workers (supervisor) + orchestrator thread + controller thread, for demos."""
-    def __init__(self, db=None, n_patients: int = 4, max_days: int = 28, report_llm="auto", weekly_pdf=None):
+    def __init__(self, db=None, n_patients: int = 4, max_days: int = 28, report_llm="auto", weekly_pdf=None, report_root=None):
         from echos.orchestrator.graph import build_graph
         from echos.orchestrator.supervisor import Supervisor
         from echos.sim.replay import train_replay_fall_model
         self.db = db
         self.eng = S.get_engine(db)
-        self.cp = ROOT / load_config()["checkpoint_db_path"]
-        self.report_llm, self.weekly_pdf = report_llm, weekly_pdf
+        # a run on a specific database keeps its OWN langgraph checkpoint file next to it (never the shared default one)
+        self.cp = Path(db).with_suffix(".cp.sqlite") if db else ROOT / load_config()["checkpoint_db_path"]
+        self.report_llm, self.weekly_pdf, self.report_root = report_llm, weekly_pdf, report_root
         self._build_graph = build_graph
         self.sup = Supervisor(db, fall_model=train_replay_fall_model())
         self.ctl = SimController(self.eng, n_patients=n_patients, max_days=max_days, on_reset=self._on_reset)
@@ -192,7 +194,7 @@ class Runtime:
     def _start_orch(self):
         from echos.orchestrator.graph import run_orchestrator
         self.stop_orch = threading.Event()
-        self.graph, self.conn = self._build_graph(self.eng, self.cp, report_llm=self.report_llm, weekly_pdf=self.weekly_pdf)
+        self.graph, self.conn = self._build_graph(self.eng, self.cp, report_llm=self.report_llm, weekly_pdf=self.weekly_pdf, report_root=self.report_root)
         self.orch = threading.Thread(target=run_orchestrator, args=(self.eng, self.graph), kwargs={"stop": self.stop_orch, "poll_s": 0.2}, daemon=True)
         self.orch.start()
 
@@ -238,7 +240,7 @@ def main():
     ap.add_argument("--days", type=int, default=28)
     ap.add_argument("--no-llm", action="store_true", help="template reports only (no Gemini calls)")
     a = ap.parse_args()
-    rt = Runtime(a.db, a.patients, a.days, report_llm=None if (a.no_llm or os.environ.get("ECHOS_REPORT_LLM") == "off") else "auto")
+    rt = Runtime(a.db, a.patients, a.days, report_root=os.environ.get("ECHOS_REPORT_ROOT"), report_llm=None if (a.no_llm or os.environ.get("ECHOS_REPORT_LLM") == "off") else "auto")
     rt.start()
     print("runtime started (workers + orchestrator + controller); Ctrl-C to stop", flush=True)
     try:
