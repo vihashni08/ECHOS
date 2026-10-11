@@ -4,8 +4,8 @@
   "n_subjects": 38,
   "adl_hours": 14.500300000000003,
   "threshold": 0.5,
-  "pr_auc": 0.9954302520447756,
-  "roc_auc": 0.9990681332691845,
+  "pr_auc": 0.9950702419621025,
+  "roc_auc": 0.9987979427423248,
   "groups": {
     "adult": {
       "n_falls": 1722,
@@ -34,10 +34,10 @@
         "SA22",
         "SA23"
       ],
-      "sensitivity": 0.9849012775842044,
+      "sensitivity": 0.9819976771196284,
       "n_adl_windows": 24626,
       "adl_hours": 9.49556111111111,
-      "specificity_windows": 0.9988629903354178,
+      "specificity_windows": 0.9989035978234386,
       "false_alarms_per_hour": 2.316872035530052
     },
     "elderly": {
@@ -45,18 +45,18 @@
       "fall_subjects": [
         "SE06"
       ],
-      "sensitivity": 0.8533333333333334,
+      "sensitivity": 0.8666666666666667,
       "n_adl_windows": 13148,
       "adl_hours": 5.004738888888889,
-      "specificity_windows": 0.9995436568299361,
-      "false_alarms_per_hour": 0.9990531196543719
+      "specificity_windows": 0.9993154852449042,
+      "false_alarms_per_hour": 1.5984849914469952
     }
   },
-  "overall_false_alarms_per_hour": 1.8620304407495014,
+  "overall_false_alarms_per_hour": 2.06892271194389,
   "top_false_alarm_activities": {
-    "D13": 12,
+    "D13": 11,
     "D18": 10,
-    "D14": 6
+    "D14": 9
   },
   "post_fall_inactivity": {
     "detected_in_falls": 0.9571508069003896,
