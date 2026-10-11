@@ -1,4 +1,4 @@
-"""Build the weekly clinician PDF for one demo patient from data/echos.db (template narrative; no LLM, no PubMed) and print its path.
+"""Build the weekly clinician PDF for one demo patient from data/echos.db (template narrative, no LLM; retrieval attached: local index, then live PubMed for Monitor/Urgent weeks) and print its path.
 With --yes it also emails it to the CLINICIAN address only (ECHOS_CLINICIAN_EMAIL, real SMTP from .env, subject marked TEST). Without --yes nothing is sent.
 Usage: PYTHONPATH=. python scripts/send_test_weekly.py [patient_id] [ISO week, e.g. 2019-W14] [--yes]"""
 import sys
@@ -16,7 +16,9 @@ def main(args: list[str]) -> int:
         with eng.begin() as c:
             pid, day = c.execute(S.case_state.select().where(S.case_state.c.status == "URGENT").order_by(S.case_state.c.day)).first()[:2]
         week = week or WR.WD.iso_week(day)
-    r = WR.make_weekly(eng, pid, week, dispatcher=None, send=False)
+    from echos.reports.agent import ReportAgent
+    retriever = ReportAgent(eng, None).retriever      # same retriever as the orchestrator: local index first, then PubMed (only if the week has a Monitor/Urgent day)
+    r = WR.make_weekly(eng, pid, week, dispatcher=None, retriever=retriever, send=False)
     print(f"PDF: {r['pdf']['path']} ({r['pdf']['pages']} pages, {r['pdf']['bytes'] // 1024} KB)")
     if "--yes" not in args:
         print("Not sent. Re-run with --yes to email it to the clinician address only.")

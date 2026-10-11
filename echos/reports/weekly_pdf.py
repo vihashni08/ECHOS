@@ -75,6 +75,8 @@ def vitals_chart(d: dict, h_mm: float) -> bytes:
             ax.plot([pd.Timestamp(p["t"]) for p in fl], [p["value"] for p in fl], "X", ms=7, color="#b91c1c", mec="black", mew=.5, label="flagged (outside band)")
         if not s["points"]:
             ax.text(.5, .5, "no readings this week", transform=ax.transAxes, ha="center", fontsize=7, color="#6b7280")
+        elif not d["vitals_summary"][k]["baseline_established"]:
+            ax.text(.5, .04, "personal baseline not yet established\n(fewer than 5 earlier readings)", transform=ax.transAxes, ha="center", fontsize=6, color="#6b7280")
         ax.set_title(name, fontsize=8, loc="left")
         _style_ax(ax, d, f"{name} ({unit})")
         h, l = ax.get_legend_handles_labels()
@@ -104,6 +106,8 @@ def routine_chart(d: dict, h_mm: float) -> bytes:
                        label="unusual activity pattern day" if day in unusual else "daily value")
             else:
                 ax.text(t, 0, "no data", fontsize=5, ha="center", va="bottom", color="#6b7280")
+        if not d["routine_baseline_established"][k]:
+            ax.text(.5, .9, "personal baseline not yet established (fewer than 7 earlier days)", transform=ax.transAxes, ha="center", fontsize=6, color="#6b7280")
         ax.set_title(ROUTINE[k], fontsize=8, loc="left")
         _style_ax(ax, d, units[k])
         h, l = ax.get_legend_handles_labels()
@@ -160,7 +164,7 @@ def _alert_rows(d: dict) -> list:
     rows = []
     for f in d["falls"]:
         pk = f"{f['peak_g']:g} g" if f["peak_g"] is not None else "n/a"
-        rows.append((f["day"], f["time"] or "", "Possible fall", f"Fall probability {f['probability']:g}; peak {pk}; inactivity afterwards: {'yes' if f['inactivity'] else 'no'}", lab(f["day"])))
+        rows.append((f["day"], f["time"] or "", "Possible fall", f"Fall probability {f['probability_text']}; peak {pk}; inactivity afterwards: {'yes' if f['inactivity'] else 'no'}", lab(f["day"])))
     for a in d["vitals_alerts"]:
         if a["kind"] == "critical":
             det = "Critical-range reading: " + ", ".join(f"{k} {a[k]:g}" for k in ("sys", "dia", "hr") if a.get(k) is not None)
@@ -228,6 +232,9 @@ def _build(d, narrative, sources, out_path, gen, scale) -> dict:
     q = [f"Days with room-sensor activity: {comp['days_with_activity']} of 7. Days with vitals readings: {comp['days_with_vitals']} of 7.",
          f"Sensor-gap days: {comp['sensor_gap_days']}. Invalid values removed: {comp['invalid_values_removed']}. Longest stretch without vitals: {comp['longest_vitals_gap_days']} day(s).",
          f"Days with data: {comp['days_with_data']} of 7." + (f" {d['partial_week_note']}" if d["partial_week_note"] else "")]
+    nb = [VARS[k][0] for k in VARS if d["vitals_summary"][k]["n_readings"] and not d["vitals_summary"][k]["baseline_established"]]
+    if nb:
+        q.append("Personal baseline not yet established (fewer than 5 earlier readings) for: " + ", ".join(nb) + ". Only this week's own values are shown for them.")
     story += [h("Data quality")] + [P(escape(x)) for x in q]
     headings.append("References (for clinician review)")
     refs = [P(f"[{escape(s['id'])}] {escape(s['title'])} - {escape(s['source'])}" + (f" - {escape(s['url'])}" if s.get("url") else ""), "small") for s in sources]

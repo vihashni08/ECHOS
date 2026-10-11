@@ -46,9 +46,21 @@ def _r(x, nd=1):
     return None if x is None or pd.isna(x) else round(float(x), nd)
 
 
+MIN_VITAL_HISTORY = 5      # earlier readings (patient-days with a reading) needed before a personal vitals baseline exists
+NOT_ESTABLISHED = "personal baseline not yet established (fewer than 5 earlier readings)"
+ROUTINE_NOT_ESTABLISHED = "personal baseline not yet established (fewer than 7 earlier days)"
+
+
+def fmt_prob(p) -> str:
+    """Fall probability for people: values that round to 1.00 print as '>0.99'."""
+    if p is None:
+        return "n/a"
+    return ">0.99" if round(float(p), 2) >= 1.0 else f"{float(p):.2f}"
+
+
 def _band(pdf: pd.DataFrame, var: str, day: pd.Timestamp, cfg: dict):
-    """Personal band for `day` from PAST days only: (mean, sd, lo, hi) or None."""
-    b, sd = F._past_baseline(pdf, var, day, cfg["agent1"]["baseline_window_days"], 3)
+    """Personal band for `day` from PAST days only: (mean, sd, lo, hi), or None with fewer than MIN_VITAL_HISTORY earlier readings."""
+    b, sd = F._past_baseline(pdf, var, day, cfg["agent1"]["baseline_window_days"], MIN_VITAL_HISTORY)
     if b is None:
         return None
     sd = max(sd or 0.0, 0.02 * abs(b))
@@ -115,9 +127,12 @@ def build_weekly_data(eng, patient_id: str, week, pdy: Optional[pd.DataFrame] = 
         series[var] = {"points": pts, "band": {d: ([_r(b[2]), _r(b[3]), _r(b[0])] if b else None) for d, b in day_band.items()}}
         v = [p["value"] for p in pts]
         bs = [p["base"] for p in pts if p["base"] is not None]
+        est = any(b is not None for b in day_band.values())
         vsum[var] = {"name": VARS[var][0], "unit": VARS[var][1], "n_readings": len(v), "mean": _r(sum(v) / len(v)) if v else None,
-                     "baseline": _r(sum(bs) / len(bs)) if bs else None, "n_flagged": sum(p["flagged"] for p in pts),
-                     "flagged_days": sorted({p["t"][:10] for p in pts if p["flagged"]})}
+                     "baseline_established": est, "n_with_baseline": len(bs), "baseline": _r(sum(bs) / len(bs)) if bs else None,
+                     "n_flagged": sum(p["flagged"] for p in pts) if est else None,        # no 'outside the band' count without a baseline
+                     "flagged_days": sorted({p["t"][:10] for p in pts if p["flagged"]}),
+                     "note": None if est else NOT_ESTABLISHED}
 
     # ---- routine: values and personal z-scores (past-only baseline, active days only)
     rw = cfg["agent2"]["baseline_window_days"]
@@ -150,13 +165,14 @@ def build_weekly_data(eng, patient_id: str, week, pdy: Optional[pd.DataFrame] = 
     falls, seen = [], set()
     for r in sorted(al, key=lambda r: r.event_time):
         p = json.loads(r.payload)
-        falls.append({"day": r.event_time[:10], "time": r.event_time[11:16], "probability": p.get("fall_probability"), "peak_g": p.get("peak_impact_g"),
+        falls.append({"day": r.event_time[:10], "time": r.event_time[11:16], "probability": p.get("fall_probability"),
+                      "probability_text": fmt_prob(p.get("fall_probability")), "peak_g": p.get("peak_impact_g"),
                       "inactivity": p.get("post_fall_inactivity")})
         seen.add((r.event_time[:10], r.event_time[11:16]))
     for d in dstr:
         for f in (fx.get(d) or {}).get("falls", []):
             if (d, f.get("time")) not in seen:
-                falls.append({"day": d, "time": f.get("time"), "probability": f.get("prob"), "peak_g": None, "inactivity": f.get("post_fall_inactive")})
+                falls.append({"day": d, "time": f.get("time"), "probability": f.get("prob"), "probability_text": fmt_prob(f.get("prob")), "peak_g": None, "inactivity": f.get("post_fall_inactive")})
     falls.sort(key=lambda f: (f["day"], f["time"] or ""))
 
     # ---- completeness
@@ -175,6 +191,7 @@ def build_weekly_data(eng, patient_id: str, week, pdy: Optional[pd.DataFrame] = 
             "age_band": f"{nums[0]}-{nums[1]}" if len(nums) >= 2 else "unknown", "sex": str(dm.sex.iloc[0]) if len(dm) else "unknown",
             "days": [{"day": d, "status": status[d], "data_gap": bool(d in cs and cs[d].data_gap), "has_data": d in with_data} for d in dstr],
             "status_counts": counts, "vitals_summary": vsum, "vitals_alerts": vit_alerts, "falls": falls, "unusual_days": unusual,
+            "routine_baseline_established": {k: any(b is not None for b in routine[k]["band"].values()) for k in ROUTINE},
             "routine_z": {d: z for d, z in rz.items() if d in {u["day"] for u in unusual}}, "completeness": comp,
             "partial_week_note": (f"Partial week: only {len(with_data)} of 7 days have data." if len(with_data) < 7 else None),
             "any_monitor_or_urgent": bool(counts["MONITOR"] or counts["URGENT"]),

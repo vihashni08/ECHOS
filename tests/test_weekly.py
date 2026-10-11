@@ -75,7 +75,7 @@ def test_builder_numbers_match_the_database(world):
     assert (d["week_start"], d["week_end"], d["age_band"], d["sex"]) == ("2019-05-06", "2019-05-12", "80-90", "Female")
     c = d["status_counts"]
     assert (c["NORMAL"], c["MONITOR"], c["URGENT"], c["DATA_GAP"]) == (3, 2, 1, 1)
-    assert d["falls"] == [{"day": "2019-05-09", "time": "14:02", "probability": 0.93, "peak_g": 2.6, "inactivity": True}]
+    assert d["falls"] == [{"day": "2019-05-09", "time": "14:02", "probability": 0.93, "probability_text": "0.93", "peak_g": 2.6, "inactivity": True}]
     assert [a["day"] for a in d["vitals_alerts"]] == ["2019-05-07"] and d["vitals_alerts"][0]["sys_now"] == 162.0
     assert [u["day"] for u in d["unusual_days"]] == ["2019-05-10"] and set(d["unusual_days"][0]["z"]) == set(WD.ROUTINE)
     sysv = d["vitals_summary"]["sys"]
@@ -294,3 +294,90 @@ def test_simulation_uses_the_template_narrative_unless_configured(tmp_path, monk
     drain_all(60)
     conn.close()
     assert seen == [False]      # weekly.llm_narrative_in_simulation is false by default
+
+
+# ------------------------------------------------------------------ baselines need history; formatting
+def test_fall_probability_formatting():
+    assert [WD.fmt_prob(x) for x in (0.93, 0.994, 0.996, 1.0, 0.5, None)] == ["0.93", "0.99", ">0.99", ">0.99", "0.50", "n/a"]
+    d = {"falls": [{"day": "2019-05-09", "time": "14:02", "probability": 0.998, "probability_text": ">0.99", "inactivity": True}], "status_counts": {"NORMAL": 0, "MONITOR": 0, "URGENT": 1, "DATA_GAP": 0},
+         "completeness": {"days_with_data": 1, "days_with_vitals": 1, "days_with_activity": 1, "sensor_gap_days": 0, "invalid_values_removed": 0}, "week_start": "a", "week_end": "b",
+         "days_in_week": 7, "unusual_days": [], "partial_week_note": None,
+         "vitals_summary": {k: {"name": k, "unit": "u", "n_readings": 0, "baseline_established": False} for k in ("sys", "dia", "hr", "temp", "weight")}}
+    assert "probability >0.99" in WN.template_items(d)["key_findings"][0]["text"]
+
+
+def test_flagged_count_grammar(world):
+    d = data(world)
+    t = WN.template_items(d)["key_findings"][0]["text"]
+    assert "1 of 6 readings was outside the personal band" in t and "0 of 6 readings were outside" in t       # sys has one flagged reading
+
+
+def short_history(world, n_days):
+    eng, _, kw = world
+    pdy = kw["pdy"]
+    keep = pdy[pdy.day >= pd.Timestamp("2019-05-11") - pd.Timedelta(days=n_days + 5)]
+    keep = keep[(keep.day >= "2019-05-06") | (keep.day >= pd.Timestamp("2019-05-06") - pd.Timedelta(days=n_days))]
+    return WD.build_weekly_data(eng, PID, WEEK, **{**kw, "pdy": keep})
+
+
+def test_vitals_baseline_needs_5_earlier_readings(world, tmp_path):
+    d = short_history(world, 4)                          # only 4 earlier days before the week
+    sysv = d["vitals_summary"]["sys"]
+    assert not any(p["lo"] is not None for p in d["series"]["vitals"]["sys"]["points"][:1])      # Monday: 4 earlier readings -> no band
+    d5 = short_history(world, 5)
+    assert d5["series"]["vitals"]["sys"]["band"]["2019-05-06"] is not None                       # exactly 5 earlier readings -> band
+    # no history at all: nothing to compare with
+    eng, _, kw = world
+    d0 = WD.build_weekly_data(eng, PID, WEEK, **{**kw, "pdy": kw["pdy"][kw["pdy"].day >= "2019-05-09"]})
+    v = d0["vitals_summary"]["sys"]
+    assert v["baseline_established"] is False and v["baseline"] is None and v["n_flagged"] is None and v["note"] == WD.NOT_ESTABLISHED
+    assert all(p["lo"] is None and not p["flagged"] for p in d0["series"]["vitals"]["sys"]["points"])
+    text = WN.template_items(d0)["key_findings"][0]["text"]
+    assert "personal baseline not yet established (fewer than 5 earlier readings)" in text and "outside the personal band" not in text and WN._check(WN.template_items(d0), d0, [])["ok"]
+    r = WP.build_pdf(d0, WN.make_narrative(d0, [])["text"], [], tmp_path / "nb.pdf")
+    t = " ".join(text_of(r["path"]).split())
+    assert "not yet established (fewer than 5 earlier readings)" in t and "Only this week's own values are shown" in t and r["pages"] <= 3
+
+
+def test_routine_baseline_needs_7_earlier_days(world):
+    eng, _, kw = world
+    pdy = kw["pdy"]
+    d6 = WD.build_weekly_data(eng, PID, WEEK, **{**kw, "pdy": pdy[pdy.day >= "2019-04-30"]})     # 6 earlier days before Monday 05-06
+    assert d6["series"]["routine"]["night_events"]["band"]["2019-05-06"] is None
+    d7 = WD.build_weekly_data(eng, PID, WEEK, **{**kw, "pdy": pdy[pdy.day >= "2019-04-29"]})
+    assert d7["series"]["routine"]["night_events"]["band"]["2019-05-06"] is not None
+
+
+# ------------------------------------------------------------------ real orchestrator weekly path attaches the retriever
+def test_orchestrator_weekly_pdf_lists_local_and_pubmed_sources(tmp_path, monkeypatch):
+    from echos.knowledge.pubmed import PubMedClient
+    from echos.orchestrator.graph import process_case
+    from echos.reports import agent as ra
+    from echos.reports.agent import drain_all
+    from tests.test_report_llm import FakeNCBI
+    monkeypatch.setattr(ra, "retrieve", lambda ft, d=None, k=None: [KB | {"finding_type": ft}])           # mocked local index
+    ncbi = FakeNCBI()
+    monkeypatch.setattr(ra, "_default_pubmed", lambda: PubMedClient(http_get=ncbi, cache_path=tmp_path / "pm.sqlite"))   # mocked PubMed
+    from tests.test_orchestrator import R, health, qual
+    from tests.test_safety import _seed_case
+    from echos.orchestrator.graph import build_graph
+    eng = S.get_engine(tmp_path / "g.db")
+    _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.97, post_fall_inactive=True)})   # URGENT Sunday
+    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=None, report_root=tmp_path, gate=True, dispatcher=disp(eng, FakeMailer()))
+    assert process_case(g, "p1", "2019-05-05")
+    drain_all(60)
+    g.dispatcher.flush(10)
+    conn.close()
+    t = text_of(next((tmp_path / "data/reports/weekly").glob("p1_*.pdf")))
+    assert "[KB-7]" in t and "[PM-12345678]" in t and "Age and Ageing, 2021" in t and "pubmed.ncbi.nlm.nih.gov/12345678" in t
+    assert any("esearch" in u for u, *_ in ncbi.calls)
+    with eng.begin() as c:
+        prov = json.loads(c.execute(select(S.reports.c.provenance).where(S.reports.c.kind == "weekly_pdf")).scalar())
+    assert {x["id"] for x in prov["sources_retrieved"]} == {"KB-7", "PM-12345678"}
+
+
+def test_no_retrieval_for_a_week_without_monitor_or_urgent_days(world, tmp_path):
+    eng, _, kw = world
+    calls = []
+    r = WR.make_weekly(eng, PID, "2019-W30", None, retriever=GatedRetriever(lambda *a: calls.append(1) or [KB], pubmed=None), root=tmp_path, send=False, **kw)
+    assert not calls and r["provenance"]["sources_retrieved"] == []

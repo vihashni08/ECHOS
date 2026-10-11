@@ -31,11 +31,17 @@ def template_items(d: dict) -> dict:
          f"{c['MONITOR']} Monitor and {c['URGENT']} Urgent days" + (f" ({_plural(c['DATA_GAP'], 'day')} with a data gap)." if c["DATA_GAP"] else ".")]
     for k in ("sys", "dia", "hr", "temp", "weight"):
         v = vs[k]
-        if v["n_readings"] and (k in ("sys", "hr") or v["n_flagged"]):
-            base = f" against a personal baseline of {v['baseline']:g}" if v["baseline"] is not None else " (no personal baseline yet)"
-            s.append(f"{v['name']} averaged {v['mean']:g} {v['unit']}{base}; {v['n_flagged']} of {v['n_readings']} readings were outside the personal band.")
+        if not v["n_readings"]:
+            continue
+        if not v["baseline_established"]:
+            if k in ("sys", "hr"):
+                s.append(f"{v['name']} averaged {v['mean']:g} {v['unit']}; {v['note']}.")
+        elif k in ("sys", "hr") or v["n_flagged"]:
+            n = v["n_flagged"]
+            s.append(f"{v['name']} averaged {v['mean']:g} {v['unit']} against a personal baseline of {v['baseline']:g}; "
+                     f"{n} of {v['n_with_baseline']} readings {'was' if n == 1 else 'were'} outside the personal band.")
     if d["falls"]:
-        f = ", ".join(f"{x['day']} {x['time']} (probability {x['probability']:g}, inactivity {'yes' if x['inactivity'] else 'no'})" for x in d["falls"][:3])
+        f = ", ".join(f"{x['day']} {x['time']} (probability {x['probability_text']}, inactivity {'yes' if x['inactivity'] else 'no'})" for x in d["falls"][:3])
         s.append(f"{_plural(len(d['falls']), 'possible fall')}: {f}.")
     else:
         s.append("No possible falls were detected.")
