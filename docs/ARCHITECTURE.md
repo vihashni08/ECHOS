@@ -25,7 +25,7 @@ flowchart LR
     VAL -->|ok| OUT
     VAL -->|rejected / timeout / no key| TPL["Jinja2 template fallback"]
     TPL --> OUT["Daily caregiver / weekly clinician report"]
-    OUT --> DASH["Streamlit dashboards"]
+    OUT --> DASH["FastAPI + React web app"]
     SUP["Supervisor<br/>heartbeats, restart"] -.monitors.-> A0
     SUP -.-> A1
     SUP -.-> A2

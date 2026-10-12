@@ -39,7 +39,7 @@ flowchart LR
     VAL -->|ok| OUT
     VAL -->|rejected / timeout / no key| TPL["Jinja2 template fallback"]
     TPL --> OUT["Daily caregiver / weekly clinician report"]
-    OUT --> DASH["Streamlit dashboards"]
+    OUT --> DASH["React web app"]
     SUP["Supervisor<br/>heartbeats, restart"] -.monitors.-> A0
     SUP -.-> A1
     SUP -.-> A2
@@ -110,16 +110,6 @@ cd web && npm install && npm run dev                          # UI on http://loc
 `npm run build` / `npx tsc -b` verify the app; `npx playwright test` starts its own throw-away stack (API on :8010, Vite on :5180, database copy data/echos_e2e.db) and runs the smoke, axe and action tests; `npm run gen:api` regenerates the typed API client.
 
 Pages: Dashboard (patients, live alert feed, agents, simulation), Fall Monitor, Patient (vitals/routine), Caregiver (today's report + 7-day strip + 'How this report was made'), Clinician (weekly report, references, PDF, send, outbox), System (health, data quality, models, limitations) and, in demo mode, a Demo guide drawer.
-
-## Dashboard
-
-After step 4 (or any run that fills `data/echos.db`):
-
-```bash
-streamlit run echos/dashboard/app.py
-```
-
-The sidebar switches between the Caregiver page (daily report) and the Clinician page (weekly report). The dashboard reads only SQLite and `reports/`.
 
 ## Headline results (see RESULTS.md for CIs and caveats)
 

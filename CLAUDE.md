@@ -19,7 +19,7 @@ Simulator (replays TIHM day by day, injects SisFall fall windows; synthetic, tes
 (rule-based) -> Health Monitoring agent (vitals + behaviour sub-models, kept separate; returns HealthResult with SHAP,
 personal-baseline and persistence evidence; drift/CUSUM is explanation-only) and Fall agent (SisFall only, independent
 of both) -> LangGraph orchestrator (rule-based triage Normal / Changed-monitor / Urgent, checkpointed) -> Report agent
-(LLM + tools + non-LLM validator) -> Streamlit dashboards. A supervisor runs three workers (quality, health_monitoring,
+(LLM + tools + non-LLM validator) -> FastAPI -> React web app. A supervisor runs three workers (quality, health_monitoring,
 fall), writes heartbeats to SQLite and restarts dead ones.
 - NO trained fusion model: triage is plain if-then rules. NO alert lifecycle (no ack/escalation): `alerts` rows record only PENDING/SENT/FAILED,
   derived from the `outbox` table (one row per alert x recipient role: alert_id, recipient_role, address, channel, subject, body, status
@@ -59,7 +59,7 @@ fall), writes heartbeats to SQLite and restarts dead ones.
   `node scripts/ui_screenshots.mjs` -> web/screenshots/. `--demo` = demo mode (agent kill + Demo guide; api.allow_kill stays false by default); `--no-llm` also switches live PubMed off (ECHOS_PUBMED=off). The Clinician page builds a missing weekly report on first visit (nothing is emailed); Send to clinician states dry run vs real email and asks twice to resend.
 
 ## Rules
-- Python 3.11, pydantic, pandas, scikit-learn, xgboost, shap, langgraph, streamlit, sqlalchemy/sqlite, pytest.
+- Python 3.11, pydantic, pandas, scikit-learn, xgboost, shap, langgraph, fastapi, sqlalchemy/sqlite, pytest.
 - Split by PATIENT (GroupKFold) for TIHM and by SUBJECT for SisFall. Never random rows.
 - Personal baselines must use only past data (expanding/rolling with shift(1)): no leakage.
 - Report PR-AUC, recall at fixed alert budget, false alerts per patient-week: not accuracy.
