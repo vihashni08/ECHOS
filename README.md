@@ -119,6 +119,7 @@ PYTHONPATH=. python scripts/monitor_driver.py      # MONITOR share driver + thre
 PYTHONPATH=. python scripts/evaluate.py            # merge metrics into reports/results_table.md/.csv
 PYTHONPATH=. python scripts/make_research_gaps.py  # regenerate the research-gaps table above
 ```
+Rating study kit (reader-rated clarity, usefulness and safe wording; nothing is sent anywhere): `PYTHONPATH=. python scripts/make_rating_sheet.py` builds 10 shuffled items from the demo database into `reports/rating/` (git-ignored); raters save filled copies of `rating_sheet.csv` in `reports/rating/filled/`; `PYTHONPATH=. python scripts/analyse_ratings.py` prints per-item and overall means, SDs and rater agreement.
 Real-service scripts (`scripts/list_models.py`, `scripts/live_llm_check.py`, `scripts/live_report_check.py`, `scripts/send_test_*.py`) refuse to run without `--yes` and are never used by tests or demos.
 
 ## Report agent: LLM, RAG, privacy
