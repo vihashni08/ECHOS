@@ -18,3 +18,18 @@ web/test-results/
 web/playwright-report/
 web/screenshots/
 web/test-results-axe.json
+# patient-level or regenerable artefacts (TIHM-derived rows must not be committed; rebuild with scripts/eda.py and scripts/e2e.py)
+reports/eda/*_per_patient.csv
+reports/eda/heatmap_coverage.png
+reports/eda/missingness.png
+reports/eda/activity_outages.png
+reports/metrics/e2e_days.json
+reports/rating/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.joblib
+*.parquet

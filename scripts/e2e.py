@@ -161,9 +161,10 @@ def main(n=20):
                   "critical-vitals URGENT days come from real TIHM readings and are not counted as false",
                   "a day can carry several data-gap causes, so the cause counts can exceed the number of gap days",
                   "Agents 1-2 scores are out-of-fold when ECHOS_OOF=1; Agent 3 uses a fall model trained without the held-out SisFall subjects"],
-        "days": days}
+        "days_file": "e2e_days.json (patient-day rows; git-ignored)"}
     OUT.write_text(json.dumps(res, indent=1, default=list))
-    print(json.dumps({k: v for k, v in res.items() if k not in ("notes", "days", "missed_injected_falls")}, default=list))
+    OUT.with_name("e2e_days.json").write_text(json.dumps(days, indent=1, default=list))
+    print(json.dumps({k: v for k, v in res.items() if k not in ("notes", "days_file", "missed_injected_falls")}, default=list))
 
 
 if __name__ == "__main__":

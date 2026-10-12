@@ -7,6 +7,7 @@ from __future__ import annotations
 import heapq
 import itertools
 import logging
+import re
 import os
 import threading
 import time
@@ -24,12 +25,21 @@ from echos.orchestrator import state as S
 log = logging.getLogger("echos.alerts")
 
 
+_EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+
+
+def _mask_address(m) -> str:
+    local, _, dom = m.group(0).partition("@")
+    return f"{local[:2]}***@{dom}"
+
+
 def _redact(msg: str) -> str:
+    """Error text kept in the outbox and in logs: no SMTP user / password, and any e-mail address masked as `ab***@domain`."""
     for k in ("ECHOS_SMTP_PASSWORD", "ECHOS_SMTP_USER"):
         v = os.environ.get(k)
         if v:
             msg = msg.replace(v, "***")
-    return msg[:200]
+    return _EMAIL.sub(_mask_address, msg)[:200]
 
 
 class AlertDispatcher:
