@@ -5,7 +5,6 @@ scikit-learn
 xgboost
 shap
 langgraph
-streamlit
 sqlalchemy
 pytest
 pyyaml
