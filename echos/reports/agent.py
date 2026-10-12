@@ -38,6 +38,7 @@ from echos.reports.llm import LLMAPIError
 from echos.reports.llm_budget import Backend, Cache, GenerationFailed, LLMBudget, make_budget, make_key
 from echos.reports.retrieval import GatedRetriever
 from echos.reports.weekly_data import fmt_prob
+from echos.reports import schema as SCHEMA
 from echos.reports.validator import validate_report
 
 TPL = jinja2.Environment(loader=jinja2.FileSystemLoader(str(Path(__file__).parent / "templates")), autoescape=False,
@@ -69,7 +70,7 @@ WEEKLY_ASK = ('Write for a clinician. Return {"highlights":[{"text":str,"cites":
 
 
 # ------------------------------------------------------------------ daily report: tool loop
-PROMPT_VERSION = "daily-v3"
+PROMPT_VERSION = "daily-v4"
 MAX_TOOL_STEPS = 3     # tool calls in the one tool loop; the next request is the final answer with tools switched off.
                        # Worst case per report = MAX_TOOL_STEPS tool requests + 1 final + 1 validator retry (no tools).
 DAILY_SYSTEM = ("You write short, plain-language notes for a family caregiver in a home-care report. The structured facts are in the message; "
@@ -80,13 +81,13 @@ DAILY_SYSTEM = ("You write short, plain-language notes for a family caregiver in
                 "with JSON only.")
 DAILY_ASK = ('Today is {day}; the arbiter decided status {status}. Flag ids to cover: {flags}. The patient context (vitals vs the '
              'person\'s own baseline, routine, flags, falls, data-quality notes) is below. Optionally call get_last_7_days, and retrieve_guidance(finding_type, '
-             'details) for the findings (finding_type one of {types}). Then reply with JSON '
-             '{{"status":"{status}","changes":[{{"text":str,"cites":[flag ids]}}],"monitor":[{{"text":str,"cites":[flag ids]}}],'
-             '"guidance":[{{"text":str,"cites":[source ids]}}]}}. "status" must be exactly "{status}". "changes": what differs from this person\'s own '
-             'baseline, one item per flag (cite its id; every flag id must be cited at least once). "monitor": 2 or 3 plain-language things to watch '
-             'today. "guidance": at most 2 short statements, each citing a retrieved source id; [] if nothing was retrieved.\n\nPATIENT CONTEXT:\n{context}')
+             'details) for the findings (finding_type one of {types}). Then reply with ONE JSON object that follows exactly this JSON Schema '
+             '(every list item is an object {{"text","cites"}}, never a bare string; no other keys): {shape}. "status" must be exactly "{status}". '
+             '"changes": one item per flag (cite its id; every flag id must be cited at least once). "guidance": each item cites a retrieved source id; [] if nothing was retrieved.\n\n'
+             'PATIENT CONTEXT:\n{context}')
 RETRY_ASK = ('Your previous reply was rejected by the checker for these reasons: {errors}. Write the reply again, fixing exactly these points. No tools are available now; '
-             'use only the facts and retrieved sources below. Same JSON shape as before; status must be exactly "{status}". Flag ids to cover: {flags}.\n\n'
+             'use only the facts and retrieved sources below. Reply with ONE JSON object that follows exactly this JSON Schema (every list item is an object {{"text","cites"}}, never a bare string; no other keys): {shape}. '
+             'status must be exactly "{status}". Flag ids to cover: {flags}.\n\n'
              'PATIENT CONTEXT:\n{context}\n\nRETRIEVED SOURCES:\n{sources}\n\nLAST 7 DAYS:\n{last7}')
 TOOLS = [
     {"name": "get_last_7_days", "description": "The same structured facts for each of the last 7 days (oldest first), compact.",
@@ -555,7 +556,7 @@ class ReportAgent:
         """The ONE tool loop: patient context is in the first prompt; up to MAX_TOOL_STEPS tool calls, then a final request with tools switched off.
         Returns the parsed JSON object (or raises ValueError on unparsable output; the caller turns that into a validator failure)."""
         flags = [f["id"] for f in facts["flags"] if f["type"] != "data_gap"]
-        ask = DAILY_ASK.format(day=facts["day"], status=facts["status"], flags=", ".join(flags) or "(none)", types=", ".join(FINDING_TYPES),
+        ask = DAILY_ASK.format(day=facts["day"], status=facts["status"], flags=", ".join(flags) or "(none)", types=", ".join(FINDING_TYPES), shape=SCHEMA.prompt_shape(),
                                context=json.dumps(view, default=str))
         messages, steps = [{"role": "user", "text": ask}], 0
         while True:
@@ -581,7 +582,7 @@ class ReportAgent:
         """ONE request, no tools: same facts + the already-retrieved chunks + the validator's errors. Never repeats the tool loop."""
         flags = [f["id"] for f in facts["flags"] if f["type"] != "data_gap"]
         src = [{"id": x["id"], "title": x["title"], "source": x["source"], "text": x["text"][:700]} for x in tr["sources"].values()]
-        ask = RETRY_ASK.format(errors="; ".join(errors[:6]), status=facts["status"], flags=", ".join(flags) or "(none)", context=json.dumps(view, default=str),
+        ask = RETRY_ASK.format(shape=SCHEMA.prompt_shape(), errors="; ".join(errors[:6]), status=facts["status"], flags=", ".join(flags) or "(none)", context=json.dumps(view, default=str),
                                sources=json.dumps(src), last7=json.dumps(tr["last7"], default=str) if tr["last7"] else "(not fetched)")
         r = ctx.step(DAILY_SYSTEM, [{"role": "user", "text": ask}], None)
         tr["raw"] = r.text
@@ -591,15 +592,16 @@ class ReportAgent:
 
     @staticmethod
     def _check(out, facts: dict, view: dict, tr: dict) -> dict:
+        """Strict schema parse first (SCHEMA.DailyReport, the same model the prompt and Gemini's response schema use), then the content validator."""
+        model, serrs = SCHEMA.parse(out)
+        if model is None:
+            return {"ok": False, "errors": serrs, "codes": ["schema_mismatch"], "findings": [{"rule": "schema_mismatch", "detail": e} for e in serrs]}
+        out = model.model_dump()
         required = [f["id"] for f in facts["flags"] if f["type"] != "data_gap"]
         sources = tr["sources"]
         guidance = {"section": "guidance", "ids": list(sources), "texts": {i: s["text"] for i, s in sources.items()}}
-        v = validate_report(out, {"facts": view, "last_7_days": tr["last7"]}, required, [f["id"] for f in facts["flags"]] + list(sources),
-                            ["changes"] if required else [], guidance, expected_status=facts["status"])
-        if isinstance(out, dict) and not 2 <= len(out.get("monitor") or []) <= 3:
-            v = {**v, "ok": False, "errors": v["errors"] + ["monitor needs 2 or 3 items"], "codes": sorted(set(v.get("codes", [])) | {"monitor_count"}),
-                 "findings": v.get("findings", []) + [{"rule": "monitor_count", "detail": f"monitor has {len(out.get('monitor') or [])} items, needs 2 or 3"}]}
-        return v
+        return validate_report(out, {"facts": view, "last_7_days": tr["last7"]}, required, [f["id"] for f in facts["flags"]] + list(sources),
+                               ["changes"] if required else [], guidance, expected_status=facts["status"])
 
     def _attempt(self, facts: dict, view: dict):
         """-> function(ctx) for LLMBudget.run: tool loop + validate; on a validator failure ONE retry request (no tools); then GenerationFailed (template).

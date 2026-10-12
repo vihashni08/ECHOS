@@ -86,7 +86,7 @@ def _rule(msg: str) -> str:
                       (r"without a citation", "guidance_uncited"), (r"was not retrieved", "guidance_not_retrieved"),
                       (r"verbatim", "guidance_quoted"), (r"unknown evidence id", "unknown_cite_id"), (r"cites no evidence", "item_uncited"),
                       (r"item without text", "item_without_text"), (r"^flag .* not cited", "flag_not_cited"), (r"status text", "status_mismatch"),
-                      (r"not a JSON object", "not_json_object"), (r"monitor needs", "monitor_count"), (r"words expected", "length"),
+                      (r"^schema mismatch", "schema_mismatch"), (r"not a JSON object", "not_json_object"), (r"monitor needs", "monitor_count"), (r"words expected", "length"),
                       (r"not valid JSON", "json_invalid")):
         if re.search(pat, msg):
             return code
