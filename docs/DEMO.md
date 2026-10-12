@@ -13,7 +13,7 @@ Terminal 2:
 ```bash
 cd web && npm run dev
 ```
-Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`: the API allows only that origin). API docs: http://127.0.0.1:8000/docs. The top bar shows "Demo" and a **Demo guide** button.
+Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`: the API allows only that origin). API docs: http://127.0.0.1:8000/docs. In demo mode a **Demo guide** button appears.
 
 ## Script
 
@@ -33,7 +33,7 @@ Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`: the API allows
 | Problem | Do |
 |---|---|
 | The UI shows no data or "API unreachable" | Check terminal 1 is running; open http://127.0.0.1:8000/docs. Restart `scripts/run_api.sh ...`. Make sure you opened `localhost:5173`, not an IP. |
-| Port in use | `ECHOS_API_PORT=8001 scripts/run_api.sh ...` and start Vite with a matching proxy, or stop the old process. |
+| Port in use | Stop the process that holds port 8000 (API) or 5173 (UI) and start again. |
 | Simulation does not play / inject fails | Use *Reset and play* again; or run the API read-only: `scripts/run_api.sh --dry --no-llm --no-runtime --db data/echos_ui_dev.db` and walk through stored days, reports and the stored fall alerts on the Fall Monitor. |
 | Kill step greyed out | The API was not started with `--demo`; restart it with `--demo`. Otherwise describe the recovery using `reports/metrics/kill_test.json` (detect 2.8 s, recover 3.9 s) and the fault-injection table in `reports/RESULTS.md`. |
 | Vite will not start | `cd web && npm ci`; or show the prebuilt screenshots (`node scripts/ui_screenshots.mjs` writes `web/screenshots/`) and the API docs page. |
