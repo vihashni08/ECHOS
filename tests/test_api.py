@@ -29,6 +29,8 @@ ADDRS = ["care@example.test", "doc@example.test", "caregiver@example.test", "cli
 def sisfall_fall():
     from echos.data import sisfall as sf
     f = sf.list_files()
+    if f.empty:
+        return None
     f = f[f.is_fall & f.subject.isin(load_config()["replay"]["holdout_subjects"])]
     return f.iloc[0] if len(f) else None
 
