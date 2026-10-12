@@ -79,6 +79,7 @@ cp .env.example .env                       # optional: only for the real-service
 #      Activity.csv, Physiology.csv, Labels.csv, Demographics.csv (Sleep.csv is not used) in   data/tihm/Dataset/
 #    SisFall (Universidad de Antioquia; Sucerquia et al., Sensors 2017): unzip so that the subject folders SA01..SE15 are in   data/sisfall/SisFall_dataset/
 #    Guideline PDFs: the five documents in echos/knowledge/SOURCES.md, saved under the listed file names in   echos/knowledge/raw/
+mkdir -p data/tihm/Dataset data/sisfall            # then copy the files in
 ls data/tihm/Dataset data/sisfall/SisFall_dataset echos/knowledge/raw
 ```
 
