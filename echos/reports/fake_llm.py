@@ -25,6 +25,7 @@ class FakeLLM:
         self.model = model
         self.requests: list = []      # one entry per request: {"messages": n, "tools": [names] | None}
         self.calls = 0
+        self.prompts: list = []       # everything sent per request, as one JSON string (system + messages): tests check what the model would see
 
     @classmethod
     def recorded(cls, name: str, model: str = "fake-model") -> "FakeLLM":
@@ -32,6 +33,7 @@ class FakeLLM:
 
     def _next(self, system, messages, tools):
         self.calls += 1
+        self.prompts.append(json.dumps({"system": system, "messages": messages}, default=str))
         self.requests.append({"messages": len(messages), "tools": [t["name"] for t in tools] if tools else None})
         r = self.script.pop(0) if len(self.script) > 1 else (self.script[0] if self.script else {"text": ""})
         if callable(r):

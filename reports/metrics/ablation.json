@@ -389,7 +389,7 @@
   "agitation_prob": 0.129
  },
  "notes": [
-  "OOF scores only; labels are TIHM clinical alerts (not adjudicated events); recall on labelled days of the scored population",
+  "OOF scores only; labels are TIHM events described as clinician-verified (production not verified by us; treat vitals results as an upper bound); recall on labelled days of the scored population",
   "budgets = alert days per patient-week over ALL patient-days / 7; 'A budget' = number of days the fixed rule fires",
   "patient-level bootstrap (1000 resamples); budgets are recomputed inside each resample",
   "C's vitals path is B plus the absolute critical-vitals limits, so C = B on vitals-labelled days up to those forced days",

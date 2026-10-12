@@ -66,10 +66,10 @@ function DemoGuide({ open, onOpenChange, returnFocus }: { open: boolean; onOpenC
           </Step>
           <Step n={3} title="Inject a fall" look="the Fall Monitor shows the waveform, the 'Simulated fall signal' badge and the Alert sent panel with two recipients; the Dashboard feed gets an URGENT alert." done={done["3"]}>
             <Button variant="outline" disabled={!first || fall.isPending} data-testid="demo-fall"
-              onClick={() => fall.mutate({ patient_id: first!.patient_id, activity: "F02" }, {
+              onClick={() => fall.mutate({ patient_id: first!.patient_id, activity: "F02", subject: "SA03" }, {
                 onSuccess: (r) => { mark("3", `Injected a SisFall ${r.activity} window (subject ${r.sisfall_subject}) for ${r.patient_id}.`); go(`/falls?patient=${r.patient_id}${r.event_id != null ? `&fall=${r.event_id}` : ""}`) },
                 onError: (e) => mark("3", `Could not inject: ${(e as Error).message}`) })}>{fall.isPending ? "Injecting…" : "Inject a fall"}</Button>
-            <span className="text-xs text-muted-foreground">Uses fall type F02, which the model reliably detects; the Fall Monitor button picks a random type.</span>
+            <span className="text-xs text-muted-foreground">Uses fall type F02 from held-out subject SA03: all 5 of its F02 recordings are detected and followed by confirmed inactivity, so the demo always raises the alert (the Fall Monitor button picks a random type and subject, and some of those are honestly missed).</span>
           </Step>
           <Step n={4} title="Kill an agent and watch recovery" look="the agent strip on the Dashboard (or System, Health): the Fall agent's heartbeat age grows, then it is alive again. A fall injected meanwhile still alerts, a little later." done={done["4"]}>
             <Button variant="outline" disabled={!cfg.data?.allow_kill || kill.isPending || !agents.data} data-testid="demo-kill"

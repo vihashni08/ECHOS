@@ -47,6 +47,13 @@ def input_numbers(payload) -> set:
     return allowed
 
 
+PCT = re.compile(r"\s?(%|percent\b|per cent\b)", re.I)
+
+
+def _pct(text: str, m) -> bool:
+    return bool(PCT.match(text, m.end()))
+
+
 def _items(output: dict) -> list:
     return [it for v in output.values() if isinstance(v, list) for it in v if isinstance(it, dict)]
 
@@ -70,6 +77,24 @@ def _ngrams(text: str, n: int) -> set:
 
 
 QUOTE_WORDS = 10  # a run of this many consecutive words copied from a retrieved chunk counts as a quote, not a paraphrase
+
+
+def _rule(msg: str) -> str:
+    """Stable rule code for an error string (provenance / live-check output)."""
+    for pat, code in ((r"^number ", "number_not_in_input"), (r"^diagnostic wording: /.*(diagnos|you have|suffer|developed|confirm)", "diagnostic_wording"),
+                      (r"^diagnostic wording: /.*(agitation|probability)", "score_quoted"), (r"^diagnostic wording", "medication_advice"),
+                      (r"without a citation", "guidance_uncited"), (r"was not retrieved", "guidance_not_retrieved"),
+                      (r"verbatim", "guidance_quoted"), (r"unknown evidence id", "unknown_cite_id"), (r"cites no evidence", "item_uncited"),
+                      (r"item without text", "item_without_text"), (r"^flag .* not cited", "flag_not_cited"), (r"status text", "status_mismatch"),
+                      (r"not a JSON object", "not_json_object"), (r"monitor needs", "monitor_count"), (r"words expected", "length"),
+                      (r"not valid JSON", "json_invalid")):
+        if re.search(pat, msg):
+            return code
+    return "other"
+
+
+def error_codes(errors) -> list:
+    return sorted({_rule(e) for e in errors})
 
 
 def check_guidance(output: dict, guidance: dict, errors: list):
@@ -97,19 +122,32 @@ def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=No
     cite_sections: sections whose every item must cite at least one id; guidance: see check_guidance."""
     errors = []
     if not isinstance(output, dict):
-        return {"ok": False, "errors": ["output is not a JSON object"]}
+        return {"ok": False, "errors": ["output is not a JSON object"], "codes": ["not_json_object"],
+                "findings": [{"rule": "not_json_object", "detail": "output is not a JSON object"}]}
     if expected_status is not None and output.get("status") != expected_status:
         errors.append(f"status text {str(output.get('status'))[:30]!r} does not match the arbiter's status {expected_status!r}")
     allowed = input_numbers(payload)
     cites_text = {c for it in _items(output) for c in (it.get("cites") or []) if isinstance(c, str)}
-    for t in _texts({k: [{"text": it.get("text", "")} for it in v if isinstance(it, dict)]
-                     for k, v in output.items() if isinstance(v, list)}):
-        for m in NUM.findall(CITE_TOKEN.sub(" ", t)):
-            if round(float(m), 2) not in allowed and float(m) not in allowed:
-                errors.append(f"number {m} not in input")
-        for pat in BANNED:
-            if re.search(pat, t, re.I):
-                errors.append(f"diagnostic wording: /{pat}/")
+    where = {}      # error string -> "section[item]" of the first offender (never the text itself)
+    for k, v in output.items():
+        if not isinstance(v, list):
+            continue
+        for i, it in enumerate(v):
+            if not isinstance(it, dict):
+                continue
+            t = str(it.get("text", ""))
+            plain = CITE_TOKEN.sub(" ", t)
+            for mt in NUM.finditer(plain):
+                m = mt.group()
+                if _pct(plain, mt) and round(float(m) / 100, 2) in allowed:      # "10%" for a stored fraction 0.104 (rounded like any other number)
+                    continue
+                if round(float(m), 2) not in allowed and float(m) not in allowed:
+                    errors.append(f"number {m} not in input")
+                    where.setdefault(f"number {m} not in input", f"{k}[{i}]")
+            for pat in BANNED:
+                if re.search(pat, t, re.I):
+                    errors.append(f"diagnostic wording: /{pat}/")
+                    where.setdefault(f"diagnostic wording: /{pat}/", f"{k}[{i}]")
     valid = set(valid_ids or [])
     for k, v in output.items():
         if not isinstance(v, list):
@@ -130,4 +168,6 @@ def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=No
     for rid in (required_ids or []):
         if rid not in cites_text:
             errors.append(f"flag {rid} is not cited")
-    return {"ok": not errors, "errors": sorted(set(errors))[:12]}
+    errs = sorted(set(errors))[:12]
+    return {"ok": not errors, "errors": errs, "codes": error_codes(errs),
+            "findings": [{"rule": _rule(e), "detail": e + (f" at {where[e]}" if e in where else "")} for e in errs]}

@@ -40,7 +40,7 @@ TO = {"caregiver": "care@example.test", "clinician": "doc@example.test"}
 def script(system, messages, tools):
     """Typical tool-using model: step 1 asks for context + guidance, then a final answer the validator rejects (so every attempt costs 2 requests)."""
     if tools and len(messages) == 1:
-        return {"calls": [{"name": "get_patient_context", "args": {}}, {"name": "retrieve_guidance", "args": {"finding_type": A.FINDING_TYPES[0]}}]}
+        return {"calls": [{"name": "get_last_7_days", "args": {}}, {"name": "retrieve_guidance", "args": {"finding_type": A.FINDING_TYPES[0]}}]}
     return {"text": "{}"}
 
 

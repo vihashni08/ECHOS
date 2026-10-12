@@ -55,7 +55,7 @@ def build() -> str:
          "Past-only personal baselines (shift(1)); XGBoost on deviation from the person's own usual, not on absolute values alone.",
          f"Vitals PR-AUC {ci(r1['xgboost']['pr_auc'] if 'xgboost' in r1 else a1['results']['at_rule_budget']['pr_auc'], c1['xgb_pr_auc'], 3)} vs fixed BP rule {ci(r1['fixed_rule']['pr_auc'], c1['rule_pr_auc'], 3)}; "
          f"at the rule's own alert count recall {ci(sub['recall'], sub['recall_ci95'])} vs {ci(rule['recall'], rule['recall_ci95'])} (out-of-fold, patient-level folds, patient bootstrap CI; the recall CIs overlap).",
-         "Labels are clinical alerts, probably threshold-derived, so part of the gain may be re-learning the labelling rule; 54 patients; agitation score is modest "
+         "Labels are described as clinician-verified events but we did not verify how they were produced, and 99% of BP-label days have a BP reading, so vitals results are an upper bound on generalisation; 54 patients; agitation score is modest "
          f"(PR-AUC {a2['point']['pr_auc']:.2f} vs base rate {a2['point']['prevalence']:.2f}) and ranks within patients, it is not a probability."),
         ("Fragile pipelines and silent sensor failure",
          "Rule-based Data Quality agent (ranges, gaps, completeness; never imputes); a day with a sensor gap / unchecked data / >7 days without vitals is DATA_GAP and never Normal; "

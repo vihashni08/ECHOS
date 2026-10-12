@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 from typing import Optional
 
+from echos.reports.alias import pseudonymise
 from echos.reports.llm_budget import GenerationFailed, LLMBudget, make_key
 from echos.reports.validator import validate_report
 from echos.reports.weekly_data import narrative_payload
@@ -62,7 +63,8 @@ def _check(out, d: dict, sources: list) -> dict:
     if isinstance(out, dict):
         n = sum(len(str(i.get("text", "")).split()) for k in ("key_findings", "guidance") for i in out.get(k, []) if isinstance(i, dict))
         if not 50 <= n <= 220:
-            v = {"ok": False, "errors": v["errors"] + [f"about 120 words expected, got {n}"]}
+            v = {**v, "ok": False, "errors": v["errors"] + [f"about 120 words expected, got {n}"], "codes": sorted(set(v.get("codes", [])) | {"length"}),
+                 "findings": v.get("findings", []) + [{"rule": "length", "detail": f"{n} words, 50 to 220 expected"}]}
     return v
 
 
@@ -84,18 +86,22 @@ def make_narrative(d: dict, sources: list, budget: Optional[LLMBudget] = None, u
             key = make_key(PROMPT_VERSION, {"data": narrative_payload(d), "sources": [x["id"] for x in sources]})
 
             def attempt(ctx):
-                fb, vv = "", None
+                fb, vv, attempts = "", None, []
                 for _ in range(2):
-                    r = ctx.step(SYSTEM, [{"role": "user", "text": ASK.format(data=json.dumps(narrative_payload(d), default=str), sources=src_json) + fb}], None)
+                    r = ctx.step(SYSTEM, [{"role": "user", "text": ASK.format(data=json.dumps(pseudonymise(narrative_payload(d), d["patient_id"]), default=str), sources=src_json) + fb}], None)
                     t = r.text.strip()
                     if t.startswith("```"):
                         t = t.strip("`").removeprefix("json").strip()
-                    out = json.loads(t)
-                    vv = _check(out, d, sources)
+                    try:
+                        out = json.loads(t)
+                        vv = _check(out, d, sources)
+                    except ValueError:
+                        vv = {"ok": False, "errors": ["reply was not valid JSON"], "codes": ["json_invalid"], "findings": [{"rule": "json_invalid", "detail": "reply was not valid JSON"}]}
                     if vv["ok"]:
                         return {"items": {k: out.get(k, []) for k in ("key_findings", "guidance")}, "validation": vv}
+                    attempts.append({"raw": r.text, "validator": vv})
                     fb = "\n\nYour previous reply was rejected for: " + "; ".join(vv["errors"][:6]) + ". Fix these and reply again."
-                raise GenerationFailed("validation_failed", vv)
+                raise GenerationFailed("validation_failed", {**vv, "attempts": attempts})
             res = budget.run(attempt, key=key, revalidate=lambda c: _check(c["items"], d, sources)["ok"], prompt_version=PROMPT_VERSION)
             prov.update(requests=res.requests, tokens={"prompt": res.prompt_tokens, "output": res.output_tokens}, models_tried=res.models_tried, events=res.events)
             if res.ok:
@@ -103,6 +109,8 @@ def make_narrative(d: dict, sources: list, budget: Optional[LLMBudget] = None, u
                 prov.update(model=res.model, mode="llm", cache_hit=res.cache_hit, fallback_reason=None)
             else:
                 prov["fallback_reason"] = res.fallback_reason
+                if res.validation:
+                    prov["validator_failure"] = res.validation
         except Exception as ex:   # noqa: BLE001 - the template is always available
             prov["fallback_reason"] = f"error ({type(ex).__name__})"
     elif use_llm:

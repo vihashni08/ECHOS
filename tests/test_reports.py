@@ -32,11 +32,8 @@ def good(sys_text="162"):
 
 
 def script(*texts):
-    """tool call (get_patient_context) then the final answer, for each text"""
-    out = []
-    for t in texts:
-        out += [{"calls": [{"name": "get_patient_context", "args": {}}]}, {"text": t}]
-    return out
+    """the final answer for each text (the patient context is in the first prompt; no tool call)"""
+    return [{"text": t} for t in texts]
 
 
 def test_validator_rejects_wrong_number():
@@ -88,10 +85,10 @@ def test_llm_valid_retry_and_fallback(agent_env):
     ok = A.ReportAgent(eng, FakeLLM(script(good())), root=tmp).daily(facts())
     assert ok["mode"] == "llm" and ok["provenance"]["model"] == "fake-model"
     llm = FakeLLM(script(good("171"), good()))            # first reply has a wrong number -> retried once with the validator's errors
-    assert A.ReportAgent(eng, llm, root=tmp).daily(facts())["mode"] == "llm" and llm.calls == 4
-    llm = FakeLLM(script(good("171"), good("171"), good()))  # two bad replies -> template, no third generation
+    assert A.ReportAgent(eng, llm, root=tmp).daily(facts())["mode"] == "llm" and llm.calls == 2
+    llm = FakeLLM(script(good("171"), good("171"), good()))  # two bad replies -> template, no third request
     out = A.ReportAgent(eng, llm, root=tmp).daily(facts())
-    assert out["mode"] == "template" and llm.calls == 4 and out["validation"]["fallback_reason"].startswith("fake-model: validation_failed")
+    assert out["mode"] == "template" and llm.calls == 2 and out["validation"]["fallback_reason"].startswith("fake-model: validation_failed")
 
 
 def test_deferred_llm_never_blocks_the_caller(agent_env):

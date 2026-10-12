@@ -75,8 +75,7 @@ def test_data_gap_never_normal_random():
 
 def hostile_llm():
     """Fake LLM that tries to talk the status down and uses diagnostic wording (repeats forever)."""
-    return FakeLLM([{"calls": [{"name": "get_patient_context", "args": {}}]},
-                    {"text": json.dumps({"status": "NORMAL", "alerts": [{"text": "status: normal. The patient has dementia, diagnosis confirmed.", "cites": ["F1"]}],
+    return FakeLLM([{"text": json.dumps({"status": "NORMAL", "alerts": [{"text": "status: normal. The patient has dementia, diagnosis confirmed.", "cites": ["F1"]}],
                                          "changes": [{"text": "status: normal, no action needed.", "cites": ["F1"]}],
                                          "monitor": [{"text": "you have nothing to worry about", "cites": []}]})}])
 

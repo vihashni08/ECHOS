@@ -14,7 +14,7 @@ from echos.reports.retrieval import GatedRetriever
 from echos.reports.validator import validate_report
 from tests.test_reports import facts, good
 
-CTX = {"calls": [{"name": "get_patient_context", "args": {}}]}
+LAST7 = {"calls": [{"name": "get_last_7_days", "args": {}}]}
 KB = {"id": "KB-7", "text": "Check blood pressure again later and review medicines.", "title": "Hypertension in adults", "source": "NICE NG136 (2019)",
       "doc_id": "NICE-NG136", "page": "5", "score": 0.6, "finding_type": "blood_pressure"}
 
@@ -38,7 +38,7 @@ def answer(**over):
 
 
 def ok_script(**over):
-    return [CTX, answer(**over)]
+    return [answer(**over)]
 
 
 @pytest.fixture
@@ -65,7 +65,7 @@ def test_fallback_order_primary_fallback_template(env):
     p, f = FakeLLM([{"error": {"code": 503, "status": "UNAVAILABLE"}}]), FakeLLM(ok_script())
     out = make(env, p, f).daily(facts())
     assert out["mode"] == "llm" and out["provenance"]["model"] == "fallback" and out["provenance"]["models_tried"] == ["primary", "fallback"]
-    assert p.calls == 2 and f.calls == 2                      # 503: ONE retry on the same model, then the fallback model
+    assert p.calls == 2 and f.calls == 1                      # 503: ONE retry on the same model, then the fallback model
     p, f = FakeLLM([{"error": {"code": 503}}]), FakeLLM([{"error": {"code": 500}}])
     out = make(env, p, f).daily(facts(day="2019-05-02"))
     assert out["mode"] == "template" and out["validation"]["ok"] and "primary: 503" in out["provenance"]["fallback_reason"]
@@ -91,7 +91,7 @@ def test_timeout_never_retried_and_other_errors_one_retry(env):
     out = make(env, p, f).daily(facts())
     assert p.calls == 1 and out["provenance"]["model"] == "fallback"
     assert any(e["http_status"] == "timeout" for e in out["provenance"]["events"])
-    p = FakeLLM([{"error": "boom"}, CTX, answer()])         # RuntimeError once, then fine on the same model
+    p = FakeLLM([{"error": "boom"}, answer()])         # RuntimeError once, then fine on the same model
     out = make(env, p).daily(facts(day="2019-05-02"))
     assert out["mode"] == "llm" and out["provenance"]["model"] == "primary"
     assert any(e["event"] == "retry" for e in out["provenance"]["events"])
@@ -124,7 +124,7 @@ def test_cached_value_is_revalidated_and_failing_entry_is_ignored(env):
     entry["items"]["changes"][0]["text"] = "Systolic was 171."
     ag.budget.cache.put(key, A.PROMPT_VERSION, "primary", entry)
     llm.script = ok_script()
-    assert ag.daily(facts())["provenance"]["cache_hit"] is False and llm.calls == 4
+    assert ag.daily(facts())["provenance"]["cache_hit"] is False and llm.calls == 2
 
 
 def test_rate_limiter_stays_20_percent_below_the_limit():
@@ -144,7 +144,7 @@ def test_normal_day_makes_zero_llm_and_zero_retrieval_calls(env):
     out = ag.daily(facts(status="NORMAL", with_flag=False), use_llm=False)          # what the orchestrator does for NORMAL days
     assert out["mode"] == "template" and llm.calls == 0 and r.calls == {"local": 0, "pubmed": 0} and pm.requests == 0
     # even if the gate were open, the retrieval tool refuses a NORMAL day
-    llm = FakeLLM([CTX, {"calls": [{"name": "retrieve_guidance", "args": {"finding_type": "blood_pressure"}}]}, answer(status="NORMAL", changes=[
+    llm = FakeLLM([{"calls": [{"name": "retrieve_guidance", "args": {"finding_type": "blood_pressure"}}]}, answer(status="NORMAL", changes=[
         {"text": "Everything looked normal.", "cites": []}])])
     ag = make(env, llm, retriever=r)
     ag.daily(facts(day="2019-05-02", status="NORMAL", with_flag=False))
@@ -170,21 +170,66 @@ def test_orchestrator_gate_normal_days_never_reach_the_llm(tmp_path, monkeypatch
 
 
 # ------------------------------------------------------------------ tool loop
-def test_tool_loop_stops_at_4_steps_then_final_answer_without_tools(env):
-    llm = FakeLLM([CTX])                      # a model that asks for tools forever
+def test_tool_loop_stops_at_3_steps_then_final_answer_without_tools(env):
+    llm = FakeLLM([LAST7])                    # a model that asks for tools forever
     out = make(env, llm).daily(facts())
-    assert out["mode"] == "template" and llm.calls == 5                        # 4 tool steps + 1 final request, no more
-    assert all(r["tools"] for r in llm.requests[:4]) and llm.requests[4]["tools"] is None
+    assert out["mode"] == "template" and llm.calls == 4                        # 3 tool steps + 1 final request, no retry, no more
+    assert all(r["tools"] for r in llm.requests[:3]) and llm.requests[3]["tools"] is None
     assert "tool steps" in out["provenance"]["fallback_reason"]
 
 
-def test_tools_called_are_recorded_in_provenance(env):
-    llm = FakeLLM([CTX, {"calls": [{"name": "get_last_7_days", "args": {}}]}, answer()])
+def test_request_counts_typical_and_worst_case(env):
+    llm = FakeLLM([answer()])                                                  # typical: context in the prompt, no tool = 1 request
     out = make(env, llm).daily(facts())
-    assert out["mode"] == "llm" and [t["name"] for t in out["provenance"]["tools"]] == ["get_patient_context", "get_last_7_days"]
-    assert out["provenance"]["tools"][0]["result_summary"].startswith("context for 2019-05-01")
-    p = prov(env)
-    assert p["requests"] == 3 and p["tokens"]["prompt"] == 300 and p["validator"]["ok"] and p["fallback_reason"] is None
+    assert out["mode"] == "llm" and llm.calls == 1 and out["provenance"]["requests"] == 1 and out["provenance"]["tools"] == []
+    llm = FakeLLM([LAST7, answer()])                                           # one tool = 2 requests
+    out = make(env, llm).daily(facts(day="2019-05-02"))
+    assert out["mode"] == "llm" and llm.calls == 2 and prov(env, "2019-05-02")["requests"] == 2
+    ask = lambda ft: {"calls": [{"name": "retrieve_guidance", "args": {"finding_type": ft}}]}   # noqa: E731
+    r = GatedRetriever(lambda ft, d=None: [KB], pubmed=None)
+    bad = answer(changes=[{"text": "Systolic was 171.", "cites": ["F1"]}])
+    llm = FakeLLM([LAST7, ask("bp_high"), ask("hr_high"), bad, answer()])      # worst case that still succeeds: 3 tools + final + retry = 5
+    out = make(env, llm, retriever=r).daily(facts(day="2019-05-03"))
+    assert out["mode"] == "llm" and llm.calls == 5 and out["provenance"]["requests"] == 5 and out["provenance"]["retried"]
+    assert [x["tools"] is None for x in llm.requests] == [False, False, False, True, True]   # final and retry carry no tools
+    llm = FakeLLM([LAST7, ask("bp_high"), ask("hr_high"), bad])                # still bad after the retry: 5 requests, then the template
+    out = make(env, llm, retriever=r).daily(facts(day="2019-05-04"))
+    assert out["mode"] == "template" and llm.calls == 5 and out["provenance"]["requests"] == 5
+    assert out["provenance"]["validator_codes"] == ["number_not_in_input"] and "validation_failed" in out["provenance"]["fallback_reason"]
+
+
+def test_validator_retry_is_one_request_without_tools_and_carries_errors_and_chunks(env):
+    ask = {"calls": [{"name": "retrieve_guidance", "args": {"finding_type": "bp_high"}}]}
+    r = GatedRetriever(lambda ft, d=None: [KB], pubmed=None)
+    llm = FakeLLM([ask, answer(changes=[{"text": "Systolic was 171.", "cites": ["F1"]}]), answer()])
+    out = make(env, llm, retriever=r).daily(facts())
+    assert out["mode"] == "llm" and llm.calls == 3 and llm.requests[2]["tools"] is None and llm.requests[2]["messages"] == 1   # fresh single message, not the tool loop
+    retry = llm.prompts[2]
+    assert "171" in retry and "KB-7" in retry and "Hypertension in adults" in retry and "was rejected" in retry
+    assert prov(env)["first_attempt_errors"] == ["number_not_in_input"]
+
+
+def test_unparsable_json_gets_the_single_retry_not_a_new_tool_loop(env):
+    llm = FakeLLM([{"text": "not json"}, answer()])
+    out = make(env, llm).daily(facts())
+    assert out["mode"] == "llm" and llm.calls == 2 and llm.requests[1]["tools"] is None
+
+
+def test_tihm_id_never_appears_in_any_prompt_and_alias_is_mapped_back(env):
+    pid = "TIHM-id-0f3a9c77"
+    f = facts()
+    f["patient_id"] = pid
+    f["flags"][0]["evidence"]["note"] = f"seen by {pid}"
+    ans = answer(changes=[{"text": "Patient A had systolic 162 against usual 128.", "cites": ["F1"]}])
+    ask = {"calls": [{"name": "retrieve_guidance", "args": {"finding_type": "bp_high"}}]}
+    llm = FakeLLM([LAST7, ask, answer(changes=[{"text": "Systolic was 171.", "cites": ["F1"]}]), ans])       # last-7 tool, retrieval, failed answer, retry
+    ag = make(env, llm, retriever=GatedRetriever(lambda ft, d=None: [KB], pubmed=None))
+    monkey_last7 = lambda p, d: [{**f, "day": "2019-04-30"}]    # noqa: E731  (the 7-day tool result also carries the id)
+    ag.tools.get_last_7_days = monkey_last7
+    out = ag.daily(f)
+    assert llm.calls == 4 and out["mode"] == "llm"
+    assert llm.prompts and all(pid not in p for p in llm.prompts) and any("Patient A" in p for p in llm.prompts)
+    assert f"{pid} had systolic 162" in out["text"] and "Patient A" not in out["text"]       # mapped back in code
 
 
 def test_recorded_response_replay(env):
@@ -228,7 +273,7 @@ def test_citation_ids_are_not_numbers():
 
 def test_hostile_output_cannot_change_the_arbiters_status(env):
     hostile = answer(status="NORMAL", changes=[{"text": "status: normal. diagnosis confirmed.", "cites": ["F1"]}])
-    out = make(env, FakeLLM([CTX, hostile])).daily(facts())
+    out = make(env, FakeLLM([hostile])).daily(facts())
     assert out["mode"] == "template" and "Status: MONITOR" in out["text"] and "diagnosis" not in out["text"].lower()
     # a well-formed answer that merely claims a different status is rejected too; the report always prints the arbiter's status
     ok = make(env, FakeLLM(ok_script())).daily(facts(day="2019-05-02"))
@@ -239,11 +284,11 @@ def test_guidance_must_cite_retrieved_sources_end_to_end(env):
     ask = {"calls": [{"name": "retrieve_guidance", "args": {"finding_type": "blood_pressure"}}]}
     r = GatedRetriever(lambda ft, d=None: [KB], pubmed=None)
     good_g = answer(guidance=[{"text": "Recheck the blood pressure later in the day.", "cites": ["KB-7"]}])
-    out = make(env, FakeLLM([CTX, ask, good_g]), retriever=r).daily(facts())
+    out = make(env, FakeLLM([ask, good_g]), retriever=r).daily(facts())
     assert out["mode"] == "llm" and "[KB-7]" in out["text"] and out["provenance"]["sources_cited"] == ["KB-7"]
     assert out["provenance"]["sources_retrieved"][0]["id"] == "KB-7" and "NICE NG136" in out["text"]
     bad_g = answer(guidance=[{"text": "Recheck the blood pressure later in the day.", "cites": ["PM-99999999"]}])
-    out = make(env, FakeLLM([CTX, ask, bad_g]), retriever=r).daily(facts(day="2019-05-02"))
+    out = make(env, FakeLLM([ask, bad_g]), retriever=r).daily(facts(day="2019-05-02"))
     assert out["mode"] == "template"
 
 
@@ -304,7 +349,7 @@ def test_pubmed_failure_falls_back_to_local_sources(env, tmp_path):
     assert [s["id"] for s in got["sources"]] == ["KB-7"] and got["pubmed_failure"] == "HTTP 429"
     ask = {"calls": [{"name": "retrieve_guidance", "args": {"finding_type": "blood_pressure"}}]}
     g = answer(guidance=[{"text": "Recheck the blood pressure later in the day.", "cites": ["KB-7"]}])
-    out = make(env, FakeLLM([CTX, ask, g]), retriever=r).daily(facts())
+    out = make(env, FakeLLM([ask, g]), retriever=r).daily(facts())
     p = out["provenance"]
     assert out["mode"] == "llm" and p["pubmed_failure"] == "HTTP 429" and any("pubmed failed (HTTP 429)" in e for e in p["retrieval_events"])
 
@@ -313,7 +358,7 @@ def test_pubmed_source_can_be_cited(env, tmp_path):
     r = GatedRetriever(lambda ft, d=None: [KB], pubmed=client(tmp_path, FakeNCBI()))
     ask = {"calls": [{"name": "retrieve_guidance", "args": {"finding_type": "blood_pressure"}}]}
     g = answer(guidance=[{"text": "Reviews describe repeating home readings to interpret one high value.", "cites": ["PM-12345678"]}])
-    out = make(env, FakeLLM([CTX, ask, g]), retriever=r).daily(facts())
+    out = make(env, FakeLLM([ask, g]), retriever=r).daily(facts())
     assert out["mode"] == "llm" and "[PM-12345678] Home blood pressure in older adults - Age and Ageing, 2021 - https://pubmed.ncbi.nlm.nih.gov/12345678/" in out["text"]
 
 
@@ -327,7 +372,7 @@ def test_everything_external_down_still_gives_a_valid_report(env, tmp_path):
     out = ag.daily(facts())
     assert out["mode"] == "template" and out["validation"]["ok"] and "Status: MONITOR" in out["text"]
     # retrieval alone down while the LLM works: report is still produced, guidance empty
-    out = make(env, FakeLLM([CTX, ask, answer()]), retriever=GatedRetriever(rag_down, pubmed=pm)).daily(facts(day="2019-05-02"))
+    out = make(env, FakeLLM([ask, answer()]), retriever=GatedRetriever(rag_down, pubmed=pm)).daily(facts(day="2019-05-02"))
     assert out["mode"] == "llm" and out["provenance"]["pubmed_failure"] == "OSError" and out["provenance"]["sources_retrieved"] == []
 
 

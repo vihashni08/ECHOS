@@ -33,3 +33,4 @@ reports/rating/
 *.sqlite-shm
 *.joblib
 *.parquet
+reports/live_check/

@@ -22,6 +22,7 @@ from sqlalchemy import select
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 from echos.reports import facts as F
+from echos.reports.alias import ALIAS, pseudonymise, pseudonymise_back  # noqa: F401
 from echos.reports.vitals_why import VITALS_TYPES
 from echos.knowledge.retrieve import retrieve
 
@@ -68,23 +69,26 @@ WEEKLY_ASK = ('Write for a clinician. Return {"highlights":[{"text":str,"cites":
 
 
 # ------------------------------------------------------------------ daily report: tool loop
-PROMPT_VERSION = "daily-v2"
-MAX_TOOL_STEPS = 4     # tool calls per generation attempt; the next request is the final answer with tools switched off
-DAILY_SYSTEM = ("You write short, plain-language notes for a family caregiver in a home-care report. You may call the tools to get the structured "
-                "facts. Use ONLY facts returned by the tools. Never invent or alter a number; copy numbers exactly. Describe vitals as above or below "
+PROMPT_VERSION = "daily-v3"
+MAX_TOOL_STEPS = 3     # tool calls in the one tool loop; the next request is the final answer with tools switched off.
+                       # Worst case per report = MAX_TOOL_STEPS tool requests + 1 final + 1 validator retry (no tools).
+DAILY_SYSTEM = ("You write short, plain-language notes for a family caregiver in a home-care report. The structured facts are in the message; "
+                "the tools can fetch more. Use ONLY facts in the message or returned by the tools. Never invent or alter a number; copy numbers exactly. Describe vitals as above or below "
                 "this person's usual range. Never quote any probability or score; for activity say 'activity pattern differs from usual'. Never state or "
                 "imply a medical diagnosis (do not use 'diagnosis', 'you have', 'suffering from'). Never give advice about medicines or doses. "
                 "Any guidance statement must paraphrase a source returned by retrieve_guidance and cite its id (like KB-65 or PM-12345678). Reply "
                 "with JSON only.")
-DAILY_ASK = ('Today is {day}; the arbiter decided status {status}. Flag ids to cover: {flags}. Call get_patient_context first. Optionally call '
-             'get_last_7_days, and retrieve_guidance(finding_type, details) for the findings (finding_type one of {types}). Then reply with JSON '
+DAILY_ASK = ('Today is {day}; the arbiter decided status {status}. Flag ids to cover: {flags}. The patient context (vitals vs the '
+             'person\'s own baseline, routine, flags, falls, data-quality notes) is below. Optionally call get_last_7_days, and retrieve_guidance(finding_type, '
+             'details) for the findings (finding_type one of {types}). Then reply with JSON '
              '{{"status":"{status}","changes":[{{"text":str,"cites":[flag ids]}}],"monitor":[{{"text":str,"cites":[flag ids]}}],'
              '"guidance":[{{"text":str,"cites":[source ids]}}]}}. "status" must be exactly "{status}". "changes": what differs from this person\'s own '
              'baseline, one item per flag (cite its id; every flag id must be cited at least once). "monitor": 2 or 3 plain-language things to watch '
-             'today. "guidance": at most 2 short statements, each citing a retrieved source id; [] if nothing was retrieved.')
+             'today. "guidance": at most 2 short statements, each citing a retrieved source id; [] if nothing was retrieved.\n\nPATIENT CONTEXT:\n{context}')
+RETRY_ASK = ('Your previous reply was rejected by the checker for these reasons: {errors}. Write the reply again, fixing exactly these points. No tools are available now; '
+             'use only the facts and retrieved sources below. Same JSON shape as before; status must be exactly "{status}". Flag ids to cover: {flags}.\n\n'
+             'PATIENT CONTEXT:\n{context}\n\nRETRIEVED SOURCES:\n{sources}\n\nLAST 7 DAYS:\n{last7}')
 TOOLS = [
-    {"name": "get_patient_context", "description": "Structured facts for this patient and day: vitals vs the person's own baseline, routine, flags (ids F1..), falls, data-quality notes.",
-     "parameters": {"type": "object", "properties": {}}},
     {"name": "get_last_7_days", "description": "The same structured facts for each of the last 7 days (oldest first), compact.",
      "parameters": {"type": "object", "properties": {}}},
     {"name": "retrieve_guidance", "description": "Guideline chunks / PubMed abstracts for one finding type, each with a citable id. Only for MONITOR or URGENT days.",
@@ -93,7 +97,7 @@ TOOLS = [
          "details": {"type": "object", "properties": {"kind": {"type": "string"}, "post_fall_inactive": {"type": "boolean"}}}},
          "required": ["finding_type"]}},
 ]
-FINDING_TYPES = TOOLS[2]["parameters"]["properties"]["finding_type"]["enum"]
+FINDING_TYPES = TOOLS[1]["parameters"]["properties"]["finding_type"]["enum"]
 _HIDDEN = {"risk", "drift_score"}      # model scores are never shown to the LLM (and so can never be quoted)
 
 
@@ -518,11 +522,8 @@ class ReportAgent:
     # ---- tool loop: one generation attempt on one model
     def _exec_tool(self, call: dict, facts: dict, view: dict, tr: dict) -> dict:
         name, args = call.get("name"), call.get("args") or {}
-        if name == "get_patient_context":
-            tr["context"] = True
-            return view
         if name == "get_last_7_days":      # patient and day are pinned by code: the model cannot read another patient
-            days = [llm_view(d) for d in self.tools.get_last_7_days(facts["patient_id"], facts["day"])]
+            days = [pseudonymise(llm_view(d), facts["patient_id"]) for d in self.tools.get_last_7_days(facts["patient_id"], facts["day"])]
             tr["last7"] = days
             return {"days": days}
         if name == "retrieve_guidance":
@@ -548,17 +549,20 @@ class ReportAgent:
             return f"{len(res['sources'])} source(s): " + ", ".join(x["id"] for x in res["sources"])
         if call["name"] == "get_last_7_days":
             return f"{len(res['days'])} day(s)"
-        return f"context for {res.get('day')}, status {res.get('status')}, {len(res.get('flags', []))} flag(s)"
+        return "ok"
 
-    def _generate(self, ctx, facts: dict, view: dict, feedback: str, tr: dict) -> dict:
-        """Up to MAX_TOOL_STEPS tool calls, then one final request with tools switched off. Returns the parsed JSON object."""
+    def _generate(self, ctx, facts: dict, view: dict, tr: dict) -> dict:
+        """The ONE tool loop: patient context is in the first prompt; up to MAX_TOOL_STEPS tool calls, then a final request with tools switched off.
+        Returns the parsed JSON object (or raises ValueError on unparsable output; the caller turns that into a validator failure)."""
         flags = [f["id"] for f in facts["flags"] if f["type"] != "data_gap"]
-        ask = DAILY_ASK.format(day=facts["day"], status=facts["status"], flags=", ".join(flags) or "(none)", types=", ".join(FINDING_TYPES)) + feedback
+        ask = DAILY_ASK.format(day=facts["day"], status=facts["status"], flags=", ".join(flags) or "(none)", types=", ".join(FINDING_TYPES),
+                               context=json.dumps(view, default=str))
         messages, steps = [{"role": "user", "text": ask}], 0
         while True:
             final = steps >= MAX_TOOL_STEPS
             r = ctx.step(DAILY_SYSTEM, messages, None if final else TOOLS)
             if not r.calls:
+                tr["raw"] = r.text
                 return _json(r.text)
             if final:
                 raise GenerationFailed(f"model still asked for tools after {MAX_TOOL_STEPS} tool steps")
@@ -573,6 +577,18 @@ class ReportAgent:
                 results.append({"name": call["name"], "response": res})
             messages += [{"role": "model", "calls": r.calls, "raw": r.raw}, {"role": "tool", "results": results}]
 
+    def _retry(self, ctx, facts: dict, view: dict, tr: dict, errors: list) -> dict:
+        """ONE request, no tools: same facts + the already-retrieved chunks + the validator's errors. Never repeats the tool loop."""
+        flags = [f["id"] for f in facts["flags"] if f["type"] != "data_gap"]
+        src = [{"id": x["id"], "title": x["title"], "source": x["source"], "text": x["text"][:700]} for x in tr["sources"].values()]
+        ask = RETRY_ASK.format(errors="; ".join(errors[:6]), status=facts["status"], flags=", ".join(flags) or "(none)", context=json.dumps(view, default=str),
+                               sources=json.dumps(src), last7=json.dumps(tr["last7"], default=str) if tr["last7"] else "(not fetched)")
+        r = ctx.step(DAILY_SYSTEM, [{"role": "user", "text": ask}], None)
+        tr["raw"] = r.text
+        if r.calls:
+            raise ValueError("model asked for a tool in the retry")
+        return _json(r.text)
+
     @staticmethod
     def _check(out, facts: dict, view: dict, tr: dict) -> dict:
         required = [f["id"] for f in facts["flags"] if f["type"] != "data_gap"]
@@ -581,48 +597,67 @@ class ReportAgent:
         v = validate_report(out, {"facts": view, "last_7_days": tr["last7"]}, required, [f["id"] for f in facts["flags"]] + list(sources),
                             ["changes"] if required else [], guidance, expected_status=facts["status"])
         if isinstance(out, dict) and not 2 <= len(out.get("monitor") or []) <= 3:
-            v = {"ok": False, "errors": v["errors"] + ["monitor needs 2 or 3 items"]}
+            v = {**v, "ok": False, "errors": v["errors"] + ["monitor needs 2 or 3 items"], "codes": sorted(set(v.get("codes", [])) | {"monitor_count"}),
+                 "findings": v.get("findings", []) + [{"rule": "monitor_count", "detail": f"monitor has {len(out.get('monitor') or [])} items, needs 2 or 3"}]}
         return v
 
     def _attempt(self, facts: dict, view: dict):
-        """-> function(ctx) for LLMBudget.run: generate + validate, one retry with the validator's errors, then GenerationFailed (template)."""
+        """-> function(ctx) for LLMBudget.run: tool loop + validate; on a validator failure ONE retry request (no tools); then GenerationFailed (template).
+        Unparsable JSON counts as a validator failure ('json_invalid'), so it also gets the single retry rather than a repeat of the tool loop."""
         def attempt(ctx) -> dict:
-            feedback, v = "", None
-            for n in range(2):
-                tr = {"tools": [], "sources": {}, "last7": [], "retrieval_events": [], "pubmed_failure": None}
-                out = self._generate(ctx, facts, view, feedback, tr)
+            tr = {"tools": [], "sources": {}, "last7": [], "retrieval_events": [], "pubmed_failure": None, "raw": None}
+            raws, retried = [], False
+            try:
+                out = self._generate(ctx, facts, view, tr)
                 v = self._check(out, facts, view, tr)
-                if v["ok"]:
-                    return {"items": {"status": out.get("status"), **{k: out.get(k, []) for k in ("changes", "monitor", "guidance")}}, "tools": tr["tools"], "sources": tr["sources"],
-                            "last7": tr["last7"], "retrieval_events": tr["retrieval_events"], "pubmed_failure": tr["pubmed_failure"], "validation": v}
-                feedback = "\n\nYour previous reply was rejected for: " + "; ".join(v["errors"][:6]) + ". Fix these and reply again."
-            raise GenerationFailed("validation_failed", v)
+            except ValueError as ex:      # json.JSONDecodeError
+                v = {"ok": False, "errors": [f"reply was not valid JSON ({type(ex).__name__})"], "codes": ["json_invalid"], "findings": [{"rule": "json_invalid", "detail": "reply was not valid JSON"}]}
+            if not v["ok"]:
+                raws.append({"raw": tr["raw"], "validator": v})
+                retried = True
+                try:
+                    out = self._retry(ctx, facts, view, tr, v["errors"])
+                    v = self._check(out, facts, view, tr)
+                except ValueError as ex:
+                    v = {"ok": False, "errors": [f"reply was not valid JSON ({type(ex).__name__})"], "codes": ["json_invalid"], "findings": [{"rule": "json_invalid", "detail": "reply was not valid JSON"}]}
+            if v["ok"]:
+                return {"items": {"status": out.get("status"), **{k: out.get(k, []) for k in ("changes", "monitor", "guidance")}}, "tools": tr["tools"], "sources": tr["sources"],
+                        "last7": tr["last7"], "retrieval_events": tr["retrieval_events"], "pubmed_failure": tr["pubmed_failure"], "validation": v, "retried": retried,
+                        "first_attempt_errors": raws[0]["validator"]["codes"] if raws else []}
+            raws.append({"raw": tr["raw"], "validator": v})
+            raise GenerationFailed("validation_failed", {**v, "attempts": raws})
         return attempt
 
     def _daily(self, facts: dict, use_ai: bool, why_template) -> dict:
         view = llm_view(facts)
+        pid = facts["patient_id"]
+        aview = pseudonymise(view, pid)          # what the LLM sees
         items = daily_template_items(facts)
         v = validate_report(items, {"facts": view}, [f["id"] for f in facts["flags"] if f["type"] != "data_gap"], [f["id"] for f in facts["flags"]],
                             ["changes"] if any(f["type"] != "data_gap" for f in facts["flags"]) else [])
         mode, sources, events = "template", {}, []
         prov = {"model": "template", "mode": "template", "cache_hit": False, "tools": [], "sources_retrieved": [], "sources_cited": [], "validator": v,
-                "fallback_reason": why_template, "requests": 0, "tokens": {"prompt": 0, "output": 0}, "models_tried": [], "events": []}
+                "fallback_reason": why_template, "requests": 0, "retried": False, "validator_codes": [], "tokens": {"prompt": 0, "output": 0}, "models_tried": [], "events": []}
         if use_ai and self.budget is not None:
             key = make_key(PROMPT_VERSION, view)
-            revalidate = lambda c: self._check(c["items"], facts, view, {"sources": c["sources"], "last7": c["last7"]})["ok"]  # noqa: E731
-            res = self.budget.run(self._attempt(facts, view), key=key, revalidate=revalidate, prompt_version=PROMPT_VERSION)
+            revalidate = lambda c: self._check(c["items"], facts, aview, {"sources": c["sources"], "last7": c["last7"]})["ok"]  # noqa: E731
+            res = self.budget.run(self._attempt(facts, aview), key=key, revalidate=revalidate, prompt_version=PROMPT_VERSION)
             prov.update(requests=res.requests, tokens={"prompt": res.prompt_tokens, "output": res.output_tokens}, models_tried=res.models_tried, events=res.events)
             if res.ok:
                 val = res.value
                 items, sources, mode = val["items"], val["sources"], "llm"
-                v = self._check(items, facts, view, {"sources": sources, "last7": val["last7"]})
+                v = self._check(items, facts, aview, {"sources": sources, "last7": val["last7"]})
+                items = pseudonymise_back(items, pid)       # alias -> patient id, in code only
                 prov.update(model=res.model, mode="llm", cache_hit=res.cache_hit, tools=val["tools"], validator=v, fallback_reason=None,
                             sources_retrieved=[{k: s.get(k) for k in ("id", "origin", "title", "source", "publisher", "year", "page", "journal", "url", "excerpt")} for s in sources.values()],
-                            retrieval_events=val["retrieval_events"], pubmed_failure=val.get("pubmed_failure"))
+                            retrieval_events=val["retrieval_events"], pubmed_failure=val.get("pubmed_failure"), retried=val.get("retried", False),
+                            first_attempt_errors=val.get("first_attempt_errors", []))
             else:
                 prov["fallback_reason"] = res.fallback_reason
                 if res.validation:
-                    prov["validator"] = res.validation
+                    prov["validator"] = {k: res.validation[k] for k in ("ok", "errors", "codes", "findings") if k in res.validation}
+                    prov["validator_codes"] = res.validation.get("codes", [])
+                    prov["retried"] = True
         elif use_ai:
             prov["fallback_reason"] = "no LLM configured"
         cited = [c for it in items.get("guidance", []) for c in it.get("cites", []) if c in sources]

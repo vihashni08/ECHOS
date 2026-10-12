@@ -143,7 +143,7 @@ def main():
     res["tables"]["any_labelled_day"] = evaluate(d, sy3, "y_any", "all_days", rng)
     res["any_label_positives"] = int(d.y_any.sum())
     res["shipped_thresholds"] = {"vitals_prob": T["vitals_prob"], "agitation_prob": T["agitation_prob"]}
-    res["notes"] = ["OOF scores only; labels are TIHM clinical alerts (not adjudicated events); recall on labelled days of the scored population",
+    res["notes"] = ["OOF scores only; labels are TIHM events described as clinician-verified (production not verified by us; treat vitals results as an upper bound); recall on labelled days of the scored population",
                     "budgets = alert days per patient-week over ALL patient-days / 7; 'A budget' = number of days the fixed rule fires",
                     "patient-level bootstrap (1000 resamples); budgets are recomputed inside each resample",
                     "C's vitals path is B plus the absolute critical-vitals limits, so C = B on vitals-labelled days up to those forced days",

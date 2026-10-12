@@ -30,8 +30,16 @@ test("Demo guide: reset and play, then the fall step creates an URGENT alert", a
   await expect(page.getByRole("alertdialog")).toContainText("This clears the simulation tables")           // same confirmation as the Reset button
   await page.getByTestId("demo-confirm-reset").click()
   await expect(page.getByTestId("demo-step-1")).toContainText("Simulation reset and playing", { timeout: 30000 })
+  // The step pins F02 + SA03 (all 5 recordings are detected with confirmed post-fall inactivity). Before that it picked a random held-out subject and 2 of the 20
+  // F02 recordings (SE06 R01, R04) have no confirmed inactivity, so ~10% of runs correctly raised no alert: 1 failure in 8 runs, not a latency problem.
+  // Measured click -> alert: 2.8-3.3 s in 7 passing runs, so 20 s is a generous bound (it was 60 s).
+  const t0 = Date.now()
   await page.getByTestId("demo-fall").click()
-  await expect(page.getByTestId("alert-sent").getByTestId("recipient")).toHaveCount(2, { timeout: 60000 })
+  try {
+    await expect(page.getByTestId("alert-sent").getByTestId("recipient")).toHaveCount(2, { timeout: 20000 })
+  } finally {
+    console.log(`FALL_CLICK_TO_ALERT_MS ${Date.now() - t0}`)
+  }
   await page.getByRole("link", { name: "Dashboard" }).first().click()
   await expect(page.getByTestId("alert-item").first()).toContainText("URGENT")
 })
