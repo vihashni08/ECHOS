@@ -29,7 +29,7 @@ def fault_summary(fi) -> str:
     failed = {v["label"]: v["outbox_status"].get("FAILED", 0) for v in cases if v["outbox_status"].get("FAILED")}
     s = f"{clean_ok} of {len(cases)} fault cases (worker / supervisor / API kills, LLM and PubMed failures, SMTP failures) lost no alert and made no duplicate"
     if failed:
-        s += "; exception: " + "; ".join(f"{k}: {n} outbox rows FAILED (undelivered, visible)" for k, n in failed.items())
+        s += "; exception: " + "; ".join(f"{k}: {n} outbox rows FAILED (undelivered, visible; measured before the 15-minute retry window and 2-hour sweeper existed)" for k, n in failed.items())
     return s
 
 

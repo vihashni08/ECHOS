@@ -1,122 +1,143 @@
 # ECHOS: Evidence-Centred Health Observation and Support through Collaborative AI Agents
 
-Multi-agent decision support for home-dwelling elderly patients. **Not a diagnostic tool.** Results, tables and limitations are in [reports/RESULTS.md](reports/RESULTS.md).
+Multi-agent decision support for home-dwelling elderly patients. **Not a diagnostic tool.** Results and caveats: [reports/RESULTS.md](reports/RESULTS.md); limits: [docs/LIMITATIONS.md](docs/LIMITATIONS.md); design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); 5-minute demo: [docs/DEMO.md](docs/DEMO.md).
 
 ## Overview
 
-A simulator replays TIHM activity and physiology day by day and injects SisFall fall windows. Agent 0 (rule-based data quality) cleans each patient-day, then three analysis agents score it; a LangGraph orchestrator applies plain if-then triage (Normal / Monitor / Urgent, no trained fusion model) and a Report agent writes a daily caregiver report and a weekly clinician report. A supervisor watches SQLite heartbeats and restarts dead or stalled agents.
+A simulator replays TIHM activity and physiology day by day and injects SisFall fall windows (synthetic, for tests and demos). A rule-based **Data Quality agent** cleans each patient-day; the **Health Monitoring agent** scores it with a vitals sub-model and a behaviour sub-model (kept separate; SHAP, personal-baseline and persistence evidence; drift/CUSUM is explanation only); the **Fall agent** (SisFall only, independent of both) scores accelerometer windows. A **LangGraph orchestrator** applies deterministic if-then triage (Normal / Changed-monitor / Urgent) and queues fall and critical-vitals alerts immediately, before any report work. The **Report agent** (LLM + tools + non-LLM validator) writes the daily report; the weekly clinician report is a PDF by e-mail. A **supervisor** restarts dead workers. A FastAPI service and a React web app show everything.
 
-| Agent | What it does | Data |
+There is no trained fusion model and no alert lifecycle (no acknowledgement or escalation). The LLM never decides an emergency; rules do. With no key, reports run in template mode.
+
+| Component | What it does | Data |
 |---|---|---|
-| 0 Data quality | Rules only: range checks, duplicates/order, activity sensor-gap detection, completeness; never imputes. See [docs/DATA_POLICY.md](docs/DATA_POLICY.md) | TIHM Activity + Physiology |
-| 1 Physiological | XGBoost on BP / heart-rate vs personal past-only baseline | TIHM Physiology + Labels |
-| 2 Behaviour | Routine drift (z-score, CUSUM) + agitation classifier | TIHM Activity |
-| 3 Fall | Random-forest on 2.5 s accelerometer windows + post-fall inactivity | SisFall only (TIHM has no falls) |
-| 4 Report | Daily and weekly reports; guideline retrieval (RAG), optional Gemini wording, non-LLM validator, Jinja2 template fallback | agent outputs in SQLite |
-
-Architecture details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Every agent returns the `AgentResult` schema ([echos/schemas.py](echos/schemas.py)). The LLM never decides emergencies; rules do. With no key or no `llm.model`, reports run in template mode.
+| Data Quality agent | Rules only: range checks, duplicates/order, activity sensor-gap detection, completeness; never imputes. [docs/DATA_POLICY.md](docs/DATA_POLICY.md) | TIHM Activity + Physiology |
+| Health Monitoring agent: vitals sub-model | XGBoost on blood pressure / heart rate against the person's own past-only baseline; direction-aware findings (BP high / low, heart rate high / low, temperature, weight) | TIHM Physiology + Labels |
+| Health Monitoring agent: behaviour sub-model | Agitation classifier (only `agitation_prob` can trigger Monitor); routine drift / CUSUM as explanation only | TIHM Activity |
+| Fall agent | Random forest on 2.5 s accelerometer windows + post-fall inactivity | SisFall only (TIHM has no falls) |
+| Orchestrator | LangGraph, SQLite checkpoints, deterministic triage and safety rules | agent outputs |
+| Alert dispatcher | Fixed-template e-mail to caregiver and clinician, retrying outbox, no LLM | structured data only |
+| Report agent | Daily (tool loop, per-finding gated retrieval, validator, template fallback) and weekly PDF | agent outputs in SQLite |
 
 ```mermaid
 flowchart LR
-    SIM["Simulator<br/>TIHM replay + SisFall falls"] --> EL[(SQLite event_log)]
-    EL --> A0["Agent 0<br/>Data quality (rules)"]
-    EL --> A3["Agent 3<br/>Fall"]
-    A0 -->|cleaned patient-day| A1["Agent 1<br/>Physiological"]
-    A0 --> A2["Agent 2<br/>Behaviour"]
-    A0 --> AO
-    A1 --> AO[(agent_output)]
-    A2 --> AO
-    A3 --> AO
-    AO --> ORCH["LangGraph orchestrator<br/>rule-based triage, SQLite checkpoints<br/>DATA_GAP rule"]
-    ORCH -->|URGENT: fall / critical vitals| AL[(alerts + outbox)] --> MAIL[background mailer: caregiver + clinician, fixed template, no LLM]
-    ORCH --> A4["Agent 4 Report<br/>template + optional LLM + validator"]
-    AL --> A4
-    KB[("Guideline PDFs<br/>echos/knowledge/raw")] -->|ingest: clean, chunk, MiniLM embed| VS[("Chroma<br/>data/rag")]
-    A4 -->|get_guideline: finding -> query| VS
-    VS -->|top-k chunks KB-n| A4
-    A4 -->|structured summary + KB chunks only| LLM["Gemini (optional)"]
-    LLM -->|JSON: wording + cites| VAL["Validator (non-LLM)<br/>evidence ids, KB ids, paraphrase, no diagnosis"]
-    VAL -->|ok| OUT
-    VAL -->|rejected / timeout / no key| TPL["Jinja2 template fallback"]
-    TPL --> OUT["Daily caregiver / weekly clinician report"]
-    OUT --> DASH["React web app"]
-    SUP["Supervisor<br/>heartbeats, restart"] -.monitors.-> A0
-    SUP -.-> A1
-    SUP -.-> A2
-    SUP -.-> A3
+    SIM["Simulator<br/>TIHM replay + injected SisFall falls<br/>(synthetic: tests and demos only)"] --> EL[(SQLite event_log)]
+    EL --> DQ["Data Quality agent<br/>(rules)"]
+    EL --> FALL["Fall agent<br/>(SisFall-trained, independent)"]
+    DQ -->|cleaned patient-day| HM["Health Monitoring agent<br/>vitals sub-model + behaviour sub-model<br/>(kept separate; SHAP, personal baseline, persistence)"]
+    DQ --> AO[(agent_output)]
+    HM --> AO
+    FALL --> AO
+    AO --> ORCH["LangGraph orchestrator (checkpointed)<br/>deterministic triage: Normal / Changed-monitor / Urgent<br/>safety rules: DATA_GAP never Normal, critical vitals, fall"]
+    ORCH -->|immediate_alert node, BEFORE any report work| OB[(outbox)]
+    OB --> DISP["Alert dispatcher<br/>retrying outbox, worker threads,<br/>2 h sweeper, dedup, fixed template, no LLM"]
+    DISP --> MAIL["Caregiver + clinician e-mail<br/>(dry run by default)"]
+    ORCH --> REP["Report agent<br/>tool loop: get_patient_context, get_last_7_days, retrieve_guidance<br/>NORMAL days = template (gate)"]
+    REP -->|MONITOR / URGENT findings only| RAG["Per-finding gated RAG<br/>local guideline index, then live PubMed"]
+    RAG --> REP
+    REP --> BUD["LLM budget manager<br/>cache, primary, fallback model, template"]
+    BUD --> VAL["Non-LLM validator<br/>numbers, citation ids, no diagnosis / medication advice"]
+    VAL -->|rejected, timeout, no key| TPL["Template report"]
+    VAL -->|ok| OUT["Daily report (dashboard)<br/>Weekly clinician PDF (e-mail)"]
+    TPL --> OUT
+    OUT --> API["FastAPI<br/>reads SQLite + saved reports, no models"]
+    API --> WEB["React web app"]
+    SUP["Supervisor<br/>heartbeats, restarts"] -.-> DQ
+    SUP -.-> HM
+    SUP -.-> FALL
 ```
 
-## Setup
+## Research gaps and what we measured
+
+Written by `scripts/make_research_gaps.py` from `reports/metrics/*.json`.
+
+<!-- research_gaps:start -->
+| Gap | Mechanism | Measured evidence (95% CI) | Caveat |
+|---|---|---|---|
+| Raw alerts without context or explanation | Every vitals and fall alert is shown with its values against the person's own usual, a plain-words 'why it fired' line, SHAP top features and persistence evidence (drift/CUSUM explanation-only); the daily and weekly reports cite guideline sources per finding. | Alert burden with context attached: MONITOR days 28.8%, URGENT 4.5% of 1266 replayed patient-days; vitals sub-model at 1 alert/patient-week: recall 0.72 (0.63-0.81) vs chance 0.23. | Whether the explanations are clear or useful to a reader has NOT been measured (rating kit prepared in reports/rating, not run). Replay, not live use. |
+| Fixed thresholds ignore the individual | Past-only personal baselines (shift(1)); XGBoost on deviation from the person's own usual, not on absolute values alone. | Vitals PR-AUC 0.697 (0.571-0.782) vs fixed BP rule 0.261 (0.183-0.346); at the rule's own alert count recall 0.90 (0.83-0.94) vs 0.76 (0.61-0.88) (out-of-fold, patient-level folds, patient bootstrap CI; the recall CIs overlap). | Labels are clinical alerts, probably threshold-derived, so part of the gain may be re-learning the labelling rule; 54 patients; agitation score is modest (PR-AUC 0.22 vs base rate 0.05) and ranks within patients, it is not a probability. |
+| Fragile pipelines and silent sensor failure | Rule-based Data Quality agent (ranges, gaps, completeness; never imputes); a day with a sensor gap / unchecked data / >7 days without vitals is DATA_GAP and never Normal; supervisor restarts dead workers; documented fallbacks. | 132 of 2797 patient-days (4.7%) flagged as sensor gap; replay data-gap days 4.5%, 0 flag mismatches. Fault injection: 11 of 11 fault cases (worker / supervisor / API kills, LLM and PubMed failures, SMTP failures) lost no alert and made no duplicate; exception: SMTP down for 8 s (longer than the 3-attempt retry window): 10 outbox rows FAILED (undelivered, visible; measured before the 15-minute retry window and 2-hour sweeper existed). | 3 patients x 10 days, one fault per case, fakes for LLM / SMTP / PubMed, one machine; the supervisor is a single point of failure for restarts. |
+| Unsafe LLM text | The LLM never decides emergencies and is not on the alert path; reports pass a non-LLM validator (numbers from the data, cited ids, no diagnosis / medication advice); NORMAL days use a template with no LLM; any failure falls back to the template. | Gate: 845 of 1266 days (66.7%) need no LLM; triage identical with the gate on and off: True; alerts missed due to gating: 0. LLM errors and timeouts (fake): reports fell back to the template, no alert lost. | Quality of real model output was NOT evaluated (only fakes in tests; the live check is recorded separately). The validator catches the rules it encodes, not every unsafe sentence. |
+| Alert delivery and delays | Fall and critical-vitals alerts are queued before any report work as a fixed template (no LLM); outbox with retries (backoff, 15-minute window, 2-hour sweeper); dedup per event. | Software latency, event to queued median 1.3 ms, to sent (fake mailer) median 31 ms (p95 33 ms); under 4 busy threads median 0.46 s (p95 1.08 s). Injected falls raised an URGENT alert in 51/60 = 0.850 (0.739-0.919); false fall alerts 0.011 per patient-week. | Replay delay (median 13.1 h, max 23.8 h) is a daily-batch artefact; the live path is sub-second. Real SMTP was never exercised; falls are simulated SisFall windows; 4 held-out subjects. |
+
+**Not claimed:** clinical validity (nothing here was validated against clinical outcomes or in a clinical setting); deterioration forecasting (the models detect same-day clinical-alert labels, they do not predict future events); algorithmic novelty (standard XGBoost / random forest / rules on personal baselines; the contribution is the safety-oriented system around them). Decision support, not diagnosis.
+<!-- research_gaps:end -->
+
+## Reproduce
+
+Python 3.11 (see `.python-version`) and Node 20+ for the web app. Data, models and indexes are git-ignored: you rebuild them as below. All commands from the repo root; **no step needs Gemini, PubMed or e-mail** (the evaluation scripts force them off).
 
 ```bash
-pip install -r requirements.txt
+# 1. environment
+python3.11 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt            # exact versions; direct dependencies are listed in requirements.in
+cp .env.example .env                       # optional: only for the real-service scripts (names only in the example)
 ```
 
-Place TIHM CSVs in `data/tihm/Dataset/` and SisFall in `data/sisfall/SisFall_dataset/` (data and models are git-ignored). Settings are in [config.yaml](config.yaml). Optional LLM: set `llm.model` in `config.yaml` and put `ECHOS_LLM_API_KEY` in `.env`.
+```bash
+# 2. obtain the data (not in the repository; check each dataset's licence)
+#    TIHM (UK DRI Care Research & Technology Centre, Technology Integrated Health Management): download the dataset, then place
+#      Activity.csv, Physiology.csv, Labels.csv, Demographics.csv (Sleep.csv is not used) in   data/tihm/Dataset/
+#    SisFall (Universidad de Antioquia; Sucerquia et al., Sensors 2017): unzip so that the subject folders SA01..SE15 are in   data/sisfall/SisFall_dataset/
+#    Guideline PDFs: the five documents in echos/knowledge/SOURCES.md, saved under the listed file names in   echos/knowledge/raw/
+ls data/tihm/Dataset data/sisfall/SisFall_dataset echos/knowledge/raw
+```
+
+```bash
+# 3. build tables and train every model (offline; takes several minutes; writes data/processed/, models/, reports/metrics/*.json)
+scripts/rebuild_models.sh
+# 4. ingest the guideline index (the first run downloads the all-MiniLM-L6-v2 embedding model once; after that it is local)
+PYTHONPATH=. python -m echos.knowledge.ingest
+# 5. demo database: replay -> agents -> orchestrator -> reports into data/echos.db (template mode, dry-run mail, ~3 min)
+PYTHONPATH=. python scripts/run_demo.py 4 28
+```
+
+```bash
+# 6. run the API and the web app (a copy of the database, so the UI never touches data/echos.db)
+scripts/make_ui_dev_copy.sh
+scripts/run_api.sh --dry --no-llm --demo --db data/echos_ui_dev.db      # API on http://127.0.0.1:8000, docs at /docs
+cd web && npm ci && npm run dev                                         # UI on http://localhost:5173
+```
+
+```bash
+# 7. tests (each Python test file in its own process; tests never use the real LLM, PubMed or SMTP)
+for f in tests/test_*.py; do python -m pytest "$f" -q; done
+cd web && npx playwright test && node contrast.mjs && npx tsc -b && npm run build
+python scripts/check_docs_numbers.py
+```
+
+Tests that need the data or the built tables are reported as **skipped** (with the reason) in a clone that does not have them yet.
+
+### Evaluations (optional; all forced offline by `echos/offline.py`)
+```bash
+PYTHONPATH=. python scripts/e2e.py 20              # 20 patients, full period -> reports/metrics/e2e.json
+PYTHONPATH=. python scripts/fault_injection.py     # fakes only: kill workers / supervisor, LLM, PubMed, SMTP, API faults
+PYTHONPATH=. python scripts/fall_eval.py           # per-fall-type sensitivity, injected falls, inactivity effect
+PYTHONPATH=. python scripts/ablation.py            # fixed rules / vitals only / full system, out-of-fold, patient bootstrap CIs
+PYTHONPATH=. python scripts/gate_eval.py           # report gate: LLM / retrieval calls avoided, triage identical on/off
+PYTHONPATH=. python scripts/monitor_driver.py      # MONITOR share driver + threshold proposal (not applied)
+PYTHONPATH=. python scripts/evaluate.py            # merge metrics into reports/results_table.md/.csv
+PYTHONPATH=. python scripts/make_research_gaps.py  # regenerate the research-gaps table above
+```
+Real-service scripts (`scripts/list_models.py`, `scripts/live_llm_check.py`, `scripts/live_report_check.py`, `scripts/send_test_*.py`) refuse to run without `--yes` and are never used by tests or demos.
 
 ## Report agent: LLM, RAG, privacy
 
-- **LLM:** Google Gemini via `google-genai`; `config.yaml` currently has `llm.model: gemini-3.5-flash-lite`, temperature 0.2, timeout 45 s (never retried), 1 retry for other failures, 8 requests/min, backlog 200. No model or no key means template mode.
-- **RAG (`rag.enabled`, default true):** guideline PDFs in `echos/knowledge/raw/` (CDC STEADI, NICE NG249 falls, NICE NG97 dementia, NICE NG136 hypertension, RCP NEWS2) are cleaned, split into ~250-word chunks (50-word overlap), embedded locally with `all-MiniLM-L6-v2` and stored in Chroma (`data/rag/`, git-ignored). Build with `PYTHONPATH=. python3 -m echos.knowledge.ingest`; check relevance with `scripts/rag_check.py`. The retriever (`get_guideline`) maps a finding type to a query and returns the top `k=3` chunks (cosine >= 0.25) with ids like `[KB-3]`. The LLM may only paraphrase them and must cite ids; the validator rejects uncited statements, unknown ids, near-verbatim copying and diagnostic wording. The template fallback and the weekly "References (for clinician review)" list the cited sources. `rag.enabled: false` removes guidance; reports still work.
-- **Privacy:** the LLM receives only structured summaries (pseudonymous patient id, day, flags, statistics and evidence ids, plus retrieved public guideline text), never raw sensor rows, and never decides emergencies; alerts are written before any LLM call. Embeddings are computed locally. The API key is read from `.env` and never logged.
+- **LLM:** Google Gemini via `google-genai`; model names in `config.yaml` (`llm.model`, `llm.fallback_model`). Requests go through the budget manager (cache, primary, fallback, template); a 429 is a 60 s cooldown, timeouts are never retried. No model or no key means template mode.
+- **RAG:** guideline PDFs (CDC STEADI, NICE NG249 falls, NICE NG97 dementia, NICE NG136 hypertension, RCP NEWS2) are chunked (~250 words, 50 overlap), embedded locally with `all-MiniLM-L6-v2` and stored in Chroma (`data/rag/`). Retrieval is per finding and only on MONITOR / URGENT days: local index first, then live PubMed; vitals findings are direction-aware and a source that does not match its finding is dropped. The LLM may only paraphrase retrieved sources and must cite their ids; the validator rejects uncited statements, unknown ids and diagnostic wording. NORMAL days use a template with no LLM and no retrieval.
+- **Privacy:** the LLM receives only structured summaries (pseudonymous patient id, day, flags, statistics, evidence ids) plus public guideline text, never raw sensor rows. Alert e-mails carry a de-identified id and age band. The API masks addresses and never returns secrets.
 
-## Run each stage
+## API and web app
 
-All commands from the repo root.
+`scripts/run_api.sh [--dry] [--no-llm] [--demo] [--no-runtime] [--db PATH]`: the API is bound to 127.0.0.1, CORS allows `http://localhost:5173` only, and there is **no authentication** (local demo). `--dry` forces dry-run mail, `--no-llm` also switches live PubMed off, `--demo` enables agent kill and the Demo guide. Endpoints: [docs/API.md](docs/API.md).
 
-```bash
-# 1. patient-day table
-PYTHONPATH=. python3 -m echos.data.patient_day
-# 2. train + evaluate agents (writes models/ and reports/metrics/agent{1,2,3}.json)
-PYTHONPATH=. python3 -m echos.agents.health.vitals
-PYTHONPATH=. python3 -m echos.agents.health.behaviour
-PYTHONPATH=. python3 -m echos.agents.fall
-# 3. fall window audit + operating point -> config.yaml (agent3.operating, triage.fall_*); then MONITOR alert budgets + OOF scores for e2e
-PYTHONPATH=. python3 scripts/fall_audit.py --write-config   # (choose_thresholds.py = v1 windows, superseded for the fall thresholds)
-PYTHONPATH=. python3 scripts/choose_monitor_thresholds.py
-# 4. demo pipeline: replay -> agents -> orchestrator -> reports into data/echos.db
-PYTHONPATH=. python3 scripts/run_demo.py 4 28
-# 5. systems tests
-PYTHONPATH=. python3 scripts/e2e.py 20             # 20 patients, full period -> reports/metrics/e2e.json
-PYTHONPATH=. python3 scripts/fault_injection.py    # fakes only: kill workers / supervisor, LLM, PubMed, SMTP, API faults -> fault_injection.json
-PYTHONPATH=. python3 scripts/kill_test.py fall     # single kill test -> kill_test.json
-PYTHONPATH=. python3 scripts/fall_eval.py          # per-fall-type sensitivity, injected-fall results, inactivity effect (after e2e.py + fault_injection.py)
-PYTHONPATH=. python3 scripts/ablation.py           # A fixed rules / B vitals only / C full system, out-of-fold, patient bootstrap CIs
-PYTHONPATH=. python3 scripts/gate_eval.py          # report gatekeeper: LLM / retrieval calls avoided (counting fakes), triage identical on/off
-PYTHONPATH=. python3 scripts/monitor_driver.py     # MONITOR share driver + threshold proposal (not applied)
-PYTHONPATH=. python3 scripts/sync_prose.py         # RESULTS.md prose bullets regenerated from the JSONs
-# every script above runs with ECHOS_REPORT_LLM=off, ECHOS_PUBMED=off, ECHOS_DRY_RUN=1 (echos/offline.py): no Gemini, PubMed or SMTP.
-# Real-service scripts need --yes: scripts/list_models.py (model names), scripts/live_llm_check.py --yes (<= 4 requests, stops at the first failure)
-# 6. merge metrics into one table (reports/results_table.md and .csv)
-PYTHONPATH=. python3 scripts/evaluate.py
-# tests
-python3 -m pytest -q
-```
+Pages: Dashboard (patients, live alert feed, agents, simulation), Fall Monitor, Patient (vitals / routine), Caregiver (today's report, 7-day strip, how the report was made), Clinician (weekly report, references, PDF, send, outbox), System (health, data quality, models, limitations) and, in demo mode, a Demo guide drawer. `cd web && npm run gen:api` regenerates the typed API client; `npx playwright test` starts its own throw-away stack (API :8010, Vite :5180, database copy `data/echos_e2e.db`).
 
-## API (demo)
-```bash
-scripts/run_api.sh --dry --no-llm      # runtime (workers + orchestrator + simulation controller) + API on http://127.0.0.1:8000, docs at /docs
-scripts/run_api.sh --no-runtime        # API only, reads the existing data/echos.db
-```
-`--dry` forces DryRun mail (outbox rows only). The API has **no authentication** (local demo, bound to 127.0.0.1, CORS for http://localhost:5173) and never loads models:
-it reads SQLite / reports / `reports/metrics/*.json` and sends commands to the runtime through the database. See `docs/API.md` for the endpoint list.
+## Headline results (see [reports/RESULTS.md](reports/RESULTS.md) for CIs and caveats)
 
-## Web app
-```bash
-scripts/make_ui_dev_copy.sh                                   # data/echos_ui_dev.db: a copy, so the UI never touches data/echos.db
-scripts/run_api.sh --dry --no-llm --demo --db data/echos_ui_dev.db   # API on http://127.0.0.1:8000 (dry mail, no Gemini, agent kill enabled)
-cd web && npm install && npm run dev                          # UI on http://localhost:5173 (open it via localhost, CORS allows only that origin)
-```
-`npm run build` / `npx tsc -b` verify the app; `npx playwright test` starts its own throw-away stack (API on :8010, Vite on :5180, database copy data/echos_e2e.db) and runs the smoke, axe and action tests; `npm run gen:api` regenerates the typed API client.
-
-Pages: Dashboard (patients, live alert feed, agents, simulation), Fall Monitor, Patient (vitals/routine), Caregiver (today's report + 7-day strip + 'How this report was made'), Clinician (weekly report, references, PDF, send, outbox), System (health, data quality, models, limitations) and, in demo mode, a Demo guide drawer.
-
-## Headline results (see RESULTS.md for CIs and caveats)
-
-- Agent 1 PR-AUC 0.70 vs 0.26 for the fixed BP rule (out-of-fold, patient-level).
-- Agent 2 PR-AUC 0.22 vs 0.05 base rate (within-patient ROC-AUC 0.82); drift alone is at chance and is report evidence only, not a Monitor trigger; the signal is mostly raw same-day activity.
-- Agent 3 sensitivity 0.918 adults / 0.560 elderly (one subject), on SisFall scripted falls.
-- End-to-end (20 patients, 60 injected falls): 51 detected (85%); days are 67% Normal / 29% Monitor / 4% Urgent with MONITOR thresholds chosen from out-of-fold alert budgets (<=1 vitals alert/patient-week, <=10% behaviour Monitor days, agitation_prob only) and out-of-fold agent scores.
-- Fault injection (fakes, 3 patients x 10 days): no alert lost and no duplicate in 11 of 11 fault cases (the SMTP outage case leaves undelivered rows FAILED instead; see RESULTS.md).
+- Vitals sub-model PR-AUC 0.70 vs 0.26 for the fixed BP rule (out-of-fold, patient-level folds).
+- Behaviour sub-model (agitation) PR-AUC 0.22 vs 0.05 base rate, median within-patient ROC-AUC 0.82; it ranks days within a patient but is not a reliable probability and is never shown as one. Drift alone is at chance and is report evidence only.
+- Fall agent sensitivity 0.918 adults / 0.560 elderly (one subject), on SisFall scripted falls, at the chosen operating point (score >= 0.8 and post-fall inactivity).
+- End-to-end (20 patients, 60 injected falls): 51 detected (85%); days are 67% Normal / 29% Monitor / 4% Urgent (Wilson 95% CI for detection 0.739-0.919; the earlier, less strict operating point detected 57/60, see [docs/LIMITATIONS.md](docs/LIMITATIONS.md)).
+- Fault injection (fakes, 3 patients x 10 days): no alert lost and no duplicate in 11 of 11 fault cases; the SMTP outage case, measured before the retry window was added, leaves undelivered rows FAILED instead.
 
 Small cohort, clinical-alert labels, simulated falls: treat all numbers as preliminary.

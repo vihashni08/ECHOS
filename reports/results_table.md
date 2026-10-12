@@ -1,4 +1,4 @@
-### Agent 1 (vitals), out-of-fold, patient-level GroupKFold. 1733 reading-days, 54 patients, prevalence 0.182
+### Vitals sub-model, out-of-fold, patient-level GroupKFold. 1733 reading-days, 54 patients, prevalence 0.182
 
 | Method | PR-AUC (95% CI) | Recall (95% CI) | False alerts / patient-week | Alerts |
 |---|---|---|---|---|
@@ -10,7 +10,7 @@
 
 SHAP top features: sys 0.72, dia 0.62, hr 0.38, dia_base 0.33, hr_base 0.18
 
-### Agent 2 (behaviour / agitation) vs base rate, out-of-fold; CI = patient bootstrap. 2236 days, 50 patients (27 with an agitation day)
+### Behaviour sub-model (agitation) vs base rate, out-of-fold; CI = patient bootstrap. 2236 days, 50 patients (27 with an agitation day)
 
 | Metric | Value (95% CI) | Reference |
 |---|---|---|
@@ -25,7 +25,7 @@ SHAP top features: sys 0.72, dia 0.62, hr 0.38, dia_base 0.33, hr_base 0.18
 
 Ablation (out-of-fold, from scripts/audit_agent2.py): per-patient z-scores only: pooled ROC-AUC 0.658, PR-AUC 0.088; drift score only: pooled ROC-AUC 0.453 (chance = 0.5).
 
-**Agent 2 headline (within-patient, 27 patients with both classes; median across patients):** ROC-AUC 0.818 (IQR 0.655-0.976), PR-AUC 0.449 (IQR 0.146-0.584) (median per-patient prevalence 0.040). Pooled numbers above mix between-patient differences in activity level with within-patient signal.
+**Behaviour sub-model headline (within-patient, 27 patients with both classes; median across patients):** ROC-AUC 0.818 (IQR 0.655-0.976), PR-AUC 0.449 (IQR 0.146-0.584) (median per-patient prevalence 0.040). Pooled numbers above mix between-patient differences in activity level with within-patient signal.
 
 | Model | Pooled ROC-AUC | Within-patient ROC-AUC | Pooled PR-AUC | Within-patient PR-AUC |
 |---|---|---|---|---|
@@ -35,7 +35,7 @@ Ablation (out-of-fold, from scripts/audit_agent2.py): per-patient z-scores only:
 
 Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. Top gain importance: total_events 0.19, room_transitions 0.13, total_events_delta 0.05, kitchen_cusum 0.04, night_bathroom_cusum 0.04, fridge_z 0.04, fridge 0.04, night_events 0.04, room_transitions_z 0.03, kitchen_z 0.03. Dropping absolute levels moves pooled ROC 0.859 to 0.658, while within-patient ROC moves 0.818 to 0.824: absolute levels mostly separate patients; personal-baseline z-scores carry the within-patient signal.
 
-### Agent 3 (falls, SisFall), subject-wise out-of-fold, threshold 0.8. Overall PR-AUC 0.997, 38 subjects
+### Fall agent (SisFall), subject-wise out-of-fold, threshold 0.8. Overall PR-AUC 0.997, 38 subjects
 
 | Group | Fall subjects | Fall trials | Sensitivity (Wilson 95% CI) | Specificity (windows) | False alarms / hour |
 |---|---|---|---|---|---|

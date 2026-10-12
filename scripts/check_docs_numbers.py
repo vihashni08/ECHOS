@@ -19,7 +19,7 @@ def J(name):
 
 
 def check_fault_table(results: str) -> list[str]:
-    """(1) the v1 fault table (pre-Agent-0 run, reports/metrics/fault_injection_pre_agent0.json = commit 62669da) is kept and marked OBSOLETE;
+    """(1) the v1 fault table (run before the Data Quality agent, reports/metrics/fault_injection_pre_agent0.json = commit 62669da) is kept and marked OBSOLETE;
     (2) the new fault-injection table in RESULTS.md must equal the one rendered from reports/metrics/fault_injection.json."""
     from scripts.fault_report import OBSOLETE_HEADING, table
     fi = J("fault_injection_pre_agent0")
@@ -65,7 +65,7 @@ def check() -> list[str]:
     evaluate.rows.clear()
     results, readme = (ROOT / "reports/RESULTS.md").read_text(), (ROOT / "README.md").read_text()
     bad = []
-    generated = evaluate.build().split("### Fault injection")[0]  # fault table is checked below against the frozen pre-Agent-0 run
+    generated = evaluate.build().split("### Fault injection")[0]  # fault table is checked below against the frozen run before the Data Quality agent
     for line in generated.splitlines():
         if line.strip() and line not in results:
             bad.append(f"RESULTS.md missing generated line: {line[:110]}")
@@ -77,10 +77,10 @@ def check() -> list[str]:
     sh = e["status_share"]
     wp = a2["within_patient_audit"]["full"]["within_patient"]["roc_auc_median_q1_q3"][0]
     want = {
-        "Agent 1 PR-AUC": f"PR-AUC {x['pr_auc']:.2f} vs {rule['pr_auc']:.2f}",
-        "Agent 2 PR-AUC / base rate": f"PR-AUC {a2['point']['pr_auc']:.2f} vs {a2['point']['prevalence']:.2f} base rate",
-        "Agent 2 within-patient ROC": f"within-patient ROC-AUC {wp:.2f}",
-        "Agent 3 sensitivity": f"sensitivity {g['adult']['sensitivity']:.3f} adults / {g['elderly']['sensitivity']:.3f} elderly",
+        "vitals PR-AUC": f"PR-AUC {x['pr_auc']:.2f} vs {rule['pr_auc']:.2f}",
+        "behaviour PR-AUC / base rate": f"PR-AUC {a2['point']['pr_auc']:.2f} vs {a2['point']['prevalence']:.2f} base rate",
+        "behaviour within-patient ROC": f"within-patient ROC-AUC {wp:.2f}",
+        "fall sensitivity": f"sensitivity {g['adult']['sensitivity']:.3f} adults / {g['elderly']['sensitivity']:.3f} elderly",
         "e2e detection": f"{e['falls_detected_as_urgent']} detected ({e['fall_detection_rate']:.0%})",
         "e2e injected": f"{e['patients']} patients, {e['injected_falls']} injected falls",
         "e2e shares": f"days are {sh['NORMAL']:.0%} Normal / {sh['MONITOR']:.0%} Monitor / {sh['URGENT']:.0%} Urgent",

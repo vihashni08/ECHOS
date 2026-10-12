@@ -66,7 +66,7 @@ MISSING = [name for name, p in {"built tables (data/processed)": ROOT / "data/pr
 def _needs_missing_data(ex: BaseException) -> bool:
     msg = f"{type(ex).__name__}: {ex}"
     return ((isinstance(ex, FileNotFoundError) and any(k in msg for k in ("data/", "models/", "knowledge/raw")))
-            or (isinstance(ex, KeyError) and "subject" in msg) or (isinstance(ex, AttributeError) and "is_fall" in msg)
+            or (isinstance(ex, KeyError) and "subject" in msg) or (isinstance(ex, AttributeError) and "DataFrame' object has no attribute" in msg)
             or (isinstance(ex, AssertionError) and "training table has no" in msg))
 
 

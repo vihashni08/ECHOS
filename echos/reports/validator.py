@@ -15,7 +15,7 @@ BANNED = [r"diagnos", r"\byou have\b", r"\bsuffer(s|ing)? from\b", r"\bis suffer
           # medication advice: ECHOS never tells anyone to start / stop / change a medicine
           r"\b(take|taking|start|stop|skip|increase|decrease|reduce|adjust|change|double|restart)\b[^.]{0,40}\b(medication|medicine|medicines|medications|dose|doses|dosage|tablets?|pills?|drugs?|antihypertensives?|sedatives?)\b",
           r"\bprescri(be|bed|ption)\b", r"\bdosage\b", r"\b\d+\s?(mg|mcg|ml)\b",
-          # the behaviour score barely beats the base rate: never quote it
+          # the agitation score has modest skill and is not a probability: never quote it
           r"\bagitation (probability|risk|score|likelihood)\b", r"\bprobability of agitation\b"]
 CITE_TOKEN = re.compile(r"\[?\b(?:KB|PM)-\d+\b\]?|\b[FE]\d+\b")
 

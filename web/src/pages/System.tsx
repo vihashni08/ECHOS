@@ -43,7 +43,7 @@ function Quality() {
   const l = q.data!.live as Record<string, number>
   const rows: [string, unknown][] = [["Patient-days processed", l.patient_days], ["Days with room-sensor activity", l.days_with_activity], ["Days with vitals readings", l.days_with_vitals], ["Sensor-gap days", l.sensor_gap_days], ["Invalid values removed", l.invalid_values_removed], ["Days passed through unchecked", l.days_unchecked]]
   return (
-    <Card><CardHeader><CardTitle>Data quality (Agent 0)</CardTitle></CardHeader><CardContent>
+    <Card><CardHeader><CardTitle>Data Quality agent</CardTitle></CardHeader><CardContent>
       <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1.5 text-sm sm:max-w-md" data-testid="quality">
         {rows.map(([k, v]) => <div key={k} className="contents"><dt className="text-muted-foreground">{k}</dt><dd className="num text-right font-semibold">{String(v)}</dd></div>)}
       </dl>

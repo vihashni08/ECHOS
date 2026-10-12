@@ -3,7 +3,7 @@ LangGraph -> template reports, DryRun mail, no LLM / PubMed / SMTP). Writes repo
 run's DB in data/e2e_replay/ (git-ignored) for scripts/gate_eval.py and scripts/fall_eval.py.
 
 Usage: PYTHONPATH=. python scripts/e2e.py [n_patients]   (~5 min for 20 patients: run it in the background)
-Agents 1-2 return out-of-fold scores (ECHOS_OOF=1, default); falls come from SisFall subjects held out of the replay fall model."""
+Vitals and behaviour scores are out-of-fold scores (ECHOS_OOF=1, default); falls come from SisFall subjects held out of the replay fall model."""
 from __future__ import annotations
 
 import json
@@ -160,7 +160,7 @@ def main(n=20):
                   "false fall alerts = fall-reason URGENT alerts on days without an injected fall (ADL windows from held-out SisFall subjects)",
                   "critical-vitals URGENT days come from real TIHM readings and are not counted as false",
                   "a day can carry several data-gap causes, so the cause counts can exceed the number of gap days",
-                  "Agents 1-2 scores are out-of-fold when ECHOS_OOF=1; Agent 3 uses a fall model trained without the held-out SisFall subjects"],
+                  "Vitals and behaviour scores are out-of-fold when ECHOS_OOF=1; the fall agent uses a fall model trained without the held-out SisFall subjects"],
         "days_file": "e2e_days.json (patient-day rows; git-ignored)"}
     OUT.write_text(json.dumps(res, indent=1, default=list))
     OUT.with_name("e2e_days.json").write_text(json.dumps(days, indent=1, default=list))

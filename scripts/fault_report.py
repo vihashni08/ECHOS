@@ -6,7 +6,7 @@ import json
 SUP_RESTART_DELAY_S = 10.0     # assumption: an operator / service manager restarts a dead supervisor after 10 s
 SMTP_OUTAGE_S = 8.0
 OLD_HEADING = "### Fault injection (3 patients x 15 days; clean run 181.6 s)"
-OBSOLETE_HEADING = ("### Fault injection, OBSOLETE v1 table (3 patients x 15 days; clean run 181.6 s; pre-Agent-0 pipeline, v1 fall model, real-Gemini rows; "
+OBSOLETE_HEADING = ("### Fault injection, OBSOLETE v1 table (3 patients x 15 days; clean run 181.6 s; pipeline before the Data Quality agent, v1 fall model, real-Gemini rows; "
                     "superseded by the section written by scripts/fault_injection.py further down)")
 
 CASES = ["clean", "kill_quality", "kill_health_monitoring", "kill_fall", "kill_supervisor", "kill_supervisor_and_fall", "llm_errors", "llm_timeout",

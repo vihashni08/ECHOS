@@ -3,7 +3,7 @@ DryRun mailer (no Gemini, no PubMed, no email), then verify the result for the d
   - the mix of Normal / Monitor / Data-gap / Urgent days and the injected fall events,
   - no day is MONITOR because of drift alone (drift is explanation only),
   - a weekly report row and an existing PDF for every patient-week (Sunday-closed week) in the span.
-Agents 1-2 return out-of-fold scores (ECHOS_OOF=1) so the Monitor share is not inflated by in-sample fits.
+The vitals and behaviour sub-models return out-of-fold scores (ECHOS_OOF=1) so the Monitor share is not inflated by in-sample fits.
 Usage: PYTHONPATH=. python3 scripts/run_demo.py [n_patients] [max_days]   (systems demo, not an accuracy result; ~3 min for 4 x 28)"""
 import json
 import os

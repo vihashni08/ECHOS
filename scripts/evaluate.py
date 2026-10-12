@@ -62,7 +62,7 @@ def build() -> str:
         add("agent1", "fixed rule", "false_alerts_per_patient_week", r["fixed_rule"]["false_alerts_per_patient_week"])
         add("agent1", "XGBoost", "pr_auc", x["pr_auc"], ci["xgb_pr_auc"])
         add("agent1", "prevalence (no-skill PR-AUC)", "pr_auc", a1["prevalence"], ci["prevalence"])
-        out += [f"### Agent 1 (vitals), out-of-fold, patient-level GroupKFold. {a1['n_reading_days']} reading-days, {a1['n_patients']} patients, "
+        out += [f"### Vitals sub-model, out-of-fold, patient-level GroupKFold. {a1['n_reading_days']} reading-days, {a1['n_patients']} patients, "
                 f"prevalence {a1['prevalence']:.3f}", table(["Method", "PR-AUC (95% CI)", "Recall (95% CI)", "False alerts / patient-week", "Alerts"], body),
                 "SHAP top features: " + ", ".join(f"{k} {v:.2f}" for k, v in a1["shap_global_top5"].items())]
     a2 = load("agent2")
@@ -80,7 +80,7 @@ def build() -> str:
             add("agent2", f"@{b}/wk", "false_alerts_per_patient_week", t["false_alerts_per_patient_week"])
         for k in ("pr_auc", "roc_auc", "drift_only_pr_auc", "drift_only_roc_auc", "prevalence"):
             add("agent2", k, k, p[k], ci[k])
-        out += [f"### Agent 2 (behaviour / agitation) vs base rate, out-of-fold; CI = patient bootstrap. {a2['n_days']} days, "
+        out += [f"### Behaviour sub-model (agitation) vs base rate, out-of-fold; CI = patient bootstrap. {a2['n_days']} days, "
                 f"{a2['n_patients']} patients ({a2['n_patients_with_agitation']} with an agitation day)",
                 table(["Metric", "Value (95% CI)", "Reference"], body), "Ablation (out-of-fold, from scripts/audit_agent2.py): " + _ablation(a2)]
         au = a2.get("within_patient_audit")
@@ -91,7 +91,7 @@ def build() -> str:
                     for k, n in [("full", "Full feature set"), ("z_only", "Per-patient z-scores only (no absolute levels)"),
                                  ("drift_score_only", "Drift score only")]]
             w = au["full"]["within_patient"]
-            out += [f"**Agent 2 headline (within-patient, {w['n_patients']} patients with both classes; median across patients):** "
+            out += [f"**Behaviour sub-model headline (within-patient, {w['n_patients']} patients with both classes; median across patients):** "
                     f"ROC-AUC {g(w['roc_auc_median_q1_q3'])}, PR-AUC {g(w['pr_auc_median_q1_q3'])} "
                     f"(median per-patient prevalence {w['patient_prevalence_median']:.3f}). Pooled numbers above mix between-patient differences in activity level with within-patient signal.",
                     table(["Model", "Pooled ROC-AUC", "Within-patient ROC-AUC", "Pooled PR-AUC", "Within-patient PR-AUC"], wrows),
@@ -106,7 +106,7 @@ def build() -> str:
             add("agent3", g, "sensitivity", v["sensitivity"], ci)
             add("agent3", g, "specificity", v["specificity_windows"])
             add("agent3", g, "false_alarms_per_hour", v["false_alarms_per_hour"])
-        out += [f"### Agent 3 (falls, SisFall), subject-wise out-of-fold, threshold {a3['threshold']}. Overall PR-AUC {a3['pr_auc']:.3f}, "
+        out += [f"### Fall agent (SisFall), subject-wise out-of-fold, threshold {a3['threshold']}. Overall PR-AUC {a3['pr_auc']:.3f}, "
                 f"{a3['n_subjects']} subjects",
                 table(["Group", "Fall subjects", "Fall trials", "Sensitivity (Wilson 95% CI)", "Specificity (windows)", "False alarms / hour"], body),
                 "Wilson CIs treat trials as independent; trials are clustered within subjects, so true uncertainty is wider (elderly = one subject)."]
@@ -184,7 +184,7 @@ def sync_results(md: str, path="reports/RESULTS.md") -> int:
 
 
 def sync_readme(path="README.md") -> int:
-    """README headline bullet for Agent 3, from agent3.json (never hand-typed)."""
+    """README headline bullet for the fall agent, from agent3.json (never hand-typed)."""
     import re
     g = load("agent3")["groups"]
     new = f"sensitivity {g['adult']['sensitivity']:.3f} adults / {g['elderly']['sensitivity']:.3f} elderly"
@@ -201,7 +201,7 @@ def sync_readme(path="README.md") -> int:
         n = len(cs) - 1
         ok = sum(1 for k, r in cs.items() if k != "clean" and not (set(ref["alerts"]) - set(r["alerts"])) and r["outbox_duplicates"] == 0 and r["mail_duplicates"] == 0)
         t2 = re.sub(r"- Fault injection: .*", f"- Fault injection (fakes, {fi['config']['patients']} patients x {fi['config']['days']} days): no alert lost and no duplicate in {ok} of {n} fault cases "
-                    "(the SMTP outage case leaves undelivered rows FAILED instead; see RESULTS.md).", t2)
+                    "(the SMTP outage case, measured before the retry window was added, leaves undelivered rows FAILED instead; see RESULTS.md).", t2)
     Path(path).write_text(t2)
     return int(t2 != t)
 
