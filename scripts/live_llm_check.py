@@ -1,8 +1,8 @@
 """LIVE check of the Gemini integration (real API calls). Refuses to run without --yes and with ECHOS_REPORT_LLM=off.
 Stops at the FIRST failing check (a 404 / 429 costs one request). Default cap 4 generation requests (--max-requests N).
 Startup: lists the key's models (1 listing request, see scripts/list_models.py) and refuses to run if llm.model / llm.fallback_model is
-not among them (--skip-list-check to skip). Checks: primary plain request, fallback plain request, function-calling
-round trip (2 requests). Prints names / status codes only (never the key or any model text). Throw-away cache file.
+not among them (--skip-list-check to skip). Checks, in this order: (1) primary plain request, (2) primary function-calling round trip (2 requests), (3) fallback plain request.
+A failure on the primary stops the run (FAIL). On the FALLBACK a 429 / 503 / timeout is only a WARN ('transient, not a configuration error'); a 404 (or any other error) is a FAIL. Prints names / status codes only (never the key or any model text). Throw-away cache file.
 Usage: PYTHONPATH=. python scripts/live_llm_check.py --yes [--skip-list-check] [--max-requests 4]"""
 import os
 import sys
@@ -78,7 +78,9 @@ def main() -> int:
     primary = lc["model"]
     rows = []
 
-    def check(name, model, fn) -> bool:
+    TRANSIENT = ("429", "503", "LLMTimeout", "TimeoutError")
+
+    def check(name, model, fn, warn_transient=False) -> bool:
         n0, t0 = Capped.used, time.monotonic()
         try:
             ok, st, why = bool(fn()), "200", ""
@@ -86,6 +88,9 @@ def main() -> int:
                 st, why = "-", "unexpected answer"
         except Exception as ex:   # noqa: BLE001
             ok, (st, why) = False, reason(ex)
+            if warn_transient and st in TRANSIENT:
+                rows.append((name, model, Capped.used - n0, st, f"{time.monotonic() - t0:.1f}", f"WARN: transient, not a configuration error ({why})"))
+                return True
         rows.append((name, model, Capped.used - n0, st, f"{time.monotonic() - t0:.1f}", "ok" if ok else f"FAIL: {why}"))
         return ok
 
@@ -102,11 +107,11 @@ def main() -> int:
         msgs += [{"role": "model", "calls": r.calls, "raw": r.raw}, {"role": "tool", "results": [{"name": r.calls[0]["name"], "response": {"number": 7}}]}]
         return "7" in c.step("Use the tool.", msgs, None).text
 
-    steps = [("primary plain request", primary, lambda: plain(clients[primary]))]
+    steps = [("primary plain request", primary, lambda: plain(clients[primary]), False),
+             ("primary function calling (2 requests)", primary, tool_roundtrip, False)]
     fb = lc.get("fallback_model")
     if fb and fb != primary:
-        steps.append(("fallback plain request", fb, lambda: plain(clients[fb])))
-    steps.append(("function calling (2 requests)", primary, tool_roundtrip))
+        steps.append(("fallback plain request", fb, lambda: plain(clients[fb]), True))
     for s in steps:
         if not check(*s):
             break
@@ -116,7 +121,8 @@ def main() -> int:
     for r_ in rows:
         print("  ".join(str(x).ljust(n) for x, n in zip(r_, w)))
     stopped = any(r_[-1].startswith("FAIL") for r_ in rows)
-    print(f"total real requests: {Capped.used} (cap {Capped.cap})" + ("; stopped at first failure" if stopped else ""))
+    warned = any(r_[-1].startswith("WARN") for r_ in rows)
+    print(f"total real requests: {Capped.used} (cap {Capped.cap})" + ("; stopped at first failure" if stopped else "") + ("; warnings only on the fallback" if warned and not stopped else ""))
     return 1 if stopped else 0
 
 

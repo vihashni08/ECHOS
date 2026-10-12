@@ -152,8 +152,8 @@ def _flag_items(facts: dict):
             ch.append({"text": f"A possible fall was detected{at}" + (", followed by little movement." if e.get("post_fall_inactive") else "."), "cites": i})
             mon.append({"text": "Check on them in person and ask how they feel; look for any pain or injury.", "cites": i})
         elif e.get("kind") == "critical":
-            parts = [f"{k} {_fmt(e[k])}" for k in ("sys", "dia", "hr") if e.get(k) is not None]
-            ch.append({"text": "A reading in the critical range was recorded (" + ", ".join(parts) + ").", "cites": i})
+            ch.append({"text": "A reading in the critical range was recorded: " + F.vitals_detail_text(e.get("values") or {k: e.get(k) for k in ("sys", "dia", "hr")}, e.get("reading_time"),
+                                                                                                   e.get("baselines"), bool(e.get("baseline_established"))) + ".", "cites": i})
             mon.append({"text": "Contact the care team or doctor today about this reading and repeat it at rest.", "cites": i})
         elif e.get("kind") == "vitals_alert":
             parts = []
@@ -161,7 +161,11 @@ def _flag_items(facts: dict):
                 now, base = e.get(k + "_now"), e.get(k + "_baseline")
                 if now is not None and base is not None and now != base:
                     parts.append(f"{nm} {_fmt(now)} was {'above' if now > base else 'below'} this person's usual range (usual {_fmt(base)})")
-            ch.append({"text": ("; ".join(parts) + ".") if parts else "Blood pressure or heart rate was different from this person's usual.", "cites": i})
+            if e.get("values"):
+                txt = "Vitals differed from this person's usual: " + F.vitals_detail_text(e["values"], e.get("reading_time"), e.get("baselines"), bool(e.get("baseline_established"))) + "."
+            else:
+                txt = ("; ".join(parts) + ".") if parts else F.NOT_STORED + "."
+            ch.append({"text": txt, "cites": i})
             mon.append({"text": "Repeat the blood pressure and pulse later today, sitting and rested, and write the numbers down.", "cites": i})
         elif t == "agitation":
             nb = e.get("night_events_baseline")
@@ -202,13 +206,13 @@ def daily_template_items(facts: dict) -> dict:
 def daily_alerts(facts: dict) -> list:
     out = []
     for f in facts["falls"]:
-        out.append(f"Possible fall at {f['time'] or 'unknown time'} (likelihood {fmt_prob(f['prob'])})"
+        out.append(f"Possible fall at {f['time'] or 'unknown time'} (likelihood {fmt_prob(f['prob'])}; peak {'not recorded' if f.get('peak_g') is None else str(f['peak_g']) + ' g'}; simulated signal)"
                    + ("; little movement afterwards." if f["post_fall_inactive"] else "."))
     for f in facts["flags"]:
         if f["evidence"].get("kind") == "critical":
             e = f["evidence"]
-            out.append("Critical-range vitals reading on " + facts["day"] + " (exact time of reading not recorded): "
-                       + ", ".join(f"{k} {_fmt(e[k])}" for k in ("sys", "dia", "hr") if e.get(k) is not None) + ".")
+            out.append("Critical-range vitals reading on " + facts["day"] + ": "
+                       + F.vitals_detail_text(e.get("values") or {k: e.get(k) for k in ("sys", "dia", "hr")}, e.get("reading_time"), e.get("baselines"), bool(e.get("baseline_established"))) + ".")
     return out
 
 

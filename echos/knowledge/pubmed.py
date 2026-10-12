@@ -33,8 +33,8 @@ PT_FILTER = '(review[pt] OR guideline[pt] OR "practice guideline"[pt] OR meta-an
 
 # finding type -> PubMed terms (AND-joined). Types without terms (data_gap ...) are never searched.
 TERMS = {
-    "fall": ["older adults", "falls"],
-    "fall_inactivity": ["older adults", "falls", "post-fall inactivity"],
+    "fall": ["older adults", "falls", "fall detection OR post-fall inactivity"],
+    "fall_inactivity": ["older adults", "falls", "fall detection OR post-fall inactivity"],
     "blood_pressure": ["older adults", "home blood pressure monitoring", "blood pressure variability"],
     "vitals_news2": ["older adults", "early warning score", "vital signs"],
     "agitation": ["dementia", "agitation", "night-time"],
@@ -105,6 +105,7 @@ class PubMedClient:
         pc = (cfg or load_config()).get("pubmed") or {}
         self.enabled = bool(pc.get("enabled", True))
         self.max_results, self.timeout = int(pc.get("max_results", 3)), float(pc.get("timeout_s", 10))
+        self.years = int(pc.get("years", 15))
         self.gap = 1.0 / float(pc.get("max_rps", 3))
         self.http_get = http_get or _http_get
         self.clock, self.sleep, self._last, self._lock = clock, sleep, None, threading.Lock()
@@ -149,16 +150,17 @@ class PubMedClient:
             raise PubMedError(f"{type(ex).__name__}") from ex
 
     def _esearch(self, term: str) -> list[str]:
-        return _ids(self._get(ESEARCH, {"db": "pubmed", "term": term, "retmax": self.max_results, "retmode": "xml", "sort": "relevance"}))
+        return _ids(self._get(ESEARCH, {"db": "pubmed", "term": term, "retmax": self.max_results, "retmode": "xml", "sort": "relevance",
+                                           "datetype": "pdat", "reldate": self.years * 365}))
 
     def search(self, finding_type: str, details: Optional[dict] = None) -> dict:
         """-> {"query", "filtered", "cache_hit", "requests", "sources": [...]}; raises PubMedError(reason) on any failure."""
-        if not self.enabled or os.environ.get("ECHOS_PUBMED") == "off":     # run_api.sh --no-llm: no external service at all
+        if not self.enabled or (os.environ.get("ECHOS_PUBMED") == "off" and self.http_get is _http_get):     # run_api.sh --no-llm: no external service at all
             raise PubMedError("disabled")
         q = build_query(finding_type, details)
         if q is None:
             return {"query": None, "filtered": False, "cache_hit": False, "requests": 0, "sources": []}
-        key = hashlib.sha256(f"{q}|{self.max_results}".encode()).hexdigest()
+        key = hashlib.sha256(f"{q}|{self.max_results}|{self.years}".encode()).hexdigest()
         hit = self._sql("SELECT value FROM pubmed_cache WHERE key=?", (key,))
         if hit:
             v = json.loads(hit[0][0])

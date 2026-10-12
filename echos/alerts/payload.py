@@ -127,7 +127,7 @@ def _lines(p: AlertPayload) -> list[tuple[str, str]]:
     rows = [("Alert", TITLE[p.alert_type]), ("Patient (de-identified id)", p.patient_id), ("Age band", p.age_band),
             ("Event time", p.event_time), ("Today's status", p.today_status)]
     if p.alert_type == "FALL":
-        rows += [("Fall probability", _fmt(p.fall_probability)), ("Peak impact", _fmt(p.peak_impact_g, "g")),
+        rows += [("Fall probability", _fmt(p.fall_probability)), ("Peak impact", "not recorded" if p.peak_impact_g is None else _fmt(p.peak_impact_g, "g")),
                  ("Post-fall inactivity", {True: "yes (person still after impact)", False: "no", None: "not assessed"}[p.post_fall_inactivity])]
     return rows
 

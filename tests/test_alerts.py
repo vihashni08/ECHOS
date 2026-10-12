@@ -118,7 +118,7 @@ def test_critical_vitals_dedup_and_cooldown(eng):
 
 def test_retry_then_failed_without_blocking(eng):
     m = FakeMailer(fail_for={TO["clinician"]})
-    d = disp(eng, m)
+    d = disp(eng, m, retry_window_s=0.5)                                          # window shorter than the first backoff: FAILED after one attempt
     d.dispatch(fall_payload(1))
     t0 = time.time()
     d.dispatch(fall_payload(2))                                                   # a second alert while the first is retrying
@@ -128,9 +128,9 @@ def test_retry_then_failed_without_blocking(eng):
     for k in "12":
         assert by[(k, "caregiver")].status == "SENT" and by[(k, "caregiver")].attempts == 1
         c = by[(k, "clinician")]
-        assert c.status == "FAILED" and c.attempts == 3 and "ConnectionError" in c.error and c.sent_time is None
+        assert c.status == "FAILED" and c.attempts == 1 and "ConnectionError" in c.error and c.sent_time is None
     assert {a.status for a in rows(eng, S.alerts)} == {"FAILED"}                  # a failed delivery never looks delivered
-    assert len(m.sent) == 2 and sum(1 for a, _ in m.attempts if a == TO["clinician"]) == 6
+    assert len(m.sent) == 2 and sum(1 for a, _ in m.attempts if a == TO["clinician"]) == 2
 
 
 def test_retry_then_success(eng):
@@ -150,6 +150,7 @@ def test_missing_address_is_visible_failure(eng):
 
 
 def test_send_real_false_never_touches_smtp(eng, monkeypatch):
+    monkeypatch.delenv("ECHOS_DRY_RUN", raising=False)                              # the factory itself, without the dry-run switch (smtplib.SMTP is mocked below)
     calls = []
     monkeypatch.setattr(smtplib, "SMTP", lambda *a, **k: calls.append(1))
     assert isinstance(make_mailer({"alerts": {"send_real": False}}), DryRunMailer)

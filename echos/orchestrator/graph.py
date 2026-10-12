@@ -47,7 +47,10 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
     auto = report_llm == "auto"   # real Gemini if configured: daily report through the budget manager (cache -> primary -> fallback -> template)
     reporter = ReportAgent(eng, make_llm() if auto else (report_llm or None), root=report_root, budget=make_budget() if auto else None)
     fault = fault or (lambda node: None)
-    dispatcher = dispatcher or AlertDispatcher(eng, make_mailer())
+    if dispatcher is None:
+        dispatcher = AlertDispatcher(eng, make_mailer())
+        dispatcher.recover()              # retries left RETRYING / PENDING by a previous process (state is in the outbox table)
+        dispatcher.start_sweeper()        # FAILED alert rows are retried every alerts.sweep_interval_s for alerts.sweep_window_s
     wc = load_config().get("weekly", {})
     weekly_on = bool(wc.get("enabled", True)) if weekly_pdf is None else bool(weekly_pdf)
     weekly_llm = bool(wc.get("llm_narrative_in_simulation", False))

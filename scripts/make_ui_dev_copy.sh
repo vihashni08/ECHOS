@@ -14,4 +14,11 @@ if [ -d "$SRC_FILES" ]; then cp -R "$SRC_FILES/." "data/${NAME}_files/"; else
   for d in daily weekly; do [ -d "reports/$d" ] && cp -R "reports/$d" "data/${NAME}_files/reports/" || true; done; fi
 # stored report paths can be absolute (weekly PDFs): point them at the copy's own files directory
 sqlite3 "$DEST" "UPDATE reports SET path = replace(path, '/$(basename "$SRC_FILES")/', '/${NAME}_files/') WHERE path LIKE '%/$(basename "$SRC_FILES")/%'"
+# weekly PDFs (config weekly.dir = data/reports/weekly under the report root): copy them into the copy's own files directory and repoint the rows
+if [ -d "data/reports/weekly" ]; then
+  mkdir -p "data/${NAME}_files/data/reports/weekly" && cp -R data/reports/weekly/. "data/${NAME}_files/data/reports/weekly/"
+  rm -rf "data/${NAME}_files/data/reports/weekly/preview"
+  OLD="$PWD/data/reports/weekly/"; NEW="$PWD/data/${NAME}_files/data/reports/weekly/"
+  sqlite3 "$DEST" "UPDATE reports SET path = replace(path, '$OLD', '$NEW') WHERE kind='weekly_pdf' AND path LIKE '$OLD%'; UPDATE outbox SET attachment_path = replace(attachment_path, '$OLD', '$NEW') WHERE attachment_path LIKE '$OLD%'"
+fi
 echo "created $DEST; run: scripts/run_api.sh --dry --no-llm --demo --db $DEST"

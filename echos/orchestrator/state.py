@@ -36,6 +36,7 @@ outbox = Table("outbox", md, Column("outbox_id", Integer, primary_key=True, auto
                Column("status", String, default="PENDING"), Column("attempts", Integer, default=0), Column("error", Text),
                Column("event_time", String), Column("queued_time", Float), Column("sent_time", Float),
                Column("attachment_name", String), Column("attachment_path", String),   # weekly report PDF
+               Column("next_attempt_time", Float), Column("last_attempt_time", Float), Column("window_start", Float),   # retry state (alert emails): survives a restart
                UniqueConstraint("alert_id", "recipient_role", name="uq_outbox_alert_role"))
 gt_fall = Table("gt_fall", md, Column("event_id", Integer, primary_key=True), Column("patient_id", String),
                 Column("day", String), Column("ts", String), Column("subject", String), Column("file", String))
@@ -70,9 +71,10 @@ def get_engine(path=None):
     with eng.begin() as c:
         create_feed_triggers(c)
     with eng.begin() as c:   # databases created before these columns existed
-        for table, col in (("reports", "provenance"), ("outbox", "attachment_name"), ("outbox", "attachment_path")):
+        for table, col, typ in (("reports", "provenance", "TEXT"), ("outbox", "attachment_name", "TEXT"), ("outbox", "attachment_path", "TEXT"),
+                                ("outbox", "next_attempt_time", "REAL"), ("outbox", "last_attempt_time", "REAL"), ("outbox", "window_start", "REAL")):
             if col not in {r[1] for r in c.execute(text(f"PRAGMA table_info({table})"))}:
-                c.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} TEXT"))
+                c.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {typ}"))
     return eng
 
 

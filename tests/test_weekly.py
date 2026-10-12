@@ -75,7 +75,7 @@ def test_builder_numbers_match_the_database(world):
     assert (d["week_start"], d["week_end"], d["age_band"], d["sex"]) == ("2019-05-06", "2019-05-12", "80-90", "Female")
     c = d["status_counts"]
     assert (c["NORMAL"], c["MONITOR"], c["URGENT"], c["DATA_GAP"]) == (3, 2, 1, 1)
-    assert d["falls"] == [{"day": "2019-05-09", "time": "14:02", "probability": 0.93, "probability_text": "0.93", "peak_g": 2.6, "inactivity": True}]
+    assert d["falls"] == [{"day": "2019-05-09", "time": "14:02", "probability": 0.93, "probability_text": "0.93", "peak_g": 2.6, "inactivity": True, "simulated": True}]
     assert [a["day"] for a in d["vitals_alerts"]] == ["2019-05-07"] and d["vitals_alerts"][0]["sys_now"] == 162.0
     assert [u["day"] for u in d["unusual_days"]] == ["2019-05-10"] and set(d["unusual_days"][0]["z"]) == set(WD.ROUTINE)
     sysv = d["vitals_summary"]["sys"]
@@ -104,16 +104,19 @@ def test_baseline_uses_only_past_days(world):
 def test_pdf_pages_size_text_footer_and_no_agitation_probability(world, tmp_path):
     d = data(world)
     n = WN.make_narrative(d, [])
-    r = WP.build_pdf(d, n["text"], [KB | {"origin": "local"}], tmp_path / "w.pdf")
+    fnd = [{"key": "vitals", "label": "Vitals alerts: 1", "n": 1, "sources": ["KB-7"]}]
+    cons = [{"finding": "vitals", "text": "Consider whether repeating the readings at rest would be useful", "cites": ["KB-7"]}]
+    r = WP.build_pdf(d, n["text"], [KB | {"origin": "local"}], tmp_path / "w.pdf", findings=fnd, considerations=cons)
     rd = PdfReader(r["path"])
     assert 1 <= len(rd.pages) <= 3 and r["bytes"] < 1_000_000
-    t = text_of(r["path"])
-    for needle in ("Normal 3 | Monitor 2", "Urgent 1 | Data gap 1", "Decision support, not a diagnosis", "Page 1 of", "Key findings", "References (for clinician review)", "[KB-7]",
+    t = " ".join(text_of(r["path"]).split())
+    for needle in ("Normal 3 | Monitor 2", "Urgent 1", "(6 days with data)", "Data-gap days (counted within the above): 1", "Decision support, not a diagnosis", "Page 1 of", "Key findings",
+                   "Findings and supporting sources", "Considerations for clinician review", "[KB-7]", "simulated signal",
                    "Possible fall", "Fall probability 0.93", "pw"):
         assert needle in t, needle
     low = t.lower()
     assert "agitation" not in low and "risk" not in low and "vitals probability" not in low
-    order = [t.index(h) for h in ("Summary", "Key findings", "Vitals vs personal baseline", "Daily routine vs personal baseline", "Alerts", "Data quality", "References")]
+    order = [t.index(h) for h in ("Summary", "Key findings", "Vitals vs personal baseline", "Daily routine vs personal baseline", "Alerts", "Findings and supporting sources", "Considerations for clinician review", "Data quality")]
     assert order == sorted(order) and r["headings"][0] == "Weekly clinician report"
 
 
@@ -355,7 +358,8 @@ def test_orchestrator_weekly_pdf_lists_local_and_pubmed_sources(tmp_path, monkey
     from echos.reports import agent as ra
     from echos.reports.agent import drain_all
     from tests.test_report_llm import FakeNCBI
-    monkeypatch.setattr(ra, "retrieve", lambda ft, d=None, k=None: [KB | {"finding_type": ft}])           # mocked local index
+    KBF = KB | {"title": "Falls in older people", "text": "Assess the circumstances of a fall in an older adult.", "score": 0.7}
+    monkeypatch.setattr(ra, "retrieve", lambda ft, d=None, k=None: [KBF | {"finding_type": ft}])           # mocked local index
     ncbi = FakeNCBI()
     monkeypatch.setattr(ra, "_default_pubmed", lambda: PubMedClient(http_get=ncbi, cache_path=tmp_path / "pm.sqlite"))   # mocked PubMed
     from tests.test_orchestrator import R, health, qual
@@ -369,11 +373,12 @@ def test_orchestrator_weekly_pdf_lists_local_and_pubmed_sources(tmp_path, monkey
     g.dispatcher.flush(10)
     conn.close()
     t = text_of(next((tmp_path / "data/reports/weekly").glob("p1_*.pdf")))
-    assert "[KB-7]" in t and "[PM-12345678]" in t and "Age and Ageing, 2021" in t and "pubmed.ncbi.nlm.nih.gov/12345678" in t
+    assert "[KB-7]" in t and "Possible falls: 1" in t
+    assert "[PM-12345678]" not in t                      # the retrieved PubMed article is about blood pressure: it does not match the falls finding, so it is dropped
     assert any("esearch" in u for u, *_ in ncbi.calls)
     with eng.begin() as c:
         prov = json.loads(c.execute(select(S.reports.c.provenance).where(S.reports.c.kind == "weekly_pdf")).scalar())
-    assert {x["id"] for x in prov["sources_retrieved"]} == {"KB-7", "PM-12345678"}
+    assert {x["id"] for x in prov["sources_retrieved"]} == {"KB-7"} and prov["findings"][0]["sources"] == ["KB-7"]
 
 
 def test_no_retrieval_for_a_week_without_monitor_or_urgent_days(world, tmp_path):

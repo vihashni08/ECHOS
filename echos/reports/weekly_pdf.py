@@ -1,5 +1,6 @@
 """Weekly clinician report as a PDF (ReportLab + matplotlib Agg), A4, at most 3 pages, one fixed layout:
-header -> summary tiles -> Key findings -> vitals vs personal baseline -> daily routine -> alerts table -> data quality -> references; footer on every page.
+header -> summary tiles -> Key findings -> vitals vs personal baseline -> daily routine -> (one chart legend note) -> alerts table -> findings and supporting sources ->
+considerations for clinician review -> data quality; footer on every page.
 Status is never shown by colour alone: tiles and tables carry text labels, flagged points use a different marker shape plus a legend entry, unusual days are
 hatched, and every day tick carries a status letter (N Normal, M Monitor, U Urgent, - no result). No agitation or vitals model score appears anywhere."""
 from __future__ import annotations
@@ -30,7 +31,16 @@ FOOTER = ("Decision support, not a diagnosis. ECHOS processed rule-based and mac
           "simulated. Baselines are each person's own past data. Generated {gen}.")
 
 
+_CHECK: list | None = None      # tests set this to [] to collect (axes box, caption box) pairs of every chart
+
+
 def _png(fig, dpi=130) -> bytes:
+    if _CHECK is not None:
+        fig.canvas.draw()
+        for ax in fig.axes:
+            for tx in ax.texts:
+                if tx.get_gid() == "caption":
+                    _CHECK.append((ax.get_window_extent(), tx.get_window_extent()))
     b = io.BytesIO()
     fig.savefig(b, format="png", dpi=dpi, bbox_inches="tight")
     plt.close(fig)
@@ -50,7 +60,6 @@ def _style_ax(ax, d, ylabel):
     ax.set_xticklabels(lab, fontsize=6)
     ax.set_xlim(pos[0], pos[-1] + pd.Timedelta(days=1))
     ax.set_ylabel(ylabel, fontsize=7)
-    ax.set_xlabel(f"Day ({pos[0].strftime('%b %Y')}); [N]ormal [M]onitor [U]rgent [-] no result", fontsize=6)
     ax.tick_params(axis="y", labelsize=7)
     ax.grid(alpha=.25, lw=.5)
     ax.spines[["top", "right"]].set_visible(False)
@@ -59,6 +68,7 @@ def _style_ax(ax, d, ylabel):
 def vitals_chart(d: dict, h_mm: float) -> bytes:
     fig, axs = plt.subplots(3, 2, figsize=(7.2, h_mm / 25.4 * 1.0), constrained_layout=True)
     ser = d["series"]["vitals"]
+    handles: dict = {}
     for ax, k in zip(axs.flat, ["sys", "dia", "hr", "temp", "weight"]):
         name, unit = VARS[k]
         s = ser[k]
@@ -73,24 +83,25 @@ def vitals_chart(d: dict, h_mm: float) -> bytes:
             ax.plot([pd.Timestamp(p["t"]) for p in ok], [p["value"] for p in ok], "o", ms=3, color="#1d4ed8", label="reading")
         if fl:
             ax.plot([pd.Timestamp(p["t"]) for p in fl], [p["value"] for p in fl], "X", ms=7, color="#b91c1c", mec="black", mew=.5, label="flagged (outside band)")
-        if not s["points"]:
-            ax.text(.5, .5, "no readings this week", transform=ax.transAxes, ha="center", fontsize=7, color="#6b7280")
-        elif not d["vitals_summary"][k]["baseline_established"]:
-            ax.text(.5, .04, "personal baseline not yet established\n(fewer than 5 earlier readings)", transform=ax.transAxes, ha="center", fontsize=6, color="#6b7280")
-        ax.set_title(name, fontsize=8, loc="left")
+        if not s["points"]:       # nothing to plot: a compact text panel instead of an empty chart
+            ax.axis("off")
+            ax.text(0, .85, name, transform=ax.transAxes, fontsize=8, va="top")
+            ax.text(0, .6, "no readings this week", transform=ax.transAxes, fontsize=7, va="top", color="#6b7280")
+            continue
+        ax.set_title(name, fontsize=8, loc="left", pad=11)
+        if s["points"] and not d["vitals_summary"][k]["baseline_established"]:     # caption under the chart title, never over the data
+            ax.text(0, 1.02, "personal baseline not yet established (fewer than 5 earlier readings)", transform=ax.transAxes, fontsize=5.5, va="bottom", color="#6b7280", gid="caption")
         _style_ax(ax, d, f"{name} ({unit})")
         h, l = ax.get_legend_handles_labels()
-        u = dict(zip(l, h))
-        if u:
-            ax.legend(u.values(), u.keys(), fontsize=5, frameon=False, loc="best")
+        handles.update(dict(zip(l, h)))
     axs[2, 1].axis("off")
-    axs[2, 1].text(0, .6, "Grey band: this person's usual range\n(past 28 days, mean +/- 2 SD).\nX marks a reading outside the band.\n"
-                          "[N]/[M]/[U] under each day: the day's status.", fontsize=7, va="center")
+    axs[2, 1].legend(handles.values(), handles.keys(), fontsize=6.5, frameon=False, loc="center left", title="Legend", title_fontsize=7)
     return _png(fig)
 
 
 def routine_chart(d: dict, h_mm: float) -> bytes:
     fig, axs = plt.subplots(3, 1, figsize=(7.2, h_mm / 25.4), constrained_layout=True)
+    handles: dict = {}
     unusual = {u["day"] for u in d["unusual_days"]}
     units = {"night_events": "events per night", "night_bathroom": "visits per night", "total_events": "events per day"}
     for ax, k in zip(axs, ["night_events", "night_bathroom", "total_events"]):
@@ -106,13 +117,14 @@ def routine_chart(d: dict, h_mm: float) -> bytes:
                        label="unusual activity pattern day" if day in unusual else "daily value")
             else:
                 ax.text(t, 0, "no data", fontsize=5, ha="center", va="bottom", color="#6b7280")
+        ax.set_title(ROUTINE[k], fontsize=8, loc="left", pad=11)
         if not d["routine_baseline_established"][k]:
-            ax.text(.5, .9, "personal baseline not yet established (fewer than 7 earlier days)", transform=ax.transAxes, ha="center", fontsize=6, color="#6b7280")
-        ax.set_title(ROUTINE[k], fontsize=8, loc="left")
+            ax.text(0, 1.02, "personal baseline not yet established (fewer than 7 earlier days)", transform=ax.transAxes, fontsize=5.5, va="bottom", color="#6b7280", gid="caption")
         _style_ax(ax, d, units[k])
         h, l = ax.get_legend_handles_labels()
-        u = dict(zip(l, h))
-        ax.legend(u.values(), u.keys(), fontsize=5, frameon=False, loc="upper right", ncol=2)
+        handles.update(dict(zip(l, h)))
+    if handles:
+        fig.legend(handles.values(), handles.keys(), fontsize=6.5, frameon=False, loc="outside lower center", ncol=4)
     return _png(fig)
 
 
@@ -163,18 +175,18 @@ def _alert_rows(d: dict) -> list:
     lab = lambda day: (st.get(day) or "no result")  # noqa: E731
     rows = []
     for f in d["falls"]:
-        pk = f"{f['peak_g']:g} g" if f["peak_g"] is not None else "n/a"
-        rows.append((f["day"], f["time"] or "", "Possible fall", f"Fall probability {f['probability_text']}; peak {pk}; inactivity afterwards: {'yes' if f['inactivity'] else 'no'}", lab(f["day"])))
+        pk = f"{f['peak_g']:g} g" if f.get("peak_g") is not None else "not recorded"
+        rows.append((f["day"], f["time"] or "", "Possible fall", f"Fall probability {f['probability_text']}; peak {pk}; inactivity afterwards: {'yes' if f['inactivity'] else 'no'} (simulated signal)", lab(f["day"])))
     for a in d["vitals_alerts"]:
-        if a["kind"] == "critical":
-            det = "Critical-range reading: " + ", ".join(f"{k} {a[k]:g}" for k in ("sys", "dia", "hr") if a.get(k) is not None)
-        else:
+        if a.get("detail"):
+            det = ("Critical-range reading: " if a["kind"] == "critical" else "") + a["detail"]
+        else:      # rows built before the values were stored
             parts = []
             for k, n in (("sys", "Systolic BP"), ("dia", "Diastolic BP"), ("hr", "Heart rate")):
                 now, base = a.get(f"{k}_now"), a.get(f"{k}_baseline")
                 if now is not None and base is not None:
                     parts.append(f"{n} {now:g} {'above' if now > base else 'below'} usual {base:g}")
-            det = "; ".join(parts) or "Vitals differ from usual"
+            det = "; ".join(parts) or "Vitals differ from usual; values not stored for this day"
         rows.append((a["day"], "", "Vitals alert" if a["kind"] != "critical" else "Critical vitals", det, lab(a["day"])))
     for u in d["unusual_days"]:
         z = ", ".join(f"{ROUTINE[k].lower()} z {v:+g}" for k, v in u["z"].items() if v is not None) or "no personal z-scores available"
@@ -182,17 +194,18 @@ def _alert_rows(d: dict) -> list:
     return sorted(rows)
 
 
-def build_pdf(d: dict, narrative: str, sources: list, out_path, generated_at: datetime | None = None, max_pages: int = 3) -> dict:
+def build_pdf(d: dict, narrative: str, sources: list, out_path, generated_at: datetime | None = None, max_pages: int = 3,
+              findings: list | None = None, considerations: list | None = None) -> dict:
     """Write the PDF; returns {path, pages, bytes, headings}. Layout is shrunk step by step if it would exceed max_pages."""
     gen = (generated_at or datetime.now()).strftime("%Y-%m-%d %H:%M")
     for scale in (1.0, .85, .7, .55):
-        out = _build(d, narrative, sources, out_path, gen, scale)
+        out = _build(d, narrative, sources, out_path, gen, scale, findings, considerations)
         if out["pages"] <= max_pages:
             return out
     return out
 
 
-def _build(d, narrative, sources, out_path, gen, scale) -> dict:
+def _build(d, narrative, sources, out_path, gen, scale, findings=None, considerations=None) -> dict:
     st, c, comp = _styles(), d["status_counts"], d["completeness"]
     P = lambda t, s="b": Paragraph(t, st[s])  # noqa: E731
     story, headings = [], []
@@ -205,7 +218,9 @@ def _build(d, narrative, sources, out_path, gen, scale) -> dict:
               P(f"Patient (de-identified id) <b>{escape(d['patient_id'])}</b> &nbsp;|&nbsp; Age band <b>{escape(d['age_band'])}</b> &nbsp;|&nbsp; Sex <b>{escape(d['sex'])}</b> "
                 f"&nbsp;|&nbsp; Week <b>{d['week']}</b> ({d['week_start']} to {d['week_end']}) &nbsp;|&nbsp; Generated {gen}", "small"), Spacer(1, 3 * mm)]
     headings.append("Summary")
-    tiles = [[f"<b>Days by status</b><br/>Normal {c['NORMAL']} | Monitor {c['MONITOR']}<br/>Urgent {c['URGENT']} | Data gap {c['DATA_GAP']}",
+    n_np = c.get("NOT_PROCESSED", 0)
+    tiles = [[f"<b>Days by status</b><br/>({comp['days_with_data']} days with data)<br/>Normal {c['NORMAL']} | Monitor {c['MONITOR']}<br/>Urgent {c['URGENT']}"
+              + (f" | Not processed {n_np}" if n_np else "") + f"<br/><font size=6.5 color='#6b7280'>Data-gap days (counted within the above): {c['DATA_GAP']}</font>",
               f"<b>Vitals alerts</b><br/>{len(d['vitals_alerts'])}", f"<b>Falls</b><br/>{len(d['falls'])}",
               f"<b>Unusual-pattern days</b><br/>{len(d['unusual_days'])}",
               f"<b>Completeness</b><br/>Vitals {comp['days_with_vitals']}/7 days<br/>Activity {comp['days_with_activity']}/7 days"]]
@@ -218,7 +233,9 @@ def _build(d, narrative, sources, out_path, gen, scale) -> dict:
     story += [h("Key findings"), P(escape(narrative))]
     story += [KeepTogether([h("Vitals vs personal baseline"), Image(io.BytesIO(vitals_chart(d, 150 * scale)), width=W_MM * mm, height=W_MM * mm * (150 * scale) / 183.0 * 1.0)])]
     img = Image(io.BytesIO(routine_chart(d, 125 * scale)), width=W_MM * mm, height=W_MM * mm * (125 * scale) / 183.0)
-    story += [KeepTogether([h("Daily routine vs personal baseline"), img])]
+    story += [KeepTogether([h("Daily routine vs personal baseline"), img]),
+              P(f"Chart legend: under each day [N] Normal, [M] Monitor, [U] Urgent, [-] no result (week of {d['week_start']}). Grey band = this person's usual range; "
+                "dashed line = personal baseline; X = reading outside the band; hatched bar = unusual activity pattern day. Bands appear only where a baseline is established.", "small")]
     headings.append("Alerts")
     rows = _alert_rows(d)
     shown = rows[:14 if scale == 1.0 else 10]
@@ -235,10 +252,27 @@ def _build(d, narrative, sources, out_path, gen, scale) -> dict:
     nb = [VARS[k][0] for k in VARS if d["vitals_summary"][k]["n_readings"] and not d["vitals_summary"][k]["baseline_established"]]
     if nb:
         q.append("Personal baseline not yet established (fewer than 5 earlier readings) for: " + ", ".join(nb) + ". Only this week's own values are shown for them.")
+    headings.append("Findings and supporting sources")
+    by_id = {s["id"]: s for s in sources}
+    if findings is None:
+        from echos.reports.evidence import present_findings
+        findings = [{**f, "sources": []} for f in present_findings(d)]
+    fs = [Paragraph("Findings and supporting sources", st["h2"])]
+    for f in findings:
+        fs.append(P(f"<b>{escape(f['label'])}</b>"))
+        srcs = [by_id[i] for i in f["sources"] if i in by_id]
+        fs += [P(f"&nbsp;&nbsp;[{escape(s['id'])}] {escape(s['title'])} - {escape(s['source'])}" + (f" - {escape(s['url'])}" if s.get("url") else ""), "small") for s in srcs]
+        if not srcs:
+            fs.append(P("&nbsp;&nbsp;No matching source retrieved for this finding.", "small"))
+    if not findings:
+        fs.append(P("No findings this week that call for supporting sources.", "small"))
+    story += [KeepTogether(fs)]
+    headings.append("Considerations for clinician review")
+    from echos.reports.evidence import render_bullet
+    cs = [Paragraph("Considerations for clinician review", st["h2"])]
+    cs += [P("&bull; " + escape(render_bullet(b_))) for b_ in (considerations or [])] or [P("No considerations: no supporting source was retrieved for this week's findings.", "small")]
+    story += [KeepTogether(cs)]
     story += [h("Data quality")] + [P(escape(x)) for x in q]
-    headings.append("References (for clinician review)")
-    refs = [P(f"[{escape(s['id'])}] {escape(s['title'])} - {escape(s['source'])}" + (f" - {escape(s['url'])}" if s.get("url") else ""), "small") for s in sources]
-    story += [Paragraph("References (for clinician review)", st["h2"])] + (refs or [P("No guideline sources were retrieved (no Monitor or Urgent day, or sources unavailable).", "small")])
 
     _Numbered.footer, _Numbered.pid = FOOTER.format(gen=gen), d["patient_id"]
     path = Path(out_path)

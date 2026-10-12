@@ -155,24 +155,37 @@ def build_weekly_data(eng, patient_id: str, week, pdy: Optional[pd.DataFrame] = 
     for d in dstr:
         for f in (fx.get(d) or {}).get("flags", []):
             e = f["evidence"]
-            if e.get("kind") == "critical":
-                vit_alerts.append({"day": d, "kind": "critical", "sys": e.get("sys"), "dia": e.get("dia"), "hr": e.get("hr")})
-            elif e.get("kind") == "vitals_alert":
-                vit_alerts.append({"day": d, "kind": "alert", **{f"{k}_{s}": e.get(f"{k}_{s}") for k in ("sys", "dia", "hr") for s in ("now", "baseline")}})
+            if e.get("kind") in ("critical", "vitals_alert"):
+                crit = e["kind"] == "critical"
+                vals = e.get("values") or {k: e.get(k if crit else f"{k}_now") for k in ("sys", "dia", "hr")}
+                vals = {k: v for k, v in vals.items() if v is not None}
+                bands = {k: _band(pdf, k, pd.Timestamp(d), cfg) for k in vals}
+                base = {k: (_r(b[0]) if b else None) for k, b in bands.items()}
+                est = any(base.get(k) is not None for k in ("sys", "dia"))
+                ent = {"day": d, "kind": "critical" if crit else "alert", "time": e.get("reading_time"), "values": vals, "baselines": base,
+                       "baseline_established": est, "values_stored": bool(vals)}
+                ent["detail"] = F.vitals_detail_text(vals, ent["time"], base, est)
+                if crit:
+                    ent.update({k: e.get(k) for k in ("sys", "dia", "hr")})
+                else:
+                    ent.update({f"{k}_{s}": e.get(f"{k}_{s}") for k in ("sys", "dia", "hr") for s in ("now", "baseline")})
+                vit_alerts.append(ent)
             elif f["type"] in UNUSUAL and d not in {u["day"] for u in unusual}:
                 unusual.append({"day": d, "z": rz[d]})     # z-scores only: the model score is never carried into this report
     # ---- falls: alert payloads (peak g) plus fall facts without an alert (no peak available)
     falls, seen = [], set()
+    fact_peak = {(d, f.get("time")): f.get("peak_g") for d in dstr for f in (fx.get(d) or {}).get("falls", [])}
     for r in sorted(al, key=lambda r: r.event_time):
         p = json.loads(r.payload)
+        pk = p.get("peak_impact_g")
         falls.append({"day": r.event_time[:10], "time": r.event_time[11:16], "probability": p.get("fall_probability"),
-                      "probability_text": fmt_prob(p.get("fall_probability")), "peak_g": p.get("peak_impact_g"),
-                      "inactivity": p.get("post_fall_inactivity")})
+                      "probability_text": fmt_prob(p.get("fall_probability")), "peak_g": pk if pk is not None else fact_peak.get((r.event_time[:10], r.event_time[11:16])),
+                      "inactivity": p.get("post_fall_inactivity"), "simulated": True})
         seen.add((r.event_time[:10], r.event_time[11:16]))
     for d in dstr:
         for f in (fx.get(d) or {}).get("falls", []):
-            if (d, f.get("time")) not in seen:
-                falls.append({"day": d, "time": f.get("time"), "probability": f.get("prob"), "probability_text": fmt_prob(f.get("prob")), "peak_g": None, "inactivity": f.get("post_fall_inactive")})
+            if (d, f.get("time")) not in seen and not (f.get("time") is None and any(k[0] == d for k in seen)):     # a fact without a time is the alert's own fall
+                falls.append({"day": d, "time": f.get("time"), "probability": f.get("prob"), "probability_text": fmt_prob(f.get("prob")), "peak_g": f.get("peak_g"), "inactivity": f.get("post_fall_inactive"), "simulated": True})
     falls.sort(key=lambda f: (f["day"], f["time"] or ""))
 
     # ---- completeness

@@ -1278,6 +1278,79 @@
     }
    }
   },
+  "/api/outbox/{outbox_id}/retry": {
+   "post": {
+    "tags": [
+     "alerts"
+    ],
+    "summary": "Outbox Retry",
+    "description": "Resend ONE outbox row now (uses this API's mailer: DryRun unless alerts.send_real). A row that is already SENT is never re-sent (409).",
+    "operationId": "outbox_retry_api_outbox__outbox_id__retry_post",
+    "parameters": [
+     {
+      "name": "outbox_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Outbox Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OutboxOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
   "/api/falls": {
    "get": {
     "tags": [
@@ -3108,6 +3181,55 @@
       ],
       "title": "Attachment Name"
      },
+     "next_attempt_time": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Next Attempt Time"
+     },
+     "last_attempt_time": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Attempt Time"
+     },
+     "retry_window_end": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Retry Window End"
+     },
+     "sweep_until": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sweep Until"
+     },
+     "can_retry": {
+      "type": "boolean",
+      "title": "Can Retry",
+      "default": false
+     },
      "kind": {
       "type": "string",
       "title": "Kind",
@@ -4308,6 +4430,36 @@
        }
       ],
       "title": "Data"
+     },
+     "findings": {
+      "anyOf": [
+       {
+        "items": {
+         "additionalProperties": true,
+         "type": "object"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Findings"
+     },
+     "considerations": {
+      "anyOf": [
+       {
+        "items": {
+         "additionalProperties": true,
+         "type": "object"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Considerations"
      }
     },
     "type": "object",

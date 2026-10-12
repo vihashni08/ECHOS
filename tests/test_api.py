@@ -94,7 +94,7 @@ def test_every_endpoint_returns_200_and_validates(api):
         assert len(w.t_s) == len(w.magnitude_g) <= 260 and w.magnitude_g[w.impact_index] == max(w.magnitude_g)
     assert f.outbox[0].body == "b" and c.get("/api/outbox").json()["items"][0]["body"] is None
     cfg = c.get("/api/system/config").json()
-    assert cfg == {"demo": False, "allow_kill": False, "dry_run_mail": True, "llm_enabled": True}
+    assert cfg == {"demo": False, "allow_kill": False, "dry_run_mail": True, "llm_enabled": os.environ.get("ECHOS_REPORT_LLM") != "off"}
     assert c.get("/api/system/limitations").json()["text"].startswith("- TIHM has no falls")
     assert c.get("/openapi.json").status_code == 200 and c.get("/docs").status_code == 200
 
@@ -387,3 +387,18 @@ def test_weekly_available_lists_stored_weeks_only(api):
     c.post(f"/api/patients/{PID}/reports/weekly/build?week={WEEK}")
     assert c.get(f"/api/patients/{PID}/reports/weekly-available").json() == [WEEK]
     assert c.get("/api/patients/nope/reports/weekly-available").status_code == 404
+
+
+def test_outbox_retry_endpoint_resends_one_failed_row_but_never_a_sent_one(api):
+    c, ctx = api
+    with ctx.eng.begin() as cn:
+        oid = cn.execute(S.outbox.insert().values(alert_id=f"{PID}|2019-05-09|fall|9", recipient_role="clinician", address=TO["clinician"], channel="dryrun", subject="[ECHOS URGENT] x",
+                                                  body="b", body_html="h", status="FAILED", attempts=7, error="ConnectionError", event_time="2019-05-09T14:02:11",
+                                                  queued_time=time.time() - 60, last_attempt_time=time.time() - 30)).inserted_primary_key[0]
+        S.insert_ignore(cn, S.alerts, alert_id=f"{PID}|2019-05-09|fall|9", patient_id=PID, type="fall", time=1.0, status="FAILED", event_id=9, event_time="2019-05-09T14:02:11", payload="{}")
+    row = next(x for x in c.get("/api/outbox?status=FAILED").json()["items"] if x["outbox_id"] == oid)
+    assert row["can_retry"] and row["retry_window_end"] and row["sweep_until"] and row["last_attempt_time"]
+    r = c.post(f"/api/outbox/{oid}/retry")
+    assert r.status_code == 200 and r.json()["status"] == "SENT" and r.json()["delivery"] == "dry_run" and r.json()["attempts"] == 8     # DryRun: nothing leaves the machine
+    assert c.post(f"/api/outbox/{oid}/retry").status_code == 409                                                                          # already sent: no duplicate
+    assert c.post("/api/outbox/99999/retry").status_code == 404

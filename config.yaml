@@ -78,11 +78,16 @@ llm:
 alerts:   # immediate alerts (fall, critical vitals): fixed template, no LLM; see echos/alerts/
   send_real: false          # false -> DryRunMailer: outbox rows only, SMTP is never used
   max_attempts: 3
-  backoff_s: [1, 2, 4]      # wait before the next attempt (a 3rd failure -> FAILED)
+  backoff_s: [1, 2, 4]      # weekly emails only: wait before the next attempt (a 3rd failure -> FAILED)
+  retry_window_s: 900       # FALL / CRITICAL_VITALS emails: PENDING -> RETRYING with backoff 1, 2, 4, 8 ... capped at backoff_cap_s until this window (from queueing) ends -> FAILED
+  backoff_cap_s: 60
+  sweep_interval_s: 300     # a background sweeper retries FAILED alert rows this often ...
+  sweep_window_s: 7200      # ... for this long after queueing (POST /api/outbox/{id}/retry resends one row on demand)
   critical_cooldown_sim_h: 12   # per patient: a second critical-vitals alert inside this many SIMULATED hours is suppressed
 pubmed:   # live PubMed (NCBI E-utilities) for MONITOR / URGENT daily reports only; env: ECHOS_NCBI_EMAIL, optional NCBI_API_KEY
   enabled: true
   max_results: 3
+  years: 15             # only publications of the last N years
   timeout_s: 10
   max_rps: 3            # NCBI limit without an API key
   cache_path: data/pubmed_cache.sqlite
@@ -92,6 +97,10 @@ weekly:   # weekly clinician report (PDF by email to the clinician only)
   dir: data/reports/weekly
   band_sd: 2.0          # personal band = past mean +/- band_sd * past sd
   max_pages: 3
+  evidence:             # weekly 'Findings and supporting sources' (echos/reports/evidence.py)
+    local_min_score: 0.5     # local guideline chunks below this cosine similarity are dropped (the daily report keeps rag.min_score 0.25)
+    max_sources_per_finding: 2   # local first, at most 1 PubMed
+    max_pubmed_per_finding: 1
 report_gate:
   enabled: true       # NORMAL days get a template daily report (no LLM, no RAG); never affects triage or alerts
 rag:

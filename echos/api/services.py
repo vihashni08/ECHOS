@@ -306,6 +306,14 @@ def daily_report(ctx: Ctx, pid: str, day: Optional[str]) -> dict:
 
 
 def week_end_of(week: Optional[str], ctx: Ctx, pid: str) -> tuple[str, str, str]:
+    if week is None:       # demo default: the latest stored weekly report whose vitals baselines are established, else the latest week with data
+        with ctx.eng.begin() as c:
+            rr = c.execute(select(S.reports.c.day, S.reports.c.provenance).where((S.reports.c.patient_id == pid) & (S.reports.c.kind == "weekly_pdf"))
+                           .order_by(S.reports.c.day.desc())).fetchall()
+        for day_, pv in rr:
+            if pv and json.loads(pv).get("vitals_baseline_established"):
+                week = WD.iso_week(day_)
+                break
     if week is None:
         d = latest_day(ctx, pid)
         if d is None:
@@ -340,6 +348,14 @@ def _pdf_exists(ctx: Ctx, path: Optional[str]) -> bool:
         return False
 
 
+def _findings_with_sources(prov: dict):
+    """Finding -> sources mapping with the stored source details attached (never abstract text)."""
+    if prov.get("findings") is None:
+        return None
+    by_id = {s["id"]: s for s in prov.get("sources_retrieved") or []}
+    return [{**f, "source_objs": [by_id[i] for i in f.get("sources", []) if i in by_id]} for f in prov["findings"]]
+
+
 def weekly_report(ctx: Ctx, pid: str, week: Optional[str]) -> dict:
     wk, mon, sun, r = weekly_row(ctx, pid, week)
     if r is None:
@@ -353,7 +369,8 @@ def weekly_report(ctx: Ctx, pid: str, week: Optional[str]) -> dict:
         pass
     return {"patient_id": pid, "week": wk, "week_start": mon, "week_end": sun, "mode": r.mode, "narrative": prov.get("narrative"), "provenance": prov,
             "validation": json.loads(r.validation) if r.validation else None, "pdf_available": _pdf_exists(ctx, r.path),
-            "pdf_pages": (prov.get("pdf") or {}).get("pages"), "data": data}
+            "pdf_pages": (prov.get("pdf") or {}).get("pages"), "data": data,
+            "findings": _findings_with_sources(prov), "considerations": prov.get("considerations")}
 
 
 # ------------------------------------------------------------------ alerts, outbox, falls
@@ -364,7 +381,19 @@ def alert_out(r) -> dict:
 def outbox_out(r) -> dict:
     return {"kind": "weekly" if str(r.alert_id).startswith("weekly|") else "alert", "delivery": "email" if r.channel == "smtp" else "dry_run", "outbox_id": r.outbox_id, "alert_id": r.alert_id, "recipient_role": r.recipient_role, "address": mask_email(r.address), "channel": r.channel,
             "subject": r.subject, "status": r.status, "attempts": r.attempts or 0, "error": scrub(r.error), "event_time": r.event_time, "queued_time": r.queued_time,
-            "sent_time": r.sent_time, "attachment_name": r.attachment_name}
+            "sent_time": r.sent_time, "attachment_name": r.attachment_name, **retry_state(r)}
+
+
+def retry_state(r) -> dict:
+    """Retry state of one outbox row, from the table only: next attempt, last attempt, end of the automatic retry window (alert mails), whether a
+    manual retry is possible."""
+    a = load_config().get("alerts", {})
+    weekly = str(r.alert_id).startswith("weekly|")
+    ws = getattr(r, "window_start", None) or r.queued_time
+    return {"next_attempt_time": r.next_attempt_time if r.status in ("RETRYING", "PENDING") else None, "last_attempt_time": r.last_attempt_time,
+            "retry_window_end": None if weekly or ws is None else ws + float(a.get("retry_window_s", 900)),
+            "sweep_until": None if weekly or r.queued_time is None else r.queued_time + float(a.get("sweep_window_s", 7200)),
+            "can_retry": bool(r.status in ("FAILED", "RETRYING", "PENDING") and r.address)}
 
 
 def list_alerts(ctx: Ctx, pid: Optional[str], limit: int, offset: int) -> tuple[list, int]:

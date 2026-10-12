@@ -26,7 +26,7 @@ fall), writes heartbeats to SQLite and restarts dead ones.
   PENDING->SENT|FAILED, attempts <=3 with backoff 1,2,4 s, error, event_time, queued_time, sent_time).
 - Fall and critical-vitals alerts (echos/alerts/: payload.py, dispatcher.py, mailer.py) go immediately to caregiver (ECHOS_CAREGIVER_EMAIL) and
   clinician (ECHOS_CLINICIAN_EMAIL) as a fixed template built only from structured data (no LLM, no RAG, no PubMed anywhere in that path; de-identified
-  id + age band only). The orchestrator's immediate_alert node queues them BEFORE any report work; sending runs on background worker threads. Dedup: fall
+  id + age band only). The orchestrator's immediate_alert node queues them BEFORE any report work; sending runs on background worker threads. Retry (alerts.retry_window_s 900, backoff 1,2,4..60 s; outbox row PENDING->RETRYING->SENT|FAILED; sweeper every 5 min for 2 h; POST /api/outbox/{id}/retry; weekly mails keep 3 attempts; state lives in the outbox table so it survives a restart). Dedup: fall
   alerts unique per event_id; critical-vitals per event plus a per-patient cooldown (alerts.critical_cooldown_sim_h). config alerts.send_real defaults
   to false = DryRunMailer (outbox only, SMTP never used). NEVER send real email from tests or demos: tests use FakeMailer only (conftest blocks
   smtplib.SMTP); scripts/send_test_email.py sends a labelled TEST mail only with --yes.

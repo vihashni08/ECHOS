@@ -277,7 +277,7 @@ def test_pubmed_query_filter_fallback_citation_cache_and_rate(tmp_path, monkeypa
     monkeypatch.setenv("ECHOS_NCBI_EMAIL", "me@example.test")
     http, clock = FakeNCBI(filtered_empty=True), Clock()
     pm = client(tmp_path, http, clock)
-    assert PM.build_query("fall_inactivity") == "older adults AND falls AND post-fall inactivity" and PM.build_query("data_gap") is None
+    assert PM.build_query("fall_inactivity") == "older adults AND falls AND (fall detection OR post-fall inactivity)" and PM.build_query("data_gap") is None
     r = pm.search("fall_inactivity", {"post_fall_inactive": True})
     assert [u.split("/")[-1] for u, *_ in http.calls] == ["esearch.fcgi", "esearch.fcgi", "efetch.fcgi"]       # filtered search empty -> unfiltered -> fetch
     assert "[pt]" in http.calls[0][1]["term"] and "[pt]" not in http.calls[1][1]["term"] and not r["filtered"]

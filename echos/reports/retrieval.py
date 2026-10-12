@@ -23,7 +23,7 @@ def _norm_local(c: dict) -> dict:
     m = re.search(r"\b(19|20)\d{2}\b", " ".join(str(c.get(k, "")) for k in ("source", "title")))
     return {"id": c["id"], "title": c.get("title", ""), "source": f"{c.get('source', '')}, page {c.get('page', '')}".strip(", "), "publisher": c.get("source", ""),
             "year": m.group(0) if m else None, "page": str(c.get("page", "")), "journal": None, "url": None, "excerpt": excerpt(c["text"]),
-            "text": c["text"], "origin": "local", "finding_type": c.get("finding_type")}
+            "text": c["text"], "origin": "local", "finding_type": c.get("finding_type"), "score": c.get("score")}
 
 
 def _norm_pm(s: dict) -> dict:

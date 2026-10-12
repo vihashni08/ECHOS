@@ -252,6 +252,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/outbox/{outbox_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Outbox Retry
+         * @description Resend ONE outbox row now (uses this API's mailer: DryRun unless alerts.send_real). A row that is already SENT is never re-sent (409).
+         */
+        post: operations["outbox_retry_api_outbox__outbox_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/falls": {
         parameters: {
             query?: never;
@@ -780,6 +800,19 @@ export interface components {
             sent_time?: number | null;
             /** Attachment Name */
             attachment_name?: string | null;
+            /** Next Attempt Time */
+            next_attempt_time?: number | null;
+            /** Last Attempt Time */
+            last_attempt_time?: number | null;
+            /** Retry Window End */
+            retry_window_end?: number | null;
+            /** Sweep Until */
+            sweep_until?: number | null;
+            /**
+             * Can Retry
+             * @default false
+             */
+            can_retry: boolean;
             /**
              * Kind
              * @default alert
@@ -1212,6 +1245,14 @@ export interface components {
             data?: {
                 [key: string]: unknown;
             } | null;
+            /** Findings */
+            findings?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Considerations */
+            considerations?: {
+                [key: string]: unknown;
+            }[] | null;
         };
         /** WeeklySendIn */
         WeeklySendIn: {
@@ -2049,6 +2090,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_OutboxOut_"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    outbox_retry_api_outbox__outbox_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outbox_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutboxOut"];
                 };
             };
             /** @description Forbidden */

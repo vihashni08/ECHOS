@@ -161,6 +161,8 @@ class WeeklyReportOut(BaseModel):
     pdf_available: bool
     pdf_pages: Optional[int] = None
     data: Optional[dict[str, Any]] = None
+    findings: Optional[list[dict[str, Any]]] = None          # finding -> supporting sources: [{key, label, n, sources: [id], source_objs: [...]}]
+    considerations: Optional[list[dict[str, Any]]] = None    # [{finding, text, cites}]
 
 
 class AlertOut(BaseModel):
@@ -187,6 +189,11 @@ class OutboxOut(BaseModel):
     queued_time: Optional[float] = None
     sent_time: Optional[float] = None
     attachment_name: Optional[str] = None
+    next_attempt_time: Optional[float] = None      # RETRYING / PENDING: when the next automatic attempt is due
+    last_attempt_time: Optional[float] = None
+    retry_window_end: Optional[float] = None       # alert mails: end of the automatic retry window (alerts.retry_window_s); FAILED rows are then swept every 5 min until sweep_until
+    sweep_until: Optional[float] = None
+    can_retry: bool = False                        # POST /api/outbox/{id}/retry is possible (not SENT, address configured)
     kind: str = "alert"                            # alert | weekly
     delivery: str = "dry_run"                      # dry_run (nothing leaves the machine) | email (real SMTP)
     body: Optional[str] = None                     # message text; only on /falls/{id} (fixed template, de-identified)

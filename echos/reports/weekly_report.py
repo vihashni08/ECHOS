@@ -12,6 +12,7 @@ import pandas as pd
 
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
+from echos.reports import evidence as EV
 from echos.reports import weekly_data as WD
 from echos.reports import weekly_narrative as WN
 from echos.reports import weekly_pdf as WP
@@ -35,6 +36,30 @@ def email_parts(d: dict) -> tuple[str, str, str]:
     return subject, "\n".join(lines), html
 
 
+def llm_rewriter(budget, d: dict, sources: list):
+    """Rewords the fixed 'Considerations' bullets through the budget manager (cache -> primary -> fallback -> template). Output goes through
+    evidence.validate_considerations in evidence.reword, so a bad rewrite is discarded."""
+    import json as _json
+
+    from echos.reports.llm_budget import GenerationFailed, make_key
+
+    def rewrite(bullets: list) -> list:
+        ids = {s["id"] for s in sources}
+        ask = ('Reword each bullet in plain, non-prescriptive language for a clinician (one sentence each). Keep the same "finding" and the same "cites". Never add diagnoses, '
+               'medicines or numbers. Reply with JSON only: {"bullets":[{"finding":str,"text":str,"cites":[ids]}]}.\nBULLETS:\n' + _json.dumps(bullets) + "\nVALID IDS: " + _json.dumps(sorted(ids)))
+
+        def attempt(ctx):
+            t = ctx.step("You reword short clinical-review bullets. Reply with JSON only.", [{"role": "user", "text": ask}], None).text.strip()
+            if t.startswith("```"):
+                t = t.strip("`").removeprefix("json").strip()
+            return {"bullets": _json.loads(t)["bullets"]}
+        res = budget.run(attempt, key=make_key("weekly-considerations-v1", {"b": bullets, "ids": sorted(ids)}), prompt_version="weekly-considerations-v1")
+        if not res.ok:
+            raise GenerationFailed(res.fallback_reason or "no result")
+        return res.value["bullets"]
+    return rewrite
+
+
 def gather_sources(d: dict, retriever, status: str) -> tuple[list, list]:
     """Local + PubMed sources for the finding types of the week; ([], note) when the week has no Monitor/Urgent day."""
     if not d["any_monitor_or_urgent"] or retriever is None:
@@ -54,6 +79,20 @@ def gather_sources(d: dict, retriever, status: str) -> tuple[list, list]:
     return out, notes
 
 
+def latest_established_week(eng, patient_id: str, pdy=None, phys=None, demo=None) -> Optional[str]:
+    """The most recent ISO week of this patient's processed days in which the vitals baselines (systolic / diastolic) are established
+    (falls back to the most recent week). Used by the demo defaults and scripts/send_test_weekly.py."""
+    from sqlalchemy import select
+    with eng.begin() as c:
+        days = [r[0] for r in c.execute(select(S.case_state.c.day).where(S.case_state.c.patient_id == patient_id))]
+    weeks = sorted({WD.iso_week(x) for x in days}, reverse=True)
+    for w in weeks:
+        dd = WD.build_weekly_data(eng, patient_id, w, pdy=pdy, phys=phys, demo=demo)
+        if any(dd["vitals_summary"][k]["baseline_established"] for k in ("sys", "dia")):
+            return w
+    return weeks[0] if weeks else None
+
+
 def make_weekly(eng, patient_id: str, week, dispatcher=None, budget=None, retriever=None, use_llm: bool = False, root=None, force: bool = False,
                 pdy=None, phys=None, demo=None, send: bool = True) -> dict:
     """Build data, narrative, PDF, then queue the email (unless send=False). Raises if the data or PDF step fails."""
@@ -61,12 +100,19 @@ def make_weekly(eng, patient_id: str, week, dispatcher=None, budget=None, retrie
     root = pathlib.Path(root) if root else ROOT
     d = WD.build_weekly_data(eng, patient_id, week, pdy=pdy, phys=phys, demo=demo)
     status = "URGENT" if d["status_counts"]["URGENT"] else "MONITOR"
-    sources, notes = gather_sources(d, retriever, status)
+    findings, sources, notes = EV.gather_findings(d, retriever, status)
+    findings = EV.drop_mismatched(findings)
+    sources = [s for s in sources if any(s["id"] in f["sources"] for f in findings)]
+    cons = EV.template_considerations(findings)
+    rw = llm_rewriter(budget, d, sources) if (use_llm and budget is not None and cons) else None
+    cons, cons_v = EV.reword(findings, cons, rw, {s["id"] for s in sources})
     nar = WN.make_narrative(d, sources, budget=budget, use_llm=use_llm)
     out = root / cfg["weekly"]["dir"] / f"{patient_id}_{d['week']}.pdf"
-    pdf = WP.build_pdf(d, nar["text"], sources, out, max_pages=cfg["weekly"].get("max_pages", 3))
+    pdf = WP.build_pdf(d, nar["text"], sources, out, max_pages=cfg["weekly"].get("max_pages", 3), findings=findings, considerations=cons)
     prov = {**nar["provenance"], "sources_retrieved": [{k: s.get(k) for k in ("id", "origin", "title", "source", "publisher", "year", "page", "journal", "url", "excerpt")} for s in sources],
-            "retrieval_events": notes, "narrative": nar["text"], "pdf": {"path": str(out), "pages": pdf["pages"], "bytes": pdf["bytes"]}}
+            "retrieval_events": notes, "findings": [{k: f[k] for k in ("key", "label", "n", "sources")} for f in findings],
+            "vitals_baseline_established": any(d["vitals_summary"][k]["baseline_established"] for k in ("sys", "dia")),
+            "considerations": cons, "considerations_validation": cons_v, "narrative": nar["text"], "pdf": {"path": str(out), "pages": pdf["pages"], "bytes": pdf["bytes"]}}
     with eng.begin() as c:
         S.upsert(c, S.reports, ["patient_id", "day", "kind"], patient_id=patient_id, day=d["week_end"], kind="weekly_pdf", mode=nar["mode"], path=str(out),
                  validation=S.j(nar["validation"]), created_ts=S.now(), provenance=S.j(prov))

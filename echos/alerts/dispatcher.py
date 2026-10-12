@@ -1,5 +1,5 @@
-"""Dispatcher: one dispatch -> caregiver AND clinician. Rows are queued in the outbox (PENDING) and sent by ONE background
-worker thread, so triage and the daily report never wait on a mail server. Per recipient: PENDING -> SENT | FAILED, up to
+"""Dispatcher: one dispatch -> caregiver AND clinician. Rows are queued in the outbox (PENDING) and sent by background
+worker threads, so triage and the daily report never wait on a mail server. Per recipient: PENDING -> SENT | FAILED, up to
 `max_attempts` attempts with backoff (retries are scheduled, not slept: a failing recipient never delays other alerts).
 A failure is logged and stays visible in the outbox / alerts tables; it never looks delivered."""
 from __future__ import annotations
@@ -34,13 +34,20 @@ def _redact(msg: str) -> str:
 
 class AlertDispatcher:
     def __init__(self, eng, mailer: Optional[Mailer] = None, to: Optional[dict] = None, max_attempts: Optional[int] = None,
-                 backoff_s: Optional[list] = None, cooldown_sim_h: Optional[float] = None):
+                 backoff_s: Optional[list] = None, cooldown_sim_h: Optional[float] = None, clock=None, threaded: bool = True,
+                 retry_window_s: Optional[float] = None, sweep_interval_s: Optional[float] = None, sweep_window_s: Optional[float] = None):
         a = load_config().get("alerts", {})
         self.eng, self.mailer = eng, mailer or DryRunMailer()
         self.to = to if to is not None else env_recipients()
         self.max_attempts = max_attempts or a.get("max_attempts", 3)
         self.backoff = list(backoff_s if backoff_s is not None else a.get("backoff_s", [1, 2, 4]))
         self.cooldown_h = a.get("critical_cooldown_sim_h", 12) if cooldown_sim_h is None else cooldown_sim_h
+        self.retry_window = float(retry_window_s if retry_window_s is not None else a.get("retry_window_s", 900))
+        self.backoff_cap = float(a.get("backoff_cap_s", 60))
+        self.sweep_interval = float(sweep_interval_s if sweep_interval_s is not None else a.get("sweep_interval_s", 300))
+        self.sweep_window = float(sweep_window_s if sweep_window_s is not None else a.get("sweep_window_s", 7200))
+        self.clock, self.threaded = clock or time.time, threaded      # clock is injectable: tests use a fake clock and drive() instead of threads
+        self._sweeper, self._busy = None, set()
         self._heap, self._seq, self._cv = [], itertools.count(), threading.Condition()
         self._inflight, self._stop, self._threads = 0, False, []
         self.n_workers = a.get("workers", 3)   # a slow / hung mail server delays at most one worker, not every alert
@@ -48,7 +55,7 @@ class AlertDispatcher:
     # ---- producer side (fast: two small SQLite writes, then returns)
     def dispatch(self, p: P.AlertPayload) -> bool:
         """Queue one alert for both recipients. False if it is a duplicate (same alert_id) or inside the critical-vitals cooldown."""
-        now = time.time()
+        now = self.clock()
         if p.alert_type == "CRITICAL_VITALS" and self._in_cooldown(p):
             log.info("alert suppressed (cooldown): %s", p.alert_id)
             return False
@@ -64,9 +71,9 @@ class AlertDispatcher:
                 st, err = ("PENDING", None) if addr else ("FAILED", "no recipient address configured")
                 r = c.execute(S.outbox.insert().values(alert_id=p.alert_id, recipient_role=role, address=addr, channel=self.mailer.channel,
                                                        subject=subj, body=text, body_html=html, status=st, attempts=0, error=err,
-                                                       event_time=p.event_time, queued_time=time.time()))
+                                                       event_time=p.event_time, queued_time=now, window_start=now))
                 rows.append((r.inserted_primary_key[0], st, {"address": addr, "subject": subj, "body": text, "body_html": html,
-                                                            "alert_id": p.alert_id, "role": role, "attempts": 0}))
+                                                            "alert_id": p.alert_id, "role": role, "attempts": 0, "window_start": now}))
             if all(st == "FAILED" for _, st, _ in rows):
                 c.execute(S.alerts.update().where(S.alerts.c.alert_id == p.alert_id).values(status="FAILED"))
         for oid, st, job in rows:
@@ -89,7 +96,7 @@ class AlertDispatcher:
             aid = base if not n else f"{base}|resend-{n}"
             st, err = ("PENDING", None) if addr else ("FAILED", "no recipient address configured")
             r = c.execute(S.outbox.insert().values(alert_id=aid, recipient_role="clinician", address=addr, channel=self.mailer.channel, subject=subject, body=body,
-                                                   body_html=body_html, status=st, attempts=0, error=err, event_time=week_end, queued_time=time.time(),
+                                                   body_html=body_html, status=st, attempts=0, error=err, event_time=week_end, queued_time=self.clock(), window_start=self.clock(),
                                                    attachment_name=Path(pdf_path).name, attachment_path=str(pdf_path)))
             oid = r.inserted_primary_key[0]
         if st == "PENDING":
@@ -119,35 +126,117 @@ class AlertDispatcher:
     # ---- worker
     def _push(self, outbox_id: int, delay: float, job: Optional[dict] = None):
         with self._cv:
-            heapq.heappush(self._heap, (time.time() + delay, next(self._seq), outbox_id, job))
-            self._threads = [t for t in self._threads if t.is_alive()]
-            self._stop = False
-            while len(self._threads) < self.n_workers:
-                t = threading.Thread(target=self._run, name="alert-dispatcher", daemon=True)
-                t.start()
-                self._threads.append(t)
+            heapq.heappush(self._heap, (self.clock() + delay, next(self._seq), outbox_id, job))
+            if self.threaded:
+                self._threads = [t for t in self._threads if t.is_alive()]
+                self._stop = False
+                while len(self._threads) < self.n_workers:
+                    t = threading.Thread(target=self._run, name="alert-dispatcher", daemon=True)
+                    t.start()
+                    self._threads.append(t)
             self._cv.notify_all()
+        if self.threaded and job and not job["alert_id"].startswith("weekly|"):
+            self.start_sweeper()
+
+    @staticmethod
+    def _job(r) -> dict:
+        return {"address": r.address, "subject": r.subject, "body": r.body, "body_html": r.body_html, "alert_id": r.alert_id, "role": r.recipient_role,
+                "attempts": r.attempts or 0, "window_start": r.window_start or r.queued_time,
+                **({"attachment": {"name": r.attachment_name, "path": r.attachment_path}} if r.attachment_path else {})}
 
     def recover(self) -> int:
-        """Re-queue PENDING rows left by a crashed process (attempt count is kept)."""
+        """Re-queue rows left PENDING / RETRYING by a crashed or restarted process. All state comes from the outbox table (attempts, window start, next
+        attempt time), so a restart neither loses a retry nor restarts its window."""
         with self.eng.begin() as c:
-            rs = c.execute(select(S.outbox).where(S.outbox.c.status == "PENDING")).fetchall()
+            rs = c.execute(select(S.outbox).where(S.outbox.c.status.in_(["PENDING", "RETRYING"]))).fetchall()
+        now = self.clock()
         for r in rs:
-            self._push(r.outbox_id, 0.0, {"address": r.address, "subject": r.subject, "body": r.body, "body_html": r.body_html,
-                                          "alert_id": r.alert_id, "role": r.recipient_role, "attempts": r.attempts,
-                                          **({"attachment": {"name": r.attachment_name, "path": r.attachment_path}} if r.attachment_path else {})})
+            self._push(r.outbox_id, max(0.0, (r.next_attempt_time or now) - now), self._job(r))
         return len(rs)
+
+    # ---- sweeper: FAILED alert rows are retried every sweep_interval_s for sweep_window_s after queueing
+    def sweep(self) -> int:
+        """One pass: FAILED alert rows (never weekly mails) that are older than the sweep interval since their last attempt and younger than the sweep
+        window get ONE attempt each. Returns the number of rows attempted."""
+        now = self.clock()
+        with self.eng.begin() as c:
+            rs = c.execute(select(S.outbox).where((S.outbox.c.status == "FAILED") & (S.outbox.c.address != "") & ~S.outbox.c.alert_id.like("weekly|%"))).fetchall()
+        n = 0
+        for r in rs:
+            if now - (r.queued_time or now) > self.sweep_window or now - (r.last_attempt_time or r.queued_time or 0) < self.sweep_interval:
+                continue
+            self._attempt(r.outbox_id, {**self._job(r), "sweep": True})
+            n += 1
+        return n
+
+    def start_sweeper(self):
+        with self._cv:
+            if self._sweeper and self._sweeper.is_alive():
+                return
+            self._sweeper = threading.Thread(target=self._sweep_loop, name="alert-sweeper", daemon=True)
+            self._sweeper.start()
+
+    def _sweep_loop(self):
+        while True:
+            time.sleep(min(30.0, max(self.sweep_interval / 2, 0.05)))
+            if self._stop:
+                return
+            try:
+                self.sweep()
+            except Exception:  # noqa: BLE001
+                log.exception("alert sweeper error")
+
+    def retry_row(self, outbox_id: int) -> str:
+        """On-demand resend of ONE row (POST /api/outbox/{id}/retry). 'sent' rows are never re-sent. Uses this dispatcher's mailer (DryRun unless
+        alerts.send_real). Returns the new status: RETRYING (queued), or raises LookupError / ValueError."""
+        with self.eng.begin() as c:
+            r = c.execute(select(S.outbox).where(S.outbox.c.outbox_id == outbox_id)).first()
+            if r is None:
+                raise LookupError(f"no outbox row {outbox_id}")
+            if r.status == "SENT":
+                raise ValueError("already sent: not re-sent (no duplicate email)")
+            if not r.address:
+                raise ValueError("no recipient address configured for this row")
+            c.execute(S.outbox.update().where(S.outbox.c.outbox_id == outbox_id).values(status="RETRYING", window_start=self.clock(), next_attempt_time=self.clock()))
+            self._refresh_status(r.alert_id, c)
+        job = {**self._job(r), "window_start": self.clock()}
+        self._push(outbox_id, 0.0, job)
+        return "RETRYING"
+
+    # ---- worker
+    def run_due(self) -> int:
+        """Process every job that is due now (single-threaded drive for tests with a fake clock)."""
+        n = 0
+        while True:
+            with self._cv:
+                if not self._heap or self._heap[0][0] > self.clock():
+                    return n
+                _, _, oid, job = heapq.heappop(self._heap)
+            self._attempt(oid, job)
+            n += 1
+
+    def drive(self, until: float, step: float = 30.0) -> None:
+        """Fake-clock driver: advance `self.clock` (needs .set / .now) to `until`, running due retries and the sweeper on the way."""
+        while self.clock() < until:
+            nxt = min(until, self.clock() + step)
+            with self._cv:
+                if self._heap:
+                    nxt = min(nxt, max(self._heap[0][0], self.clock()))
+            self.clock.set(nxt)
+            self.run_due()
+            self.sweep()
+            self.run_due()
 
     def _run(self):
         while True:
             with self._cv:
-                while not self._stop and (not self._heap or self._heap[0][0] > time.time()):
-                    self._cv.wait(timeout=max(0.0, self._heap[0][0] - time.time()) if self._heap else 0.5)
+                while not self._stop and (not self._heap or self._heap[0][0] > self.clock()):
+                    self._cv.wait(timeout=max(0.0, self._heap[0][0] - self.clock()) if self._heap else 0.5)
                     if not self._heap and self._stop:
                         break
                 if self._stop and not self._heap:
                     return
-                if not self._heap or self._heap[0][0] > time.time():
+                if not self._heap or self._heap[0][0] > self.clock():
                     continue
                 _, _, oid, job = heapq.heappop(self._heap)
                 self._inflight += 1
@@ -161,38 +250,69 @@ class AlertDispatcher:
                     self._cv.notify_all()
 
     def _attempt(self, oid: int, job: dict):
-        n = job["attempts"] + 1
-        err = None
+        """One send attempt. Alert mails (FALL / CRITICAL_VITALS): PENDING -> RETRYING with exponential backoff 1, 2, 4, 8 ... capped at backoff_cap_s until
+        retry_window_s after the window start, then FAILED (the sweeper tries again later). Weekly mails keep max_attempts with the fixed backoff list.
+        A row that is already SENT is never sent again (no duplicate email)."""
+        with self._cv:
+            if oid in self._busy:
+                return
+            self._busy.add(oid)
         try:
-            if job.get("attachment"):
-                a = job["attachment"]
-                self.mailer.send(job["address"], job["subject"], job["body"], job["body_html"],
-                                 attachments=[{"filename": a["name"], "data": Path(a["path"]).read_bytes(), "mime": "application/pdf"}])
+            with self.eng.begin() as c:
+                cur = c.execute(select(S.outbox.c.status, S.outbox.c.attempts).where(S.outbox.c.outbox_id == oid)).first()
+            if cur is None or cur.status == "SENT":
+                return
+            weekly, sweep = job["alert_id"].startswith("weekly|"), bool(job.get("sweep"))
+            n = max(job["attempts"], cur.attempts or 0) + 1
+            now0, err = self.clock(), None
+            try:
+                if job.get("attachment"):
+                    a = job["attachment"]
+                    self.mailer.send(job["address"], job["subject"], job["body"], job["body_html"],
+                                     attachments=[{"filename": a["name"], "data": Path(a["path"]).read_bytes(), "mime": "application/pdf"}])
+                else:
+                    self.mailer.send(job["address"], job["subject"], job["body"], job["body_html"])
+            except Exception as ex:  # noqa: BLE001
+                err = _redact(f"{type(ex).__name__}: {ex}")
+            now = self.clock()
+            delay = None
+            if err is None:
+                status = "SENT"
+            elif weekly:
+                final = n >= self.max_attempts
+                status = "FAILED" if final else "PENDING"
+                delay = None if final else self.backoff[min(n - 1, len(self.backoff) - 1)]
+            elif sweep:
+                status = "FAILED"
             else:
-                self.mailer.send(job["address"], job["subject"], job["body"], job["body_html"])
-        except Exception as ex:  # noqa: BLE001
-            err = _redact(f"{type(ex).__name__}: {ex}")
-        final = err is not None and n >= self.max_attempts
-        status = "SENT" if err is None else ("FAILED" if final else "PENDING")
-        vals = {"attempts": n, "error": err, "status": status}
-        if status == "SENT":
-            vals["sent_time"] = time.time()
-        with self.eng.begin() as c:       # ONE transaction per attempt: outbox row + derived alert status
-            c.execute(S.outbox.update().where(S.outbox.c.outbox_id == oid).values(**vals))
-            self._refresh_status(job["alert_id"], c)
-        if err is None:
-            return
-        if final:
-            log.error("alert %s to %s FAILED after %d attempts: %s", job["alert_id"], job["role"], n, err)
-        else:
-            log.warning("alert %s to %s attempt %d failed (%s); retrying", job["alert_id"], job["role"], n, err)
-            self._push(oid, self.backoff[min(n - 1, len(self.backoff) - 1)], {**job, "attempts": n})
+                delay = min(2.0 ** (n - 1), self.backoff_cap)
+                if now + delay - (job.get("window_start") or now0) > self.retry_window:
+                    status, delay = "FAILED", None
+                else:
+                    status = "RETRYING"
+            vals = {"attempts": n, "error": err, "status": status, "last_attempt_time": now,
+                    "next_attempt_time": (now + delay) if delay is not None else None}
+            if status == "SENT":
+                vals["sent_time"] = now
+            with self.eng.begin() as c:       # ONE transaction per attempt: outbox row + derived alert status
+                c.execute(S.outbox.update().where(S.outbox.c.outbox_id == oid).values(**vals))
+                self._refresh_status(job["alert_id"], c)
+            if err is None:
+                return
+            if status == "FAILED":
+                log.error("alert %s to %s FAILED after %d attempts: %s", job["alert_id"], job["role"], n, err)
+            else:
+                log.warning("alert %s to %s attempt %d failed (%s); retrying in %.0f s", job["alert_id"], job["role"], n, err, delay)
+                self._push(oid, delay, {**job, "attempts": n})
+        finally:
+            with self._cv:
+                self._busy.discard(oid)
 
     @staticmethod
     def _refresh_status(alert_id: str, c):
         """alerts.status is derived from the outbox only: any PENDING -> PENDING; else any FAILED -> FAILED; else SENT."""
         st = [x[0] for x in c.execute(select(S.outbox.c.status).where(S.outbox.c.alert_id == alert_id))]
-        new = "PENDING" if "PENDING" in st else ("FAILED" if "FAILED" in st else "SENT" if st else "PENDING")
+        new = "PENDING" if ("PENDING" in st or "RETRYING" in st) else ("FAILED" if "FAILED" in st else "SENT" if st else "PENDING")   # RETRYING is an outbox-row state only
         c.execute(S.alerts.update().where(S.alerts.c.alert_id == alert_id).values(status=new))
 
     # ---- control
