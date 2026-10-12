@@ -76,7 +76,7 @@ class CappedClient:
                 r.stop_reason = f"{'HTTP 404' if code == 404 else 'primary model failed'} on {self.model} ({type(ex).__name__}{' ' + str(code) if code else ''})"
             raise
         if it is not None:
-            r.raw.setdefault(it, []).append(getattr(out, "text", "") or "")
+            r.raw.setdefault(it, []).append(getattr(out, "text", "") or "".join(f"[tool_call:{c['name']}]" for c in getattr(out, "calls", [])))
         return out
 
 

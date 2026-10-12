@@ -23,16 +23,16 @@
   },
   "sisfall": {
     "old": {
-      "rows": 39571,
+      "rows": 42241,
       "subjects": 38,
       "falls": 1797,
-      "adl_windows": 37774
+      "adl_windows": 40444
     },
     "new": {
-      "rows": 39571,
+      "rows": 42241,
       "subjects": 38,
       "falls": 1797,
-      "adl_windows": 37774
+      "adl_windows": 40444
     }
   }
 }

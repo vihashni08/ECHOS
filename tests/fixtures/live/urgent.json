@@ -1,0 +1,18 @@
+{
+ "item": "urgent",
+ "note": "Exact key names/types of the saved live reply; all text replaced by placeholders.",
+ "requests": [
+  {
+   "kind": "tool_call_empty_text",
+   "text": ""
+  },
+  {
+   "kind": "text",
+   "text": "{\n \"status\": \"URGENT\",\n \"changes\": [\n  {\n   \"text\": \"Neutral placeholder sentence for text.\",\n   \"cites\": [\n    \"F1\"\n   ]\n  }\n ],\n \"monitor\": [\n  \"Neutral placeholder sentence for monitor.\",\n  \"Neutral placeholder sentence for monitor.\",\n  \"Neutral placeholder sentence for monitor.\"\n ],\n \"guidance\": [\n  {\n   \"text\": \"Neutral placeholder sentence for text.\",\n   \"cites\": [\n    \"KB-2\"\n   ]\n  },\n  {\n   \"text\": \"Neutral placeholder sentence for text.\",\n   \"cites\": [\n    \"PM-3\"\n   ]\n  }\n ]\n}"
+  },
+  {
+   "kind": "text",
+   "text": "{\n \"patient_id\": \"Patient A\",\n \"day\": \"2000-01-01\",\n \"status\": \"URGENT\",\n \"notes\": [\n  \"Neutral placeholder sentence for notes.\",\n  \"Neutral placeholder sentence for notes.\",\n  \"Neutral placeholder sentence for notes.\"\n ]\n}"
+  }
+ ]
+}

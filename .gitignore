@@ -34,3 +34,6 @@ reports/rating/
 *.joblib
 *.parquet
 reports/live_check/
+.venv
+.venv/
+venv/
