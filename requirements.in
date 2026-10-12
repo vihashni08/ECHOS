@@ -1,0 +1,26 @@
+# Direct dependencies (what the code imports). requirements.txt is the exact, resolved set: `pip install -r requirements.txt`.
+pandas
+numpy
+pyarrow
+pydantic>=2
+scikit-learn
+xgboost
+shap
+langgraph
+langgraph-checkpoint-sqlite
+sqlalchemy
+pyyaml
+joblib
+google-genai
+python-dotenv
+jinja2
+matplotlib
+pillow
+pypdf
+reportlab
+chromadb
+sentence-transformers
+fastapi
+uvicorn
+httpx
+pytest
