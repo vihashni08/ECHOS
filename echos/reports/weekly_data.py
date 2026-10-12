@@ -15,6 +15,7 @@ from sqlalchemy import select
 from echos.config import load_config
 from echos.orchestrator import state as S
 from echos.reports import facts as F
+from echos.reports import vitals_why as VW
 
 VARS = {"sys": ("Systolic BP", "mmHg"), "dia": ("Diastolic BP", "mmHg"), "hr": ("Heart rate", "bpm"), "temp": ("Temperature", "C"),
         "weight": ("Weight", "kg")}
@@ -165,6 +166,10 @@ def build_weekly_data(eng, patient_id: str, week, pdy: Optional[pd.DataFrame] = 
                 ent = {"day": d, "kind": "critical" if crit else "alert", "time": e.get("reading_time"), "values": vals, "baselines": base,
                        "baseline_established": est, "values_stored": bool(vals)}
                 ent["detail"] = F.vitals_detail_text(vals, ent["time"], base, est)
+                cls = VW.classify(vals, base, bands={k: b for k, b in bands.items() if b}, critical=crit)
+                ent["types"], ent["why"] = cls["types"], cls["why"]
+                ent["top"] = ({k: cls["top"][k] for k in ("var", "value", "base", "delta")} if cls["top"] else None)
+                ent["lead"] = ({k: cls["lead"][k] for k in ("var", "value", "base", "delta")} if cls["lead"] else None)
                 if crit:
                     ent.update({k: e.get(k) for k in ("sys", "dia", "hr")})
                 else:

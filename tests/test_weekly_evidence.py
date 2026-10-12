@@ -129,7 +129,7 @@ class Ret:
 
 
 def week(**kw):
-    d = {"falls": [{"inactivity": True}, {"inactivity": False}], "vitals_alerts": [{"day": "x"}], "unusual_days": [], "any_monitor_or_urgent": True}
+    d = {"falls": [{"inactivity": True}, {"inactivity": False}], "vitals_alerts": [{"day": "2019-05-07", "types": ["bp_high"]}], "unusual_days": [], "any_monitor_or_urgent": True}
     d.update(kw)
     return d
 
@@ -137,11 +137,11 @@ def week(**kw):
 def test_retrieval_is_per_finding_and_sources_are_tied_to_their_finding():
     r = Ret([FALL_KB, BP_KB, DEM_KB, PM_FALL, PM_BP])
     fnd, flat, _ = EV.gather_findings(week(), r, "MONITOR")
-    assert r.calls == ["fall_inactivity", "blood_pressure"]                  # one call per finding present (no routine finding: no dementia query)
+    assert r.calls == ["fall_inactivity", "bp_high"]                  # one call per finding present (no routine finding: no dementia query)
     m = {f["key"]: f["sources"] for f in fnd}
-    assert m["falls"] == ["KB-1", "PM-9"] and m["vitals"] == ["KB-2", "PM-8"]  # each finding got only its own sources; at most 2, PubMed last
+    assert m["falls"] == ["KB-1", "PM-9"] and m["bp_high"] == ["KB-2", "PM-8"]  # each finding got only its own sources; at most 2, PubMed last
     assert {s["id"] for s in flat} == {"KB-1", "PM-9", "KB-2", "PM-8"} and "KB-3" not in {s["id"] for s in flat}
-    assert [f["label"] for f in fnd] == ["Possible falls: 2", "Vitals alerts: 1"]
+    assert [f["label"] for f in fnd] == ["Possible falls: 2", "Blood pressure above usual: 1"]
 
 
 def test_mismatching_and_low_score_sources_are_dropped_and_limits_hold():
@@ -173,12 +173,22 @@ def test_drop_mismatched_safety_net():
     assert out[0]["sources"] == ["KB-1"]
 
 
+WEEK_D = {"falls": [{"day": "2019-05-09", "time": "14:02", "inactivity": True}, {"day": "2019-05-11", "time": "03:10", "inactivity": False}],
+          "unusual_days": [],
+          "vitals_alerts": [{"day": "2019-05-15", "kind": "alert", "types": ["bp_low"], "values": {"sys": 118, "dia": 58}, "baselines": {"sys": 119, "dia": 67},
+                             "top": {"var": "dia", "value": 58.0, "base": 67.0, "delta": -9.0}}]}
+
+
 def test_considerations_template_and_validator_rejections():
-    fnd = [{"key": "falls", "label": "Possible falls: 2", "sources": ["KB-1"], "inactivity": True}, {"key": "vitals", "label": "v", "sources": ["KB-2"]}]
-    bl = EV.template_considerations(fnd)
-    assert 2 <= len(bl) <= 4 and all(b["cites"] for b in bl)
-    two = EV.template_considerations([{**fnd[0], "sources": ["KB-1", "KB-4"]}])
+    fnd = [{"key": "falls", "label": "Possible falls: 2", "sources": ["KB-1"], "inactivity": True}, {"key": "bp_low", "label": "v", "sources": ["KB-2"]}]
+    bl = EV.template_considerations(fnd, WEEK_D)
+    assert len(bl) == 2 and all(b["cites"] for b in bl)
+    assert any(b["text"].startswith("Diastolic 58 mmHg on 15 May, 9 below usual") for b in bl)      # a concrete value, date and distance from usual
+    assert any("2 possible falls this week, the latest on 11 May at 03:10" in b["text"] for b in bl)
+    two = EV.template_considerations([{**fnd[0], "sources": ["KB-1", "KB-4"]}], WEEK_D)
     assert len(two) == 2 and two[1]["cites"] == ["KB-4"]       # a second bullet cites the finding's second source
+    assert EV.template_considerations([{**fnd[0], "sources": []}], WEEK_D) == []     # no source -> no bullet, never filler
+    assert EV.template_considerations(fnd) == []                                       # nothing concrete to name -> no bullet
     ids = {"KB-1", "KB-2", "KB-9"}
     assert EV.validate_considerations(bl, fnd, ids)["ok"]
     assert all(EV.render_bullet(b).endswith("]") for b in bl)
@@ -194,6 +204,8 @@ def test_considerations_template_and_validator_rejections():
     assert out == bl and v["mode"] == "template" and not v["ok"]
     out, v = EV.reword(fnd, bl, lambda b: [{**x, "text": x["text"] + " today"} for x in b], ids)
     assert v["mode"] == "llm" and out[0]["text"].endswith("today")
+    out, v = EV.reword(fnd, bl, lambda b: [{**x, "text": x["text"] + " and 77 more"} for x in b], ids)      # a number that is not in the original is rejected
+    assert out == bl and v["mode"] == "template"
 
 
 def test_weekly_pdf_lists_each_finding_with_its_sources_and_json_mapping(world, tmp_path):
@@ -205,8 +217,8 @@ def test_weekly_pdf_lists_each_finding_with_its_sources_and_json_mapping(world, 
     ret = GatedRetriever(lambda ft, d=None, k=None: [kb_bp, kb_fall], pubmed=None)
     r = WR.make_weekly(eng, PID, WEEK, None, retriever=ret, root=tmp_path, send=False, **kw)
     t = norm(text_of(r["pdf"]["path"]))
-    i_f, i_v, i_c = t.index("Possible falls: 1"), t.index("Vitals alerts: 1"), t.index("Considerations for clinician review")
+    i_f, i_v, i_c = t.index("Possible falls: 1"), t.index("Blood pressure above usual: 1"), t.index("Considerations for clinician review")
     assert t.index("[KB-1]", i_f) < i_v < t.index("[KB-2]", i_v) < i_c                 # falls source under falls, vitals source under vitals
     m = {f["key"]: f["sources"] for f in r["provenance"]["findings"]}
-    assert m == {"falls": ["KB-1"], "vitals": ["KB-2"], "routine": []} and "No matching source retrieved for this finding" in t
+    assert m == {"falls": ["KB-1"], "bp_high": ["KB-2"], "routine": []} and "No supporting source retrieved for this finding" in t
     assert all(b["cites"] for b in r["provenance"]["considerations"]) and r["provenance"]["considerations_validation"]["ok"]

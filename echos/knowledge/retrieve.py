@@ -9,6 +9,7 @@ import time
 from echos.config import load_config
 from echos.knowledge import embed_worker
 from echos.knowledge.ingest import COLLECTION, rag_dir
+from echos.knowledge.relevance import RULES
 
 LOG = logging.getLogger("echos.rag")
 # finding type -> natural-language query. Types with no query (e.g. data_gap) get no guidance.
@@ -20,6 +21,7 @@ QUERIES = {
     "agitation": "night-time restlessness and agitation in dementia, non-pharmacological management",
     "routine_change": "change in daily routine and sleep-wake pattern in a person living with dementia",
 }
+QUERIES.update({t: r["query"] for t, r in RULES.items()})
 _state: dict = {}
 
 
@@ -33,7 +35,7 @@ def build_query(finding_type: str, details: dict | None = None) -> str | None:
         return None
     d = details or {}
     extra = []
-    if d.get("kind") == "critical":
+    if d.get("kind") == "critical" and finding_type not in RULES:
         extra.append("very high or very low reading, urgent medical review")
     if d.get("post_fall_inactive"):
         extra.append("person not moving after the fall")

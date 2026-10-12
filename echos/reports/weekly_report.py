@@ -46,7 +46,7 @@ def llm_rewriter(budget, d: dict, sources: list):
     def rewrite(bullets: list) -> list:
         ids = {s["id"] for s in sources}
         ask = ('Reword each bullet in plain, non-prescriptive language for a clinician (one sentence each). Keep the same "finding" and the same "cites". Never add diagnoses, '
-               'medicines or numbers. Reply with JSON only: {"bullets":[{"finding":str,"text":str,"cites":[ids]}]}.\nBULLETS:\n' + _json.dumps(bullets) + "\nVALID IDS: " + _json.dumps(sorted(ids)))
+               'medicines or numbers, and keep every number and date exactly as written. Reply with JSON only: {"bullets":[{"finding":str,"text":str,"cites":[ids]}]}.\nBULLETS:\n' + _json.dumps(bullets) + "\nVALID IDS: " + _json.dumps(sorted(ids)))
 
         def attempt(ctx):
             t = ctx.step("You reword short clinical-review bullets. Reply with JSON only.", [{"role": "user", "text": ask}], None).text.strip()
@@ -103,7 +103,7 @@ def make_weekly(eng, patient_id: str, week, dispatcher=None, budget=None, retrie
     findings, sources, notes = EV.gather_findings(d, retriever, status)
     findings = EV.drop_mismatched(findings)
     sources = [s for s in sources if any(s["id"] in f["sources"] for f in findings)]
-    cons = EV.template_considerations(findings)
+    cons = EV.template_considerations(findings, d)
     rw = llm_rewriter(budget, d, sources) if (use_llm and budget is not None and cons) else None
     cons, cons_v = EV.reword(findings, cons, rw, {s["id"] for s in sources})
     nar = WN.make_narrative(d, sources, budget=budget, use_llm=use_llm)

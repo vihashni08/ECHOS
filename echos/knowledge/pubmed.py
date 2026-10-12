@@ -24,6 +24,7 @@ from urllib import parse, request
 from urllib.error import HTTPError
 
 from echos.config import ROOT, load_config
+from echos.knowledge.relevance import RULES
 
 log = logging.getLogger("echos.pubmed")
 ESEARCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
@@ -42,6 +43,9 @@ TERMS = {
 }
 
 
+TERMS.update({t: list(r["pubmed"]) for t, r in RULES.items()})
+
+
 class PubMedError(Exception):
     def __init__(self, reason: str):
         super().__init__(reason)
@@ -53,7 +57,7 @@ def build_query(finding_type: str, details: Optional[dict] = None) -> Optional[s
     if not terms:
         return None
     d = details or {}
-    if d.get("kind") == "critical":
+    if d.get("kind") == "critical" and finding_type not in RULES:
         terms.append("hypotension OR hypertension")
     return " AND ".join(f"({t})" if " OR " in t else t for t in terms)
 

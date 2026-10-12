@@ -8,6 +8,7 @@ import re
 from typing import Callable, Optional
 
 from echos.knowledge.pubmed import PubMedClient, PubMedError
+from echos.knowledge.relevance import keep
 
 log = logging.getLogger("echos.retrieval")
 GATED_STATUSES = ("MONITOR", "URGENT")
@@ -66,6 +67,10 @@ class GatedRetriever:
                 failure = ex.reason
                 events.append(f"pubmed failed ({ex.reason}); local sources only")
                 log.warning("PubMed failed (%s): using local sources only", ex.reason)
+        kept = [s for s in sources if keep(finding_type, s)]
+        if len(kept) < len(sources):
+            events.append(f"{len(sources) - len(kept)} source(s) dropped: not relevant to {finding_type}")
+        sources = kept
         seen, uniq = set(), []
         for s in sources:
             if s["id"] not in seen:

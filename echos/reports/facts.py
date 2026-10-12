@@ -14,6 +14,7 @@ from sqlalchemy import select
 from echos.config import load_config
 from echos.orchestrator import state as S
 from echos.orchestrator.triage import drift_level
+from echos.reports import vitals_why as VW
 
 VITAL_VARS = ["sys", "dia", "hr", "temp", "weight"]
 ROUTINE_VARS = ["total_events", "night_events", "night_bathroom"]
@@ -156,15 +157,17 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
         cur = {k: _r(v["current"]) for k, v in cv.items()}
         crit = t["critical_vitals"]
         s_, di_, h_ = cur.get("sys"), cur.get("dia"), cur.get("hr")
+        zs = {k: v.get("z") for k, v in cv.items()}
+        vals_now = {k: x for k, x in detail["values"].items() if x is not None}
         if (s_ is not None and (s_ >= crit["sys_high"] or s_ < crit["sys_low"])) or (di_ is not None and di_ >= crit["dia_high"]) \
                 or (h_ is not None and (h_ >= crit["hr_high"] or h_ < crit["hr_low"])):
-            add("vitals_news2", kind="critical", sys=s_, dia=di_, hr=h_, **detail)
+            kc = VW.classify({k: x for k, x in {"sys": s_, "dia": di_, "hr": h_}.items() if x is not None}, bases, zs=zs, critical=True)
+            add(kc["types"][0], kind="critical", sys=s_, dia=di_, hr=h_, why=kc["why"], **detail)
         if vit["probability"] >= t["vitals_prob"] and not health.get("degraded"):
-            z = {k: abs(cv.get(k, {}).get("z") or 0) for k in ("sys", "dia", "hr")}
-            add("blood_pressure" if max(z["sys"], z["dia"]) >= z["hr"] else "vitals_news2",
-                kind="vitals_alert", risk=round(vit["probability"], 2),
+            ka = VW.classify(vals_now, bases, zs=zs)
+            add(ka["types"][0], kind="vitals_alert", risk=round(vit["probability"], 2),
                 **{f"{k}_now": _r(v["current"]) for k, v in cv.items()},
-                **{f"{k}_baseline": _r(v["baseline"]) for k, v in cv.items()}, **detail)
+                **{f"{k}_baseline": _r(v["baseline"]) for k, v in cv.items()}, why=ka["why"], **detail)
     # ---- behaviour
     if beh.get("available") and not health.get("degraded"):
         ev = beh.get("drift") or {}

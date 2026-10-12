@@ -22,6 +22,7 @@ from sqlalchemy import select
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 from echos.reports import facts as F
+from echos.reports.vitals_why import VITALS_TYPES
 from echos.knowledge.retrieve import retrieve
 
 
@@ -88,7 +89,7 @@ TOOLS = [
      "parameters": {"type": "object", "properties": {}}},
     {"name": "retrieve_guidance", "description": "Guideline chunks / PubMed abstracts for one finding type, each with a citable id. Only for MONITOR or URGENT days.",
      "parameters": {"type": "object", "properties": {
-         "finding_type": {"type": "string", "enum": ["fall", "fall_inactivity", "blood_pressure", "vitals_news2", "agitation", "routine_change"]},
+         "finding_type": {"type": "string", "enum": ["fall", "fall_inactivity", "bp_high", "bp_low", "hr_high", "hr_low", "temperature", "weight_change", "blood_pressure", "vitals_news2", "agitation", "routine_change"]},
          "details": {"type": "object", "properties": {"kind": {"type": "string"}, "post_fall_inactive": {"type": "boolean"}}}},
          "required": ["finding_type"]}},
 ]
@@ -153,7 +154,7 @@ def _flag_items(facts: dict):
             mon.append({"text": "Check on them in person and ask how they feel; look for any pain or injury.", "cites": i})
         elif e.get("kind") == "critical":
             ch.append({"text": "A reading in the critical range was recorded: " + F.vitals_detail_text(e.get("values") or {k: e.get(k) for k in ("sys", "dia", "hr")}, e.get("reading_time"),
-                                                                                                   e.get("baselines"), bool(e.get("baseline_established"))) + ".", "cites": i})
+                                                                                                   e.get("baselines"), bool(e.get("baseline_established"))) + "." + (" Why it fired: " + e["why"] + "." if e.get("why") else ""), "cites": i})
             mon.append({"text": "Contact the care team or doctor today about this reading and repeat it at rest.", "cites": i})
         elif e.get("kind") == "vitals_alert":
             parts = []
@@ -165,6 +166,8 @@ def _flag_items(facts: dict):
                 txt = "Vitals differed from this person's usual: " + F.vitals_detail_text(e["values"], e.get("reading_time"), e.get("baselines"), bool(e.get("baseline_established"))) + "."
             else:
                 txt = ("; ".join(parts) + ".") if parts else F.NOT_STORED + "."
+            if e.get("why"):
+                txt += " Why it fired: " + e["why"] + "."
             ch.append({"text": txt, "cites": i})
             mon.append({"text": "Repeat the blood pressure and pulse later today, sitting and rested, and write the numbers down.", "cites": i})
         elif t == "agitation":
@@ -303,9 +306,9 @@ def weekly_template_items(stats: dict) -> dict:
         base = f" against a personal baseline of {_fmt(s['baseline'])}" if s["baseline"] is not None else " (no baseline yet)"
         out.append({"text": f"{VITAL_NAME[v]} averaged {_fmt(s['mean'])} {UNIT[v]} (range {_fmt(s['min'])} to {_fmt(s['max'])}, "
                             f"{s['n']} days with readings){base}.", "cites": [e["id"] for e in stats["evidence"]
-                                                                              if e["type"] in ("blood_pressure", "vitals_news2")] if v in ("sys", "dia", "hr") else []})
+                                                                              if e["type"] in VITALS_TYPES] if v in ("sys", "dia", "hr") else []})
     for e in stats["evidence"]:
-        label = {"blood_pressure": "Vitals differed from baseline", "vitals_news2": "Vitals differed from baseline",
+        label = {**{t: "Vitals differed from baseline" for t in VITALS_TYPES},
                  "agitation": "Agitation flagged", "routine_change": "Routine drift flagged",
                  "fall": "Possible fall detected", "fall_inactivity": "Possible fall with inactivity detected"}.get(e["type"], e["type"])
         extra = " (critical range)" if e["kind"] == "critical" else ""
@@ -323,7 +326,8 @@ def weekly_template_items(stats: dict) -> dict:
     return {"highlights": out, "guidance": guidance_template_items(stats)}
 
 
-GUIDE_LABEL = {"blood_pressure": "blood pressure changes", "vitals_news2": "vital-sign changes", "agitation": "agitation or restlessness",
+GUIDE_LABEL = {"blood_pressure": "blood pressure changes", "vitals_news2": "vital-sign changes", "bp_high": "high blood pressure", "bp_low": "low blood pressure",
+               "hr_high": "high heart rate", "hr_low": "low heart rate", "temperature": "temperature change", "weight_change": "weight change", "agitation": "agitation or restlessness",
                "routine_change": "routine changes", "fall": "a possible fall", "fall_inactivity": "a possible fall with inactivity"}
 
 

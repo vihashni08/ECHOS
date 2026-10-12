@@ -187,6 +187,8 @@ def _alert_rows(d: dict) -> list:
                 if now is not None and base is not None:
                     parts.append(f"{n} {now:g} {'above' if now > base else 'below'} usual {base:g}")
             det = "; ".join(parts) or "Vitals differ from usual; values not stored for this day"
+        if a.get("why"):
+            det += ". Why it fired: " + a["why"]
         rows.append((a["day"], "", "Vitals alert" if a["kind"] != "critical" else "Critical vitals", det, lab(a["day"])))
     for u in d["unusual_days"]:
         z = ", ".join(f"{ROUTINE[k].lower()} z {v:+g}" for k, v in u["z"].items() if v is not None) or "no personal z-scores available"
@@ -263,14 +265,14 @@ def _build(d, narrative, sources, out_path, gen, scale, findings=None, considera
         srcs = [by_id[i] for i in f["sources"] if i in by_id]
         fs += [P(f"&nbsp;&nbsp;[{escape(s['id'])}] {escape(s['title'])} - {escape(s['source'])}" + (f" - {escape(s['url'])}" if s.get("url") else ""), "small") for s in srcs]
         if not srcs:
-            fs.append(P("&nbsp;&nbsp;No matching source retrieved for this finding.", "small"))
+            fs.append(P("&nbsp;&nbsp;No supporting source retrieved for this finding.", "small"))
     if not findings:
         fs.append(P("No findings this week that call for supporting sources.", "small"))
     story += [KeepTogether(fs)]
     headings.append("Considerations for clinician review")
     from echos.reports.evidence import render_bullet
     cs = [Paragraph("Considerations for clinician review", st["h2"])]
-    cs += [P("&bull; " + escape(render_bullet(b_))) for b_ in (considerations or [])] or [P("No considerations: no supporting source was retrieved for this week's findings.", "small")]
+    cs += [P("&bull; " + escape(render_bullet(b_))) for b_ in (considerations or [])] or [P("No considerations: no supporting source with a concrete value, count or event was available for this week's findings.", "small")]
     story += [KeepTogether(cs)]
     story += [h("Data quality")] + [P(escape(x)) for x in q]
 
