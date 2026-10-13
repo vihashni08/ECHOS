@@ -2,7 +2,7 @@
 
 FastAPI app `echos.api.app:app`; interactive docs at `/docs`, schema at `/openapi.json`. **No authentication** (local demo only): bound to 127.0.0.1, CORS allows
 `http://localhost:5173` only. The API process never imports xgboost or torch; it reads `data/echos.db`, saved reports and `reports/metrics/*.json`, and talks to the
-runtime (`python -m echos.sim.controller`) via the `sim_command` table. Server-sent events come from `event_feed` (SQLite triggers on alerts, case_state, reports,
+runtime (`python -m echos.sim.controller` for replay, `python -m echos.live.runtime` for live / emulator mode) via the `sim_command` table. Server-sent events come from `event_feed` (SQLite triggers on alerts, case_state, reports,
 outbox, agent_heartbeat). Lists take `limit` (1-500) and `offset`; errors look like `{"error": {"status": 404, "message": "..."}}`; e-mail addresses are masked (`ab***@domain`).
 
 | Method | Path | Notes |
@@ -16,7 +16,14 @@ outbox, agent_heartbeat). Lists take `limit` (1-500) and `offset`; errors look l
 | GET | /api/patients/{id}/reports/weekly?week= | JSON of the stored weekly report |
 | GET | /api/patients/{id}/reports/weekly/pdf?week= | PDF download |
 | POST | /api/patients/{id}/reports/weekly/send?week= | body `{force}`; respects `alerts.send_real`; returns the outbox rows |
-| GET | /api/alerts, /api/outbox | paginated |
+| GET | /api/alerts, /api/outbox | paginated; alerts carry the lifecycle state (NEW / SENT / ACKNOWLEDGED / RESOLVED / ESCALATED / EXPIRED), deadline and acknowledgement |
+| POST | /api/alerts/{id}/ack, /resolve | acknowledge (stops the escalation timer) / mark as handled; idempotent |
+| GET | /api/tasks?status=OPEN, POST /api/tasks/{id}/done | care tasks opened by the Care Coordinator (check-in after a fall, clinician review after repeated changes) |
+| GET | /api/patients/{id}/case?day= | the Case Investigator's file (headline, evidence level, next checks, caveats, trace); `null` when that day has none |
+| GET | /api/components, /api/agents/messages | the detector / agent / infrastructure registry with live status; the message bus |
+| POST | /api/ingest/events | ingestion contract for any source (activity, vitals, accel, heartbeat; data timestamps; idempotent); optional `X-Echos-Token` when `ECHOS_INGEST_TOKEN` is set |
+| GET | /api/live/status | data mode (replay / emulator / live), emulator state, per-patient stream freshness |
+| POST | /api/live/emulator | `{action: load / play / pause / speed / fall}`: control the labelled device emulator |
 | GET | /api/falls, /api/falls/{id} | detail: downsampled 3-axis waveform, impact, probability, inactivity, alert + outbox rows |
 | POST | /api/sim/fall | inject a SisFall fall window (synthetic); states the subject and training-set membership |
 | GET / POST | /api/sim/state, /api/sim/control | play / pause / speed / reset |

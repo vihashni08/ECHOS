@@ -4,7 +4,9 @@ import { Info } from "lucide-react"
 import BandBars from "@/charts/BandBars"
 import Heatmap from "@/charts/Heatmap"
 import VitalChart from "@/charts/VitalChart"
+import CaseFilePanel from "@/components/CaseFilePanel"
 import { CardSkeleton, Empty, ErrorNote } from "@/components/States"
+import Timeline from "@/components/Timeline"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -18,7 +20,7 @@ export function PatientRedirect() {
   const p = usePatients()
   if (p.isLoading) return <CardSkeleton h="h-24" />
   const first = p.data?.items[0]
-  return first ? <Navigate to={`/patients/${first.patient_id}`} replace /> : <Empty title="No patients yet">Start the simulation on the Dashboard.</Empty>
+  return first ? <Navigate to={`/patients/${first.patient_id}`} replace /> : <Empty title="No patients yet">Open Demo tools on the Today page and start the data source.</Empty>
 }
 
 function WhyFlagged({ pid }: { pid: string }) {
@@ -58,6 +60,7 @@ export default function PatientPage() {
         <div>
           <h1 className="text-2xl font-semibold">Patient <span className="num">{id}</span></h1>
           <p className="text-sm text-muted-foreground">{me ? `Age ${me.age_band} · ${me.sex}` : "…"}</p>
+          <div className="mt-2 flex items-center gap-2 text-sm"><span className="text-muted-foreground">Last 14 days</span><Timeline pid={id} days={14} /></div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {me && <StatusBadge status={me.latest_status} />}
@@ -66,6 +69,7 @@ export default function PatientPage() {
         </div>
       </div>
       <WhyFlagged pid={id} />
+      <CaseFilePanel pid={id} />
       <div className="flex flex-wrap items-end gap-3 text-sm">
         <label className="flex flex-col gap-1">From<input type="date" value={from} min={min} max={to || max} onChange={(e) => setFrom(e.target.value)} className="num h-9 rounded-md border bg-card px-2" aria-label="From date" /></label>
         <label className="flex flex-col gap-1">To<input type="date" value={to} min={from || min} max={max} onChange={(e) => setTo(e.target.value)} className="num h-9 rounded-md border bg-card px-2" aria-label="To date" /></label>

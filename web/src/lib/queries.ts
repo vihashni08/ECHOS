@@ -76,3 +76,43 @@ export const useQuality = () => useQuery({ queryKey: ["quality"], queryFn: () =>
 export const useMetrics = () => useQuery({ queryKey: ["metrics"], queryFn: () => call(client.GET("/api/system/metrics")), staleTime: 60000, retry: 1 })
 export const useBudget = () => useQuery({ queryKey: ["budget"], queryFn: () => call(client.GET("/api/system/llm-budget")), refetchInterval: 10000, retry: 1 })
 export const useLimitations = () => useQuery({ queryKey: ["limits"], queryFn: () => call(client.GET("/api/system/limitations")), staleTime: 60000, retry: 1 })
+
+// ---- live mode, multi-agent layer, alert lifecycle
+export const useLive = () => useQuery({ queryKey: ["live"], queryFn: () => call(client.GET("/api/live/status")), ...poll(2000) })
+export const useComponents = () => useQuery({ queryKey: ["components"], queryFn: () => call(client.GET("/api/components")), ...poll(3000) })
+export const useMessages = (limit = 40, pid?: string) =>
+  useQuery({ queryKey: ["messages", limit, pid], queryFn: () => call(client.GET("/api/agents/messages", { params: { query: { limit, patient_id: pid } } })), ...poll(3000) })
+export const useAlertList = (limit = 50) => useQuery({ queryKey: ["alerts", "life", limit], queryFn: () => call(client.GET("/api/alerts", { params: { query: { limit } } })), ...poll(2000) })
+export const useTasks = (status: "OPEN" | "DONE" | undefined = "OPEN") =>
+  useQuery({ queryKey: ["tasks", status], queryFn: () => call(client.GET("/api/tasks", { params: { query: { status, limit: 100 } } })), ...poll(3000) })
+export const useCase = (pid: string, day?: string) =>
+  useQuery({ queryKey: ["case", pid, day], enabled: !!pid, retry: false, refetchInterval: 4000,
+    queryFn: async () => (await call(client.GET("/api/patients/{pid}/case", { params: { path: { pid }, query: { day } } }))) ?? null })
+export function useAck() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; by?: string }) => call(client.POST("/api/alerts/{alert_id}/ack", { params: { path: { alert_id: v.id } }, body: { by: v.by ?? "caregiver" } })),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["alerts"] }); qc.invalidateQueries({ queryKey: ["tasks"] }); qc.invalidateQueries({ queryKey: ["components"] }) },
+  })
+}
+export function useResolve() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { id: string; note?: string }) => call(client.POST("/api/alerts/{alert_id}/resolve", { params: { path: { alert_id: v.id } }, body: { by: "caregiver", note: v.note } })),
+    onSettled: () => { qc.invalidateQueries({ queryKey: ["alerts"] }); qc.invalidateQueries({ queryKey: ["tasks"] }) },
+  })
+}
+export function useTaskDone() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => call(client.POST("/api/tasks/{task_id}/done", { params: { path: { task_id: id } } })),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  })
+}
+export function useEmulator() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { action: "load" | "play" | "pause" | "speed" | "fall"; speed?: number; patient_id?: string; subject?: string; activity?: string }) => call(client.POST("/api/live/emulator", { body })),
+    onSettled: () => qc.invalidateQueries(),
+  })
+}

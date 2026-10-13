@@ -46,13 +46,30 @@ def test_alert_lifecycle_through_the_api(api):
 
 def test_case_file_and_message_bus(api):
     c, ctx = api
-    assert c.get(f"/api/patients/{PID}/case").status_code == 404
+    assert c.get(f"/api/patients/{PID}/case").json() is None
     Investigator(ctx.eng).investigate(PID, "2019-05-09", {"status": "URGENT", "urgent_types": ["fall"], "reasons": ["fall p=0.99"]},
                                       {"quality": {"evidence": {"quality_checked": True}}, "health": {"vitals": {}, "behaviour": {}},
                                        "fall": {"score": 0.99, "flag": True, "evidence": {"post_fall_inactive": True}}})
-    f = M.CaseFileOut.model_validate(c.get(f"/api/patients/{PID}/case").json())
+    assert c.get(f"/api/patients/{PID}/case").json() is None            # the latest processed day of the fixture has no case file (not investigated)
+    f = M.CaseFileOut.model_validate(c.get(f"/api/patients/{PID}/case?day=2019-05-09").json())
     assert f.day == "2019-05-09" and f.evidence_level == "STRONG" and f.trace[0]["tool"] == "read_detectors"
-    assert c.get(f"/api/patients/{PID}/case?day=2019-01-01").status_code == 404
+    assert c.get(f"/api/patients/{PID}/case?day=2019-01-01").json() is None
     bus.post(ctx.eng, "triage", "investigator", "case_opened", PID, "2019-05-09", {})
     msgs = [M.AgentMessageOut.model_validate(x) for x in c.get("/api/agents/messages?limit=10").json()]
     assert {m.topic for m in msgs} >= {"case_opened", "case_file_ready"} and {m.sender for m in msgs} >= {"triage", "investigator"}
+
+
+def test_data_only_days_are_separated_from_changes(api):
+    c, ctx = api
+    from echos.api.services import attention_kind
+    from types import SimpleNamespace as N
+    assert attention_kind(None) is None and attention_kind(N(status="NORMAL", reasons="[]")) is None
+    assert attention_kind(N(status="MONITOR", reasons=json_dumps(["DATA_GAP: sensor gap (zero_events)", "DATA_GAP: no vitals reading for 9 days"]))) == "data"
+    assert attention_kind(N(status="MONITOR", reasons=json_dumps(["vitals alert p=0.50", "DATA_GAP: sensor gap"]))) == "change"
+    assert attention_kind(N(status="URGENT", reasons=json_dumps(["DATA_GAP: x"]))) == "change"       # urgent is never filed under data problems
+    assert all("attention_kind" in p for p in c.get("/api/patients").json()["items"])
+
+
+def json_dumps(x):
+    import json
+    return json.dumps(x)

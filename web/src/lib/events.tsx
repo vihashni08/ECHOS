@@ -24,12 +24,15 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         seen.current.add(d.alert_id)
         setFeed((f) => [{ id: (ev as MessageEvent).lastEventId, kind: "alert" as const, alert_id: d.alert_id, patient_id: d.patient_id, type: d.type, event_time: d.event_time ?? null, seen: Date.now() }, ...f].slice(0, 50))
       }
-      refresh(["alerts", "falls", "patients", "fall"])
+      refresh(["alerts", "falls", "patients", "fall", "live", "case"])
     })
-    es.addEventListener("day_status", () => refresh(["patients", "summary", "statuses", "falls", "sim"]))
+    es.addEventListener("day_status", () => refresh(["patients", "summary", "statuses", "falls", "sim", "live", "case"]))
     es.addEventListener("outbox_status", () => refresh(["falls", "fall"]))
     es.addEventListener("report_ready", () => refresh(["patients"]))
-    es.addEventListener("agent_health", () => refresh(["agents"]))
+    es.addEventListener("agent_health", () => refresh(["agents", "components"]))
+    es.addEventListener("alert_state", () => refresh(["alerts", "tasks", "components"]))
+    es.addEventListener("agent_message", () => refresh(["messages"]))
+    es.addEventListener("care_task", () => refresh(["tasks"]))
     return () => es.close()
   }, [qc])
   return <Ctx.Provider value={{ conn, feed }}>{children}</Ctx.Provider>

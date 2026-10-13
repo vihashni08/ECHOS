@@ -148,10 +148,22 @@ def plain_reasons(facts: Optional[dict]) -> list[str]:
 
 
 # ------------------------------------------------------------------ patients
+def attention_kind(la) -> Optional[str]:
+    """'change' = something differs from the person's usual (or a fall / critical reading); 'data' = the ONLY reasons are data problems (a silent sensor,
+    no vitals for days, unchecked data): a device needs looking at, not the person. None = nothing to show."""
+    if la is None or la.status not in ("MONITOR", "URGENT"):
+        return None
+    try:
+        reasons = json.loads(la.reasons or "[]")
+    except ValueError:
+        reasons = []
+    return "data" if la.status == "MONITOR" and reasons and all(str(r).startswith("DATA_GAP") for r in reasons) else "change"
+
+
 def list_patients(ctx: Ctx) -> list[dict]:
     out = []
     with ctx.eng.begin() as c:
-        last = {r.patient_id: r for r in c.execute(select(S.case_state.c.patient_id, S.case_state.c.day, S.case_state.c.status).order_by(S.case_state.c.day))}
+        last = {r.patient_id: r for r in c.execute(select(S.case_state.c.patient_id, S.case_state.c.day, S.case_state.c.status, S.case_state.c.reasons).order_by(S.case_state.c.day))}
         al = {r.patient_id: r for r in c.execute(select(S.alerts.c.patient_id, S.alerts.c.type, S.alerts.c.event_time, S.alerts.c.time).order_by(S.alerts.c.time))}
         fx = c.execute(select(S.daily_facts.c.patient_id, S.daily_facts.c.facts)).fetchall()
     comp: dict = {}
@@ -165,7 +177,7 @@ def list_patients(ctx: Ctx) -> list[dict]:
     for pid in patient_ids(ctx):
         age, sex = demo_of(ctx, pid)
         la, a = last.get(pid), al.get(pid)
-        out.append({"patient_id": pid, "age_band": age, "sex": sex, "latest_status": la.status if la else None, "latest_day": la.day if la else None,
+        out.append({"attention_kind": attention_kind(la), "patient_id": pid, "age_band": age, "sex": sex, "latest_status": la.status if la else None, "latest_day": la.day if la else None,
                     "last_alert_time": a.event_time if a else None, "last_alert_type": a.type if a else None, "completeness": comp.get(pid, {})})
     return out
 

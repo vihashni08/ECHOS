@@ -31,7 +31,7 @@ export default function Caregiver() {
         <h1 className="text-2xl font-semibold">Caregiver</h1>
         <PatientPicker value={pid} onChange={(v) => set({ patient: v, day: "" })} />
       </div>
-      {patients.isLoading ? <CardSkeleton h="h-64" /> : patients.data?.items.length === 0 ? <Empty title="No patients yet">Start the simulation on the Dashboard.</Empty> : (
+      {patients.isLoading ? <CardSkeleton h="h-64" /> : patients.data?.items.length === 0 ? <Empty title="No patients yet">Start the data source from Demo tools on the Today page.</Empty> : (
         <>
           {alerts.length > 0 && (
             <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-urgent-line bg-urgent-bg px-4 py-3 text-urgent-fg" data-testid="alert-banner">

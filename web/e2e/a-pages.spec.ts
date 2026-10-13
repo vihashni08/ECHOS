@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 import { writeFileSync } from "node:fs"
 import { API, firstPatient, json, setTheme, watchConsole } from "./helpers"
 
-const ROUTES = ["/", "/falls", "/patient", "/caregiver", "/clinician", "/system"]
+const ROUTES = ["/", "/alerts", "/falls", "/patient", "/caregiver", "/clinician", "/how-it-works", "/system"]
 const WEEK = "2019-W20"      // contains 201d8's fall on 2019-05-13 (URGENT)
 
 test("each page loads without console errors", async ({ page }) => {
@@ -132,7 +132,7 @@ test("keyboard: demo guide drawer traps focus, closes with Escape and returns fo
 
 test("axe: no serious or critical violations on any page, light and dark", async ({ page }) => {
   const p = await firstPatient()
-  const pages = ["/", "/falls", `/patients/${p.patient_id}`, `/caregiver?patient=${p.patient_id}&day=${p.latest_day}`, `/clinician?patient=201d8&week=${WEEK}`, "/system"]
+  const pages = ["/", "/alerts", "/how-it-works", "/falls", `/patients/${p.patient_id}`, `/caregiver?patient=${p.patient_id}&day=${p.latest_day}`, `/clinician?patient=201d8&week=${WEEK}`, "/system"]
   const found: { page: string; theme: string; id: string; impact: string; nodes: number; first: string }[] = []
   for (const theme of ["light", "dark"] as const) {
     await setTheme(page, theme)

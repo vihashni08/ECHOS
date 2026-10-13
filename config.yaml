@@ -123,6 +123,7 @@ coordinator:   # Care Coordinator agent (echos/team/coordinator.py): owns the al
   poll_s: 1.0
   ack_timeout_s: {FALL: 300, CRITICAL_VITALS: 1800}   # not acknowledged this long after SENT -> ESCALATED (second contact)
   checkin_after_ack_s: 1800                            # after an acknowledged FALL: open a "confirm the person is well" task due this long later
+  stale_after_s: 21600                                 # an unacknowledged alert older than this is EXPIRED, never escalated (history after a restart)
   review_window_days: 5                                # >= review_min_days non-NORMAL days within this window -> a clinician-review task
   review_min_days: 3
 investigator:   # Case Investigator agent (echos/team/investigator.py): bounded tool loop, no LLM

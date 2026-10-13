@@ -15,12 +15,11 @@ Multi-agent decision-support system for home-dwelling elderly patients. Not a di
 - Date range 2019-04-01 to 2019-06-30. ~49 labelled patients: results will have wide confidence intervals.
 
 ## Architecture
-Simulator (replays TIHM day by day, injects SisFall fall windows; synthetic, tests/demos only) -> Data Quality agent
-(rule-based) -> Health Monitoring agent (vitals + behaviour sub-models, kept separate; returns HealthResult with SHAP,
-personal-baseline and persistence evidence; drift/CUSUM is explanation-only) and Fall agent (SisFall only, independent
-of both) -> LangGraph orchestrator (rule-based triage Normal / Changed-monitor / Urgent, checkpointed) -> Report agent
-(LLM + tools + non-LLM validator) -> FastAPI -> React web app. A supervisor runs three workers (quality, health_monitoring,
-fall), writes heartbeats to SQLite and restarts dead ones.
+Purpose: watch the sensors and vitals of one older person and tell caregiver + clinician at once about a fall / critical reading, and daily about changes from their own usual. Components are registered in echos/components.py (docs/COMPONENTS.md is generated from it; API GET /api/components; UI "How it works"):
+- DETECTORS (sense, never decide): Data Quality gate (rules), Vitals + Behaviour detector (kept separate; HealthResult with SHAP, personal baseline, persistence; drift/CUSUM explanation-only), Fall detector (SisFall only, independent).
+- AGENTS (goal, tools, action, trace): Triage (rule-based if-then Normal / Changed-monitor / Urgent; LangGraph orchestrator in replay, echos/live/processor.py in live mode, both call the same pure triage()), Case Investigator (echos/team/investigator.py: bounded tool loop, no LLM, writes the case file + trace, evidence level STRONG/MODERATE/LIMITED = not a probability), Care Coordinator (echos/team/coordinator.py + lifecycle.py: owns the alert lifecycle NEW->SENT->ACKNOWLEDGED->RESOLVED / ESCALATED / EXPIRED, escalation to ECHOS_ESCALATION_EMAIL after coordinator.ack_timeout_s, check-in and review tasks; wall-clock; state in SQLite), Report agent (LLM + tools + non-LLM validator). Agents talk over the SQLite bus (echos/team/bus.py, table agent_message).
+- Infra: supervisor (replay: restarts the 3 detector workers; heartbeats in SQLite), alert dispatcher, ingestion + live store (echos/live).
+- THREE DATA MODES, labelled in the UI: REPLAY (simulator replays TIHM day by day; evaluation/demos), EMULATOR (echos/live/emulator.py: labelled device emulator replaying real TIHM raw events in wall-clock time; falls injected from SisFall), LIVE (real devices call POST /api/ingest/events; schema echos/live/schemas.py). Live detectors are scored FROM raw events (echos/live/features.py builds the patient-day row; the training table only supplies earlier history); vitals on arrival, behaviour when the day closes; an open day is PROVISIONAL (case_state.as_of / provisional). `scripts/run_api.sh --mode live` (default mode = replay). scripts/live_parity.py checks live == replay scores.
 - NO trained fusion model: triage is plain if-then rules. NO alert lifecycle (no ack/escalation): `alerts` rows record only PENDING/SENT/FAILED,
   derived from the `outbox` table (one row per alert x recipient role: alert_id, recipient_role, address, channel, subject, body, status
   PENDING->SENT|FAILED, attempts <=3 with backoff 1,2,4 s, error, event_time, queued_time, sent_time).
@@ -30,7 +29,7 @@ fall), writes heartbeats to SQLite and restarts dead ones.
   alerts unique per event_id; critical-vitals per event plus a per-patient cooldown (alerts.critical_cooldown_sim_h). config alerts.send_real defaults
   to false = DryRunMailer (outbox only, SMTP never used). NEVER send real email from tests or demos: tests use FakeMailer only (conftest blocks
   smtplib.SMTP); scripts/send_test_email.py sends a labelled TEST mail only with --yes.
-- Daily report is dashboard-only; NORMAL days get a template report (gate: no LLM, no RAG; the gate never changes or
+- Daily report is shown in the web app only; NORMAL days get a template report (gate: no LLM, no RAG; the gate never changes or
   delays triage or alerts). Weekly clinician report is a PDF sent by email.
 - Fallbacks: health_monitoring fails -> fixed vitals thresholds + "monitoring degraded"; quality fails -> pass-through +
   "quality unchecked"; both are DATA_GAP, never NORMAL.
@@ -54,12 +53,12 @@ fall), writes heartbeats to SQLite and restarts dead ones.
   triggers. Never returns raw secrets or full e-mail addresses (masked `ab***@domain`); `api.allow_kill` (default false) guards POST /api/agents/{name}/kill.
   Injected falls are synthetic SisFall windows; the response states whether the subject was in the training set of the Fall worker's model / the final model.
 
-## Web app (web/) — pages: Dashboard, Fall Monitor, Patient, Caregiver, Clinician, System, Demo guide drawer (demo mode only)
+## Web app (web/) — pages: Today, Alerts, People (patient), Fall Monitor, Caregiver report, Clinician week, How it works, System; mode badge on every page; Demo tools sheet (data-source controls); replay Demo guide (replay + demo mode only)
 - Vite + React + TypeScript + Tailwind v4 + shadcn/ui + Recharts + React Router + TanStack Query; fonts self-hosted (@fontsource), no runtime CDN. Typed client from the
   FastAPI schema: `cd web && npm run gen:api`. Dev: backend `scripts/run_api.sh --dry --no-llm [--demo] --db data/echos_ui_dev.db` (copy made by
   `scripts/make_ui_dev_copy.sh`; never develop against data/echos.db), then `cd web && npm run dev` -> http://localhost:5173 (the API allows CORS for exactly that origin).
   Checks: `npm run build`, `npx tsc -b`, `node contrast.mjs` (WCAG AA tokens), `npx playwright test` (starts its OWN stack: API :8010 + Vite :5180 on a throw-away copy data/echos_e2e.db made from the UI dev copy; incl. axe-core checks, no serious violations allowed),
-  `node scripts/ui_screenshots.mjs` -> web/screenshots/. `--demo` = demo mode (agent kill + Demo guide; api.allow_kill stays false by default); `--no-llm` also switches live PubMed off (ECHOS_PUBMED=off). The Clinician page builds a missing weekly report on first visit (nothing is emailed); Send to clinician states dry run vs real email and asks twice to resend.
+  `npx playwright test -c playwright.live.config.ts` (live-mode story: own stack API :8021 + Vite :5191, fresh data/echos_e2e_live.db), `node scripts/ui_screenshots.mjs` -> web/screenshots/. `--demo` = demo mode (agent kill + Demo guide; api.allow_kill stays false by default); `--no-llm` also switches live PubMed off (ECHOS_PUBMED=off). The Clinician page builds a missing weekly report on first visit (nothing is emailed); Send to clinician states dry run vs real email and asks twice to resend.
 
 ## Rules
 - Python 3.11, pydantic, pandas, scikit-learn, xgboost, shap, langgraph, fastapi, sqlalchemy/sqlite, pytest.

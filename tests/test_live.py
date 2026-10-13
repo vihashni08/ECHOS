@@ -27,7 +27,9 @@ def ev(pid="px", ts="2019-05-20T08:00:00", **kw):
 
 @pytest.fixture
 def eng(tmp_path):
-    return S.get_engine(tmp_path / "live.db")
+    from echos.alerts import payload as P
+    yield S.get_engine(tmp_path / "live.db")
+    P.LIVE_ENG = None                      # LiveProcessor installs itself as the live raw-event source: never leak it into other tests
 
 
 @pytest.fixture

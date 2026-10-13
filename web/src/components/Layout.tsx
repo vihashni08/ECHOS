@@ -1,19 +1,24 @@
-import { Activity, HeartPulse, LayoutDashboard, Moon, Radio, Settings2, Stethoscope, Sun, User, Users, WifiOff } from "lucide-react"
+import { Activity, BellRing, HeartPulse, HelpCircle, LayoutDashboard, Moon, Settings2, Stethoscope, Sun, User, Users, WifiOff } from "lucide-react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import ErrorBoundary from "./ErrorBoundary"
 import { DemoGuideButton } from "./DemoGuide"
+import { DemoToolsButton } from "./DemoTools"
+import { ModeBadge, ModeBanner } from "./ModeBadge"
 import { useSimState } from "@/lib/queries"
+import { useMode } from "@/lib/live"
 import { useEvents } from "@/lib/events"
 import { useTheme } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
 const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/", label: "Today", icon: LayoutDashboard, end: true },
+  { to: "/alerts", label: "Alerts", icon: BellRing },
+  { to: "/patient", label: "People", icon: User },
   { to: "/falls", label: "Fall Monitor", icon: Activity },
-  { to: "/patient", label: "Patient", icon: User },
-  { to: "/caregiver", label: "Caregiver", icon: Users },
-  { to: "/clinician", label: "Clinician", icon: Stethoscope },
+  { to: "/caregiver", label: "Caregiver report", icon: Users },
+  { to: "/clinician", label: "Clinician week", icon: Stethoscope },
+  { to: "/how-it-works", label: "How it works", icon: HelpCircle },
   { to: "/system", label: "System", icon: Settings2 },
 ]
 
@@ -44,7 +49,9 @@ export function ThemeToggle() {
 function TopBar() {
   const sim = useSimState()
   const { conn } = useEvents()
+  const { mode, live } = useMode()
   const s = sim.data
+  const e = live.data?.emulator
   return (
     <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b bg-card px-4 py-2.5">
       <div className="flex items-center gap-2 md:hidden">
@@ -52,20 +59,21 @@ function TopBar() {
         <span className="font-semibold">ECHOS</span>
       </div>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-sm" aria-live="polite" data-testid="sim-state">
-        <span className="inline-flex items-center gap-1.5 font-medium">
-          <Radio className="size-4 text-muted-foreground" aria-hidden="true" />
-          Simulation: {s ? s.status : sim.isError ? "unknown" : "loading"}
-        </span>
-        {s && s.total != null && <span className="num hidden text-muted-foreground sm:inline">{s.cursor ?? 0}/{s.total} events</span>}
-        {s?.sim_time && <span className="num hidden text-muted-foreground md:inline">{s.sim_time.replace("T", " ").slice(0, 16)}</span>}
-        {s && s.speed != null && <span className="num hidden text-muted-foreground md:inline">{s.speed} ev/s</span>}
+        <ModeBadge />
+        {mode === "replay" && <span className="font-medium">Simulation: {s ? s.status : sim.isError ? "unknown" : "loading"}</span>}
+        {mode === "replay" && s && s.total != null && <span className="num hidden text-muted-foreground sm:inline">{s.cursor ?? 0}/{s.total} events</span>}
+        {mode === "replay" && s?.sim_time && <span className="num hidden text-muted-foreground md:inline">{s.sim_time.replace("T", " ").slice(0, 16)}</span>}
+        {mode === "emulator" && <span className="font-medium">Emulator: {e ? e.status : "not started"}</span>}
+        {mode === "emulator" && e?.sim_now && <span className="num hidden text-muted-foreground md:inline">data time {e.sim_now.replace("T", " ").slice(0, 16)}</span>}
+        {mode === "live" && <span className="font-medium">Receiving from devices</span>}
         {s && !s.runtime_alive && <span className="text-destructive">runtime not running</span>}
       </div>
       <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground" data-testid="conn">
         {conn === "open" ? <span className="size-2 rounded-full bg-normal-line" aria-hidden="true" /> : <WifiOff className="size-4" aria-hidden="true" />}
         <span className="hidden sm:inline">{conn === "open" ? "Live" : conn === "reconnecting" ? "Reconnecting…" : "Connecting…"}</span><span className="sr-only sm:hidden">{conn === "open" ? "Live" : "Offline"}</span>
       </span>
-      <DemoGuideButton />
+      <DemoToolsButton />
+      {mode === "replay" && <DemoGuideButton />}
       <ThemeToggle />
     </header>
   )
@@ -90,7 +98,7 @@ export default function Layout() {
       <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col gap-1 border-r bg-card p-3 md:flex" aria-label="Main navigation">
         <div className="mb-4 flex items-center gap-2 px-3 py-2">
           <HeartPulse className="size-6 text-primary" aria-hidden="true" />
-          <div className="leading-tight"><div className="text-lg font-semibold">ECHOS</div><div className="text-xs text-muted-foreground">Decision support, not diagnosis</div></div>
+          <div className="leading-tight"><div className="text-lg font-semibold">ECHOS</div><div className="text-xs text-muted-foreground">Decision support, not a diagnosis</div></div>
         </div>
         <NavItems />
       </aside>
@@ -98,6 +106,7 @@ export default function Layout() {
         <nav className="flex gap-1 overflow-x-auto border-b bg-card px-2 py-1.5 md:hidden" aria-label="Main navigation"><NavItems row /></nav>
         <TopBar />
         <ApiBanner />
+        <ModeBanner />
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 p-4 outline-none md:p-6"><ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary></main>
       </div>
     </div>

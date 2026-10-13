@@ -1,5 +1,7 @@
 # ECHOS refactor plan (assessment + implementation plan)
 
+> **Status:** implemented on the main branch (tag `echos-v3.0`): Phase 0 (purpose, components, naming), Phase 1 (ingestion API, emulator, detectors scored from raw events, rolling provisional triage, freshness, mode badge), Phase 2 (alert lifecycle, escalation, tasks), Phase 3 (held-out threshold check: the MONITOR load is driven by data gaps, so the data-only days are separated in the UI instead of changing a threshold; see LIMITATIONS), Phase 4 (new web app) and part of Phase 5 (optional ingest token). Not done: authentication roles, a supervisor watchdog, real SMTP test, rating-kit run, real-LLM check, larger fault injection. The original assessment follows unchanged.
+
 Written after a full re-read of CLAUDE.md, docs/LIMITATIONS.md, RESEARCH_GAPS.md, ARCHITECTURE.md, the config, the orchestrator/sim/agents code and the current web UI. Nothing here has been implemented yet.
 
 ## 1. Honest assessment: what is actually wrong

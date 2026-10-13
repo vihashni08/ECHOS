@@ -665,8 +665,16 @@ class ReportAgent:
         cited = [c for it in items.get("guidance", []) for c in it.get("cites", []) if c in sources]
         refs = [sources[c] for c in dict.fromkeys(cited)]
         prov["sources_cited"] = [r["id"] for r in refs]
+        case = None
+        try:        # the Case Investigator's file (headline, evidence level, next checks) goes into the report as written by code, not by the LLM
+            from echos.team import bus
+            from echos.team.investigator import load_case_file
+            case = load_case_file(self.eng, pid, facts["day"])
+            bus.done(self.eng, [m["id"] for m in bus.poll(self.eng, "report", ["case_file_ready"]) if m["patient_id"] == pid and m["day"] == facts["day"]])
+        except Exception:  # noqa: BLE001 - the report never depends on it
+            case = None
         text = TPL.get_template("daily.md.j2").render(
-            pid=facts["patient_id"], day=facts["day"], status=facts["status"], label=LABEL[facts["status"]], alerts=daily_alerts(facts),
+            case=case, pid=facts["patient_id"], day=facts["day"], status=facts["status"], label=LABEL[facts["status"]], alerts=daily_alerts(facts),
             changes=items.get("changes", []), monitor=items.get("monitor", [])[:3], guidance=items.get("guidance", []) if mode == "llm" else [],
             refs=refs, data_note=daily_data_note(facts), mode=mode)
         path = self.root / self.rc["daily_dir"] / f"{facts['patient_id']}_{facts['day']}.md"

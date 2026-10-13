@@ -96,16 +96,14 @@ def task_done(ctx: Ctx, tid: int) -> dict:
     return {k: getattr(r, k) for k in ("id", "patient_id", "day", "kind", "title", "detail", "created_by", "created_ts", "due_ts", "status", "alert_id")}
 
 
-def case_file(ctx: Ctx, pid: str, day: Optional[str]) -> dict:
+def case_file(ctx: Ctx, pid: str, day: Optional[str]) -> Optional[dict]:
+    """The Case Investigator's file, or None when the day (or the patient so far) has none: a normal day has no case file."""
     if day is None:
         with ctx.eng.begin() as c:
-            day = c.execute(select(func.max(S.case_file.c.day)).where(S.case_file.c.patient_id == pid)).scalar()
+            day = c.execute(select(func.max(S.case_state.c.day)).where(S.case_state.c.patient_id == pid)).scalar()
         if day is None:
-            raise NotFound(f"no case file for {pid} yet (only changed or urgent days get one)")
-    f = load_case_file(ctx.eng, pid, day)
-    if f is None:
-        raise NotFound(f"no case file for {pid} on {day} (a normal day has none)")
-    return f
+            return None
+    return load_case_file(ctx.eng, pid, day)
 
 
 def messages(ctx: Ctx, pid: Optional[str], limit: int) -> list[dict]:

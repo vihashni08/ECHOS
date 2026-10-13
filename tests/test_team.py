@@ -181,3 +181,37 @@ def test_a_repeat_with_persistence_is_moderate_and_mentions_the_streak(eng):
     r = results(vitals={"available": True, "flag": True, "persistence": {"persistent": True}})
     f = Investigator(eng).investigate("p1", "2019-05-05", {"status": "MONITOR", "reasons": ["vitals alert p=0.5"], "urgent_types": []}, r)
     assert f["evidence_level"] == "MODERATE" and f["history"]["streak_before_today"] == 2 and any("day 3 in a row" in x for x in f["next_checks"])
+
+
+def test_old_unacknowledged_alerts_expire_instead_of_paging_the_second_contact(eng):
+    clock, d, co = setup(eng, cfg={"ack_timeout_s": {"FALL": 300}, "stale_after_s": 3600, "checkin_after_ack_s": 600})
+    p = fall_payload()
+    d.dispatch(p)
+    drain(d)
+    co.step()
+    clock.t += 7200                                                      # the runtime was down for two hours
+    assert co.step()["escalated"] == 0
+    st = state(eng, p.alert_id)
+    assert st.state == "EXPIRED" and "too old" in st.note
+    with eng.begin() as c:
+        assert c.execute(select(S.outbox).where(S.outbox.c.recipient_role == "escalation")).first() is None
+
+
+def test_components_doc_is_generated_from_the_registry():
+    from pathlib import Path
+    import sys
+    root = Path(__file__).resolve().parents[1]
+    sys.path.insert(0, str(root))
+    from scripts.make_components_doc import render
+    assert (root / "docs" / "COMPONENTS.md").read_text() == render(), "run: PYTHONPATH=. python scripts/make_components_doc.py"
+
+
+def test_report_agent_uses_the_case_file_and_consumes_its_message(eng, tmp_path):
+    from echos.reports.agent import ReportAgent
+    from tests.test_reports import facts
+    f = facts()
+    Investigator(eng).investigate(f["patient_id"], f["day"], {"status": "MONITOR", "reasons": ["vitals alert p=0.50"], "urgent_types": []},
+                                  results(vitals={"available": True, "flag": True, "persistence": {"persistent": True}}))
+    out = ReportAgent(eng, None, root=tmp_path).daily(f)
+    assert "## Case summary" in out["text"] and "differs from this person's usual" in out["text"] and "not a probability" in out["text"]
+    assert not [m for m in bus.poll(eng, "report") if m["patient_id"] == f["patient_id"]]          # the message was consumed

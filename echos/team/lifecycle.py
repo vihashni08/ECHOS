@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from echos.orchestrator import state as S
 
-OPEN_STATES = ("NEW", "SENT", "ESCALATED")
+OPEN_STATES = ("NEW", "SENT", "ESCALATED")      # EXPIRED = too old to act on (history after a restart)
 
 
 def get(eng, alert_id: str):

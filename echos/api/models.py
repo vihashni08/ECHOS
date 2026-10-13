@@ -39,6 +39,7 @@ class PatientOut(BaseModel):
     latest_day: Optional[str] = None
     last_alert_time: Optional[str] = None
     last_alert_type: Optional[str] = None
+    attention_kind: Optional[str] = None           # change | data | None: 'data' = only data problems (a device needs checking, not the person)
     completeness: Completeness
 
 

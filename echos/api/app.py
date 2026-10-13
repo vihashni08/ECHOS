@@ -204,9 +204,9 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         """The message bus: who told whom what (newest first)."""
         return T.messages(ctx_of(request), patient_id, limit)
 
-    @r.get("/patients/{pid}/case", response_model=CaseFileOut, tags=["patients"])
+    @r.get("/patients/{pid}/case", response_model=Optional[CaseFileOut], tags=["patients"])
     def case_file(request: Request, pid: str, day: Optional[str] = None):
-        """The Case Investigator's file for a changed or urgent day (latest if no day is given)."""
+        """The Case Investigator's file for a changed or urgent day (latest day if none is given); null when that day has none (a normal day)."""
         ctx = ctx_of(request)
         V.require_patient(ctx, pid)
         return T.case_file(ctx, pid, day)

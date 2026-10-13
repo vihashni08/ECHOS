@@ -95,16 +95,19 @@ PYTHONPATH=. python scripts/run_demo.py 4 28
 ```
 
 ```bash
-# 6. run the API and the web app (a copy of the database, so the UI never touches data/echos.db)
+# 6a. LIVE / EMULATOR mode (the main way to run it): raw events -> ingestion API -> detectors scored from events -> rolling triage, with the labelled device emulator
+rm -f data/echos_live_dev.db data/echos_live_dev.db-wal data/echos_live_dev.db-shm
+scripts/run_api.sh --dry --no-llm --demo --mode live --db data/echos_live_dev.db     # API on http://127.0.0.1:8000, docs at /docs; add --no-emulator for real sources only
+cd web && npm ci && npm run dev                                                      # UI on http://localhost:5173: Demo tools -> Start
+# 6b. REPLAY mode (evaluation: the TIHM study day by day; a copy of the database, so the UI never touches data/echos.db)
 scripts/make_ui_dev_copy.sh
-scripts/run_api.sh --dry --no-llm --demo --db data/echos_ui_dev.db      # API on http://127.0.0.1:8000, docs at /docs
-cd web && npm ci && npm run dev                                         # UI on http://localhost:5173
+scripts/run_api.sh --dry --no-llm --demo --db data/echos_ui_dev.db
 ```
 
 ```bash
 # 7. tests (each Python test file in its own process; tests never use the real LLM, PubMed or SMTP)
 for f in tests/test_*.py; do python -m pytest "$f" -q; done
-cd web && npx playwright test && node contrast.mjs && npx tsc -b && npm run build
+cd web && npx playwright test && npx playwright test -c playwright.live.config.ts && node contrast.mjs && npx tsc -b && npm run build
 python scripts/check_docs_numbers.py
 ```
 
@@ -118,6 +121,8 @@ PYTHONPATH=. python scripts/fall_eval.py           # per-fall-type sensitivity, 
 PYTHONPATH=. python scripts/ablation.py            # fixed rules / vitals only / full system, out-of-fold, patient bootstrap CIs
 PYTHONPATH=. python scripts/gate_eval.py           # report gate: LLM / retrieval calls avoided, triage identical on/off
 PYTHONPATH=. python scripts/monitor_driver.py      # MONITOR share driver + threshold proposal (not applied)
+PYTHONPATH=. python scripts/threshold_holdout.py   # do the MONITOR thresholds generalise to held-out patients? (offline)
+PYTHONPATH=. python scripts/live_parity.py         # scoring from raw events == scoring from the pre-built table (offline)
 PYTHONPATH=. python scripts/evaluate.py            # merge metrics into reports/results_table.md/.csv
 PYTHONPATH=. python scripts/make_research_gaps.py  # regenerate the research-gaps table above
 ```
@@ -134,7 +139,7 @@ Real-service scripts (`scripts/list_models.py`, `scripts/live_llm_check.py`, `sc
 
 `scripts/run_api.sh [--dry] [--no-llm] [--demo] [--no-runtime] [--db PATH]`: the API is bound to 127.0.0.1, CORS allows `http://localhost:5173` only, and there is **no authentication** (local demo). `--dry` forces dry-run mail, `--no-llm` also switches live PubMed off, `--demo` enables agent kill and the Demo guide. Endpoints: [docs/API.md](docs/API.md).
 
-Pages: Dashboard (patients, live alert feed, agents, simulation), Fall Monitor, Patient (vitals / routine), Caregiver (today's report, 7-day strip, how the report was made), Clinician (weekly report, references, PDF, send, outbox), System (health, data quality, models, limitations) and, in demo mode, a Demo guide drawer. `cd web && npm run gen:api` regenerates the typed API client; `npx playwright test` starts its own throw-away stack (API :8010, Vite :5180, database copy `data/echos_e2e.db`).
+Pages: Today (who needs action now, changes from their usual, data to check, tasks, data freshness, what the agents are doing), Alerts (lifecycle, acknowledge, delivery log, tasks), People (per patient: why flagged, the Case Investigator's case file with its trace, vitals / routine), Fall Monitor, Caregiver report (today's report, 7-day strip, how it was made), Clinician week (weekly report, references, PDF, send, outbox), How it works (detectors, agents, message bus, live status), System (health, data quality, models, limitations), a mode badge (REPLAY / EMULATOR / LIVE) on every page, and *Demo tools* (data-source controls; the replay Demo guide only in replay mode). `cd web && npm run gen:api` regenerates the typed API client; `npx playwright test` starts its own throw-away stack (API :8010, Vite :5180, database copy `data/echos_e2e.db`); `npx playwright test -c playwright.live.config.ts` runs the live-mode story (API :8021, Vite :5191, fresh database `data/echos_e2e_live.db`).
 
 ## Headline results (see [reports/RESULTS.md](reports/RESULTS.md) for CIs and caveats)
 

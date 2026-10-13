@@ -1,0 +1,55 @@
+{
+ "patient_days": 2797,
+ "patients": 56,
+ "repeats": "5 x 5-fold patient-level",
+ "shipped": {
+  "vitals_prob": 0.278,
+  "agitation_prob": 0.129,
+  "share_all_days": 0.39685377189846266,
+  "heldout_share_mean": 0.39545875217048165,
+  "heldout_vitals_recall": 0.7018398206722467
+ },
+ "budget_rule": {
+  "heldout_share_mean": 0.3852872465253189,
+  "heldout_share_ci95": [
+   0.3477956599352948,
+   0.42020844691663123
+  ],
+  "heldout_vitals_recall": 0.7022308436178016,
+  "vitals_prob_chosen_range": [
+   0.23732064057098562,
+   0.3390354768243785
+  ]
+ },
+ "load_rule_25pct": {
+  "heldout_share_mean": 0.2827570983498036,
+  "heldout_share_ci95": [
+   0.250597870673371,
+   0.3124102710255288
+  ],
+  "heldout_vitals_recall": 0.23780744183531546,
+  "vitals_prob_chosen_range": [
+   0.79,
+   0.79
+  ],
+  "vitals_prob_on_all_data": 0.79,
+  "share_all_days_at_that_threshold": 0.2967465141222739,
+  "heldout_share_over_cap_in_folds": 15,
+  "folds": 25
+ },
+ "notes": [
+  "out-of-fold scores; thresholds chosen on training patients only and scored on held-out patients",
+  "MONITOR share excludes possible-fall days (about 1% of replay days): a lower bound of the replay share",
+  "the replay share (28.8%) also uses 20 patients x ~63 days, so absolute values differ from this all-patient OOF table"
+ ],
+ "drivers_all_days": {
+  "data_gap_any": 0.19771183410797283,
+  "vitals_flag": 0.142652842331069,
+  "behaviour_flag": 0.09939220593493028,
+  "data_gap_only": 0.16982481229889168,
+  "gap_reasons": {
+   "sensor_gap": 0.04719342152306042,
+   "no_vitals_over_max_days": 0.15588130139435108
+  }
+ }
+}

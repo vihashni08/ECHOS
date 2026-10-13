@@ -77,8 +77,14 @@ class CareCoordinator:
         k, now = 0, self.clock()
         with self.eng.begin() as c:
             due = c.execute(select(S.alert_state).where((S.alert_state.c.state == "SENT") & (S.alert_state.c.deadline_ts <= now))).fetchall()
+        stale = float(self.cfg.get("stale_after_s", 6 * 3600))
         for r in due:
             waited = max(0.0, now - (r.sent_ts or r.created_ts or now))
+            if waited > stale:         # history from an earlier run / a long outage: never page a second contact about it now
+                with self.eng.begin() as c:
+                    c.execute(S.alert_state.update().where((S.alert_state.c.alert_id == r.alert_id) & (S.alert_state.c.state == "SENT")).values(
+                        state="EXPIRED", note=f"not acknowledged and too old to escalate ({int(waited // 3600)} h)"))
+                continue
             if self.dispatcher is not None:
                 self.dispatcher.dispatch_escalation(r.alert_id, waited)
             with self.eng.begin() as c:     # conditional update: a concurrent acknowledgement wins

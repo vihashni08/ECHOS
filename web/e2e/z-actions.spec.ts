@@ -9,7 +9,7 @@ test("Simulate fall raises an URGENT alert in the feed and shows the Alert sent 
   // a fall type the Fall model reliably detects keeps the test deterministic (some SisFall types are missed: the UI says so honestly)
   await page.route(`${API}/sim/fall`, async (route) => route.continue({ postData: JSON.stringify({ ...route.request().postDataJSON(), activity: "F02", subject: "SA03" }) }))
   await page.goto("/", { waitUntil: "networkidle" })
-  await expect(page.getByTestId("feed-conn")).toHaveText("live")
+  await expect(page.getByTestId("conn")).toContainText("Live")
   await page.getByRole("link", { name: "Fall Monitor" }).first().click()
   await expect(page.getByTestId("simulate-fall")).toBeEnabled({ timeout: 20000 })
   await page.getByTestId("simulate-fall").click()
@@ -18,9 +18,9 @@ test("Simulate fall raises an URGENT alert in the feed and shows the Alert sent 
   await expect(panel).toContainText("caregiver")
   await expect(panel).toContainText("clinician")
   await expect(page.getByTestId("sim-badge")).toContainText("Simulated fall signal")
-  await page.getByRole("link", { name: "Dashboard" }).first().click()
-  await expect(page.getByTestId("alert-item").first()).toContainText("URGENT")
-  await expect(page.getByTestId("alert-item").first()).toContainText("Fall alert")
+  await page.getByRole("link", { name: "Today" }).first().click()
+  await expect(page.getByTestId("alert-card").first()).toContainText("Fall alert")
+  await expect(page.getByTestId("attention-row").first()).toContainText("Urgent")
 })
 
 test("Demo guide: reset and play, then the fall step creates an URGENT alert", async ({ page }) => {
@@ -40,6 +40,6 @@ test("Demo guide: reset and play, then the fall step creates an URGENT alert", a
   } finally {
     console.log(`FALL_CLICK_TO_ALERT_MS ${Date.now() - t0}`)
   }
-  await page.getByRole("link", { name: "Dashboard" }).first().click()
-  await expect(page.getByTestId("alert-item").first()).toContainText("URGENT")
+  await page.getByRole("link", { name: "Today" }).first().click()
+  await expect(page.getByTestId("alert-card").first()).toContainText("Fall alert")
 })

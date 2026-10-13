@@ -79,6 +79,7 @@ class LiveProcessor:
         with self.eng.begin() as c:
             for a in DETECTORS:
                 S.upsert(c, S.agent_heartbeat, ["agent_id"], agent_id=a, ts=S.now(), last_event_id=self.cursor, status="running", pid=0)
+            S.upsert(c, S.sim_state, ["key"], key="updated", value=json.dumps(time.time()))      # the API's "is a runtime alive" signal
 
     def step(self) -> int:
         with self.eng.begin() as c:

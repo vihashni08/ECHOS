@@ -1176,6 +1176,835 @@
     }
    }
   },
+  "/api/alerts/{alert_id}/ack": {
+   "post": {
+    "tags": [
+     "alerts"
+    ],
+    "summary": "Alert Ack",
+    "description": "Acknowledge an alert (stops the escalation timer). Idempotent.",
+    "operationId": "alert_ack_api_alerts__alert_id__ack_post",
+    "parameters": [
+     {
+      "name": "alert_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Alert Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AlertAckIn",
+        "default": {
+         "by": "caregiver"
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AlertOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/alerts/{alert_id}/resolve": {
+   "post": {
+    "tags": [
+     "alerts"
+    ],
+    "summary": "Alert Resolve",
+    "description": "Mark an alert as handled (closes its open tasks).",
+    "operationId": "alert_resolve_api_alerts__alert_id__resolve_post",
+    "parameters": [
+     {
+      "name": "alert_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Alert Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AlertAckIn",
+        "default": {
+         "by": "caregiver"
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AlertOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/ingest/events": {
+   "post": {
+    "tags": [
+     "live"
+    ],
+    "summary": "Ingest",
+    "description": "Ingestion contract for ANY source (device, hub, emulator): a batch of activity / vitals / accel / heartbeat events with DATA timestamps.\nIdempotent: an exact repeat counts as a duplicate. If ECHOS_INGEST_TOKEN is set, send it as X-Echos-Token.",
+    "operationId": "ingest_api_ingest_events_post",
+    "parameters": [
+     {
+      "name": "x-echos-token",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Echos-Token"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/IngestBatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/IngestResultOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/live/status": {
+   "get": {
+    "tags": [
+     "live"
+    ],
+    "summary": "Live Status",
+    "description": "Data mode (replay / emulator / live), emulator state and, per patient, how fresh each stream is.",
+    "operationId": "live_status_api_live_status_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LiveStatusOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/live/emulator": {
+   "post": {
+    "tags": [
+     "live"
+    ],
+    "summary": "Live Emulator",
+    "description": "Control the labelled device emulator: load | play | pause | speed | fall.",
+    "operationId": "live_emulator_api_live_emulator_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EmulatorCmdIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EmulatorCmdOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/components": {
+   "get": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Components",
+    "description": "Every detector, agent and infrastructure part: what it does, what it must never do, and whether it is running.",
+    "operationId": "components_api_components_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ComponentOut"
+         },
+         "type": "array",
+         "title": "Response Components Api Components Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/agents/messages": {
+   "get": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Agent Messages",
+    "description": "The message bus: who told whom what (newest first).",
+    "operationId": "agent_messages_api_agents_messages_get",
+    "parameters": [
+     {
+      "name": "patient_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Patient Id"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 300,
+       "minimum": 1,
+       "default": 50,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/AgentMessageOut"
+         },
+         "title": "Response Agent Messages Api Agents Messages Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/patients/{pid}/case": {
+   "get": {
+    "tags": [
+     "patients"
+    ],
+    "summary": "Case File",
+    "description": "The Case Investigator's file for a changed or urgent day (latest day if none is given); null when that day has none (a normal day).",
+    "operationId": "case_file_api_patients__pid__case_get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "day",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Day"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "anyOf": [
+          {
+           "$ref": "#/components/schemas/CaseFileOut"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "title": "Response Case File Api Patients  Pid  Case Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/tasks": {
+   "get": {
+    "tags": [
+     "alerts"
+    ],
+    "summary": "Care Tasks",
+    "operationId": "care_tasks_api_tasks_get",
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "OPEN or DONE",
+       "title": "Status"
+      },
+      "description": "OPEN or DONE"
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "minimum": 1,
+       "default": 50,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0,
+       "title": "Offset"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Page_CareTaskOut_"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/tasks/{task_id}/done": {
+   "post": {
+    "tags": [
+     "alerts"
+    ],
+    "summary": "Care Task Done",
+    "operationId": "care_task_done_api_tasks__task_id__done_post",
+    "parameters": [
+     {
+      "name": "task_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Task Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CareTaskOut"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
   "/api/outbox": {
    "get": {
     "tags": [
@@ -2362,6 +3191,88 @@
     ],
     "title": "AgentHealth"
    },
+   "AgentMessageOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "ts": {
+      "type": "number",
+      "title": "Ts"
+     },
+     "sender": {
+      "type": "string",
+      "title": "Sender"
+     },
+     "recipient": {
+      "type": "string",
+      "title": "Recipient"
+     },
+     "topic": {
+      "type": "string",
+      "title": "Topic"
+     },
+     "patient_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Patient Id"
+     },
+     "day": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Day"
+     },
+     "payload": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Payload"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "ts",
+     "sender",
+     "recipient",
+     "topic"
+    ],
+    "title": "AgentMessageOut"
+   },
+   "AlertAckIn": {
+    "properties": {
+     "by": {
+      "type": "string",
+      "title": "By",
+      "default": "caregiver"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
+     }
+    },
+    "type": "object",
+    "title": "AlertAckIn"
+   },
    "AlertOut": {
     "properties": {
      "alert_id": {
@@ -2412,6 +3323,94 @@
        }
       ],
       "title": "Time"
+     },
+     "state": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "State"
+     },
+     "sent_ts": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sent Ts"
+     },
+     "deadline_ts": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Deadline Ts"
+     },
+     "ack_ts": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ack Ts"
+     },
+     "ack_by": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ack By"
+     },
+     "escalated_ts": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Escalated Ts"
+     },
+     "resolved_ts": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resolved Ts"
+     },
+     "note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Note"
      }
     },
     "type": "object",
@@ -2422,6 +3421,201 @@
      "status"
     ],
     "title": "AlertOut"
+   },
+   "CareTaskOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "day": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Day"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "detail": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Detail"
+     },
+     "created_by": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created By"
+     },
+     "created_ts": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Created Ts"
+     },
+     "due_ts": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Due Ts"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "alert_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Alert Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "patient_id",
+     "kind",
+     "title",
+     "status"
+    ],
+    "title": "CareTaskOut"
+   },
+   "CaseFileOut": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "headline": {
+      "type": "string",
+      "title": "Headline"
+     },
+     "evidence_level": {
+      "type": "string",
+      "title": "Evidence Level"
+     },
+     "reasons": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Reasons"
+     },
+     "caveats": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Caveats"
+     },
+     "next_checks": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Next Checks"
+     },
+     "trace": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Trace"
+     },
+     "detectors": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Detectors"
+     },
+     "history": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "History"
+     },
+     "agreement": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Agreement"
+     },
+     "disclaimer": {
+      "type": "string",
+      "title": "Disclaimer",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "day",
+     "status",
+     "headline",
+     "evidence_level"
+    ],
+    "title": "CaseFileOut"
    },
    "Completeness": {
     "properties": {
@@ -2448,6 +3642,81 @@
     },
     "type": "object",
     "title": "Completeness"
+   },
+   "ComponentOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "inputs": {
+      "type": "string",
+      "title": "Inputs"
+     },
+     "outputs": {
+      "type": "string",
+      "title": "Outputs"
+     },
+     "on_failure": {
+      "type": "string",
+      "title": "On Failure"
+     },
+     "never": {
+      "type": "string",
+      "title": "Never"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "heartbeat_age_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Heartbeat Age S"
+     },
+     "detail": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "kind",
+     "role",
+     "inputs",
+     "outputs",
+     "on_failure",
+     "never",
+     "status"
+    ],
+    "title": "ComponentOut"
    },
    "DailyReportOut": {
     "properties": {
@@ -2609,6 +3878,195 @@
      "reasons"
     ],
     "title": "DayStatus"
+   },
+   "EmulatorCmdIn": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "title": "Action",
+      "description": "load | play | pause | speed | fall"
+     },
+     "speed": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Speed"
+     },
+     "patient_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Patient Id"
+     },
+     "subject": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Subject"
+     },
+     "activity": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Activity"
+     },
+     "start_day": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start Day"
+     },
+     "n_days": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "N Days"
+     },
+     "n_patients": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "N Patients"
+     }
+    },
+    "type": "object",
+    "required": [
+     "action"
+    ],
+    "title": "EmulatorCmdIn"
+   },
+   "EmulatorCmdOut": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "result": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Result"
+     },
+     "note": {
+      "type": "string",
+      "title": "Note",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "status"
+    ],
+    "title": "EmulatorCmdOut"
+   },
+   "EmulatorOut": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "speed": {
+      "type": "number",
+      "title": "Speed"
+     },
+     "sim_now": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Sim Now"
+     },
+     "cursor": {
+      "type": "integer",
+      "title": "Cursor",
+      "default": 0
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total",
+      "default": 0
+     },
+     "start": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Start"
+     },
+     "end": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "End"
+     },
+     "patients": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Patients"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "speed"
+    ],
+    "title": "EmulatorOut"
    },
    "ErrorBody": {
     "properties": {
@@ -2902,6 +4360,177 @@
     ],
     "title": "FallItem"
    },
+   "IngestBatch": {
+    "properties": {
+     "events": {
+      "items": {
+       "$ref": "#/components/schemas/IngestEvent"
+      },
+      "type": "array",
+      "maxItems": 500,
+      "minItems": 1,
+      "title": "Events"
+     }
+    },
+    "type": "object",
+    "required": [
+     "events"
+    ],
+    "title": "IngestBatch"
+   },
+   "IngestEvent": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Patient Id"
+     },
+     "device_id": {
+      "type": "string",
+      "maxLength": 64,
+      "title": "Device Id",
+      "default": "device-1"
+     },
+     "ts": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Ts"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "activity",
+       "vitals",
+       "accel",
+       "heartbeat"
+      ],
+      "title": "Kind"
+     },
+     "room": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Room"
+     },
+     "device_type": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Device Type"
+     },
+     "value": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Value"
+     },
+     "unit": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Unit"
+     },
+     "fs": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 1000.0,
+        "minimum": 10.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fs"
+     },
+     "samples": {
+      "anyOf": [
+       {
+        "items": {
+         "items": {
+          "type": "number"
+         },
+         "type": "array"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Samples"
+     },
+     "source": {
+      "type": "string",
+      "enum": [
+       "device",
+       "hub",
+       "emulator"
+      ],
+      "title": "Source",
+      "default": "device"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "ts",
+     "kind"
+    ],
+    "title": "IngestEvent"
+   },
+   "IngestResultOut": {
+    "properties": {
+     "accepted": {
+      "type": "integer",
+      "title": "Accepted"
+     },
+     "duplicates": {
+      "type": "integer",
+      "title": "Duplicates"
+     },
+     "rejected": {
+      "type": "integer",
+      "title": "Rejected",
+      "default": 0
+     },
+     "patients": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Patients"
+     }
+    },
+    "type": "object",
+    "required": [
+     "accepted",
+     "duplicates",
+     "patients"
+    ],
+    "title": "IngestResultOut"
+   },
    "KillOut": {
     "properties": {
      "agent": {
@@ -2999,6 +4628,115 @@
      "text"
     ],
     "title": "LimitationsOut"
+   },
+   "LivePatientOut": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "last_event_ts": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Event Ts"
+     },
+     "open_day": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Open Day"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
+     "provisional": {
+      "type": "boolean",
+      "title": "Provisional",
+      "default": true
+     },
+     "as_of": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "As Of"
+     },
+     "streams": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/StreamOut"
+      },
+      "type": "object",
+      "title": "Streams"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id"
+    ],
+    "title": "LivePatientOut"
+   },
+   "LiveStatusOut": {
+    "properties": {
+     "mode": {
+      "type": "string",
+      "title": "Mode"
+     },
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "emulator": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/EmulatorOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "patients": {
+      "items": {
+       "$ref": "#/components/schemas/LivePatientOut"
+      },
+      "type": "array",
+      "title": "Patients"
+     },
+     "now": {
+      "type": "number",
+      "title": "Now"
+     }
+    },
+    "type": "object",
+    "required": [
+     "mode",
+     "label",
+     "now"
+    ],
+    "title": "LiveStatusOut"
    },
    "MetricsOut": {
     "properties": {
@@ -3293,6 +5031,37 @@
     ],
     "title": "Page[AlertOut]"
    },
+   "Page_CareTaskOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/CareTaskOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "limit": {
+      "type": "integer",
+      "title": "Limit"
+     },
+     "offset": {
+      "type": "integer",
+      "title": "Offset"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "limit",
+     "offset"
+    ],
+    "title": "Page[CareTaskOut]"
+   },
    "Page_FallItem_": {
     "properties": {
      "items": {
@@ -3443,6 +5212,17 @@
        }
       ],
       "title": "Last Alert Type"
+     },
+     "attention_kind": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attention Kind"
      },
      "completeness": {
       "$ref": "#/components/schemas/Completeness"
@@ -4053,6 +5833,30 @@
      "source"
     ],
     "title": "SourceOut"
+   },
+   "StreamOut": {
+    "properties": {
+     "last_wall_age_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Wall Age S"
+     },
+     "state": {
+      "type": "string",
+      "title": "State"
+     }
+    },
+    "type": "object",
+    "required": [
+     "state"
+    ],
+    "title": "StreamOut"
    },
    "SummaryOut": {
     "properties": {

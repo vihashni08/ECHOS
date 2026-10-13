@@ -235,6 +235,201 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/alerts/{alert_id}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Alert Ack
+         * @description Acknowledge an alert (stops the escalation timer). Idempotent.
+         */
+        post: operations["alert_ack_api_alerts__alert_id__ack_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/alerts/{alert_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Alert Resolve
+         * @description Mark an alert as handled (closes its open tasks).
+         */
+        post: operations["alert_resolve_api_alerts__alert_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ingest/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest
+         * @description Ingestion contract for ANY source (device, hub, emulator): a batch of activity / vitals / accel / heartbeat events with DATA timestamps.
+         *     Idempotent: an exact repeat counts as a duplicate. If ECHOS_INGEST_TOKEN is set, send it as X-Echos-Token.
+         */
+        post: operations["ingest_api_ingest_events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/live/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Live Status
+         * @description Data mode (replay / emulator / live), emulator state and, per patient, how fresh each stream is.
+         */
+        get: operations["live_status_api_live_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/live/emulator": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Live Emulator
+         * @description Control the labelled device emulator: load | play | pause | speed | fall.
+         */
+        post: operations["live_emulator_api_live_emulator_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/components": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Components
+         * @description Every detector, agent and infrastructure part: what it does, what it must never do, and whether it is running.
+         */
+        get: operations["components_api_components_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agents/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Agent Messages
+         * @description The message bus: who told whom what (newest first).
+         */
+        get: operations["agent_messages_api_agents_messages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/patients/{pid}/case": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Case File
+         * @description The Case Investigator's file for a changed or urgent day (latest day if none is given); null when that day has none (a normal day).
+         */
+        get: operations["case_file_api_patients__pid__case_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Care Tasks */
+        get: operations["care_tasks_api_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{task_id}/done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Care Task Done */
+        post: operations["care_task_done_api_tasks__task_id__done_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/outbox": {
         parameters: {
             query?: never;
@@ -530,6 +725,37 @@ export interface components {
              */
             restarts: number;
         };
+        /** AgentMessageOut */
+        AgentMessageOut: {
+            /** Id */
+            id: number;
+            /** Ts */
+            ts: number;
+            /** Sender */
+            sender: string;
+            /** Recipient */
+            recipient: string;
+            /** Topic */
+            topic: string;
+            /** Patient Id */
+            patient_id?: string | null;
+            /** Day */
+            day?: string | null;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            };
+        };
+        /** AlertAckIn */
+        AlertAckIn: {
+            /**
+             * By
+             * @default caregiver
+             */
+            by: string;
+            /** Note */
+            note?: string | null;
+        };
         /** AlertOut */
         AlertOut: {
             /** Alert Id */
@@ -546,6 +772,87 @@ export interface components {
             event_time?: string | null;
             /** Time */
             time?: number | null;
+            /** State */
+            state?: string | null;
+            /** Sent Ts */
+            sent_ts?: number | null;
+            /** Deadline Ts */
+            deadline_ts?: number | null;
+            /** Ack Ts */
+            ack_ts?: number | null;
+            /** Ack By */
+            ack_by?: string | null;
+            /** Escalated Ts */
+            escalated_ts?: number | null;
+            /** Resolved Ts */
+            resolved_ts?: number | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** CareTaskOut */
+        CareTaskOut: {
+            /** Id */
+            id: number;
+            /** Patient Id */
+            patient_id: string;
+            /** Day */
+            day?: string | null;
+            /** Kind */
+            kind: string;
+            /** Title */
+            title: string;
+            /** Detail */
+            detail?: string | null;
+            /** Created By */
+            created_by?: string | null;
+            /** Created Ts */
+            created_ts?: number | null;
+            /** Due Ts */
+            due_ts?: number | null;
+            /** Status */
+            status: string;
+            /** Alert Id */
+            alert_id?: string | null;
+        };
+        /** CaseFileOut */
+        CaseFileOut: {
+            /** Patient Id */
+            patient_id: string;
+            /** Day */
+            day: string;
+            /** Status */
+            status: string;
+            /** Headline */
+            headline: string;
+            /** Evidence Level */
+            evidence_level: string;
+            /** Reasons */
+            reasons?: string[];
+            /** Caveats */
+            caveats?: string[];
+            /** Next Checks */
+            next_checks?: string[];
+            /** Trace */
+            trace?: {
+                [key: string]: unknown;
+            }[];
+            /** Detectors */
+            detectors?: {
+                [key: string]: unknown;
+            };
+            /** History */
+            history?: {
+                [key: string]: unknown;
+            } | null;
+            /** Agreement */
+            agreement?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Disclaimer
+             * @default
+             */
+            disclaimer: string;
         };
         /** Completeness */
         Completeness: {
@@ -569,6 +876,31 @@ export interface components {
              * @default 0
              */
             sensor_gap_days: number;
+        };
+        /** ComponentOut */
+        ComponentOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Kind */
+            kind: string;
+            /** Role */
+            role: string;
+            /** Inputs */
+            inputs: string;
+            /** Outputs */
+            outputs: string;
+            /** On Failure */
+            on_failure: string;
+            /** Never */
+            never: string;
+            /** Status */
+            status: string;
+            /** Heartbeat Age S */
+            heartbeat_age_s?: number | null;
+            /** Detail */
+            detail?: string | null;
         };
         /** DailyReportOut */
         DailyReportOut: {
@@ -626,6 +958,67 @@ export interface components {
             status: string;
             /** Reasons */
             reasons: string[];
+        };
+        /** EmulatorCmdIn */
+        EmulatorCmdIn: {
+            /**
+             * Action
+             * @description load | play | pause | speed | fall
+             */
+            action: string;
+            /** Speed */
+            speed?: number | null;
+            /** Patient Id */
+            patient_id?: string | null;
+            /** Subject */
+            subject?: string | null;
+            /** Activity */
+            activity?: string | null;
+            /** Start Day */
+            start_day?: string | null;
+            /** N Days */
+            n_days?: number | null;
+            /** N Patients */
+            n_patients?: number | null;
+        };
+        /** EmulatorCmdOut */
+        EmulatorCmdOut: {
+            /** Status */
+            status: string;
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** EmulatorOut */
+        EmulatorOut: {
+            /** Status */
+            status: string;
+            /** Speed */
+            speed: number;
+            /** Sim Now */
+            sim_now?: string | null;
+            /**
+             * Cursor
+             * @default 0
+             */
+            cursor: number;
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /** Start */
+            start?: string | null;
+            /** End */
+            end?: string | null;
+            /** Patients */
+            patients?: string[];
         };
         /** ErrorBody */
         ErrorBody: {
@@ -710,6 +1103,63 @@ export interface components {
             /** Alert Status */
             alert_status?: string | null;
         };
+        /** IngestBatch */
+        IngestBatch: {
+            /** Events */
+            events: components["schemas"]["IngestEvent"][];
+        };
+        /** IngestEvent */
+        IngestEvent: {
+            /** Patient Id */
+            patient_id: string;
+            /**
+             * Device Id
+             * @default device-1
+             */
+            device_id: string;
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "activity" | "vitals" | "accel" | "heartbeat";
+            /** Room */
+            room?: string | null;
+            /** Device Type */
+            device_type?: string | null;
+            /** Value */
+            value?: number | null;
+            /** Unit */
+            unit?: string | null;
+            /** Fs */
+            fs?: number | null;
+            /** Samples */
+            samples?: number[][] | null;
+            /**
+             * Source
+             * @default device
+             * @enum {string}
+             */
+            source: "device" | "hub" | "emulator";
+        };
+        /** IngestResultOut */
+        IngestResultOut: {
+            /** Accepted */
+            accepted: number;
+            /** Duplicates */
+            duplicates: number;
+            /**
+             * Rejected
+             * @default 0
+             */
+            rejected: number;
+            /** Patients */
+            patients: string[];
+        };
         /** KillOut */
         KillOut: {
             /** Agent */
@@ -742,6 +1192,40 @@ export interface components {
             source: string;
             /** Text */
             text: string;
+        };
+        /** LivePatientOut */
+        LivePatientOut: {
+            /** Patient Id */
+            patient_id: string;
+            /** Last Event Ts */
+            last_event_ts?: string | null;
+            /** Open Day */
+            open_day?: string | null;
+            /** Status */
+            status?: string | null;
+            /**
+             * Provisional
+             * @default true
+             */
+            provisional: boolean;
+            /** As Of */
+            as_of?: string | null;
+            /** Streams */
+            streams?: {
+                [key: string]: components["schemas"]["StreamOut"];
+            };
+        };
+        /** LiveStatusOut */
+        LiveStatusOut: {
+            /** Mode */
+            mode: string;
+            /** Label */
+            label: string;
+            emulator?: components["schemas"]["EmulatorOut"] | null;
+            /** Patients */
+            patients?: components["schemas"]["LivePatientOut"][];
+            /** Now */
+            now: number;
         };
         /** MetricsOut */
         MetricsOut: {
@@ -837,6 +1321,17 @@ export interface components {
             /** Offset */
             offset: number;
         };
+        /** Page[CareTaskOut] */
+        Page_CareTaskOut_: {
+            /** Items */
+            items: components["schemas"]["CareTaskOut"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
         /** Page[FallItem] */
         Page_FallItem_: {
             /** Items */
@@ -886,6 +1381,8 @@ export interface components {
             last_alert_time?: string | null;
             /** Last Alert Type */
             last_alert_type?: string | null;
+            /** Attention Kind */
+            attention_kind?: string | null;
             completeness: components["schemas"]["Completeness"];
         };
         /** Provenance */
@@ -1114,6 +1611,13 @@ export interface components {
             url?: string | null;
             /** Excerpt */
             excerpt?: string | null;
+        };
+        /** StreamOut */
+        StreamOut: {
+            /** Last Wall Age S */
+            last_wall_age_s?: number | null;
+            /** State */
+            state: string;
         };
         /** SummaryOut */
         SummaryOut: {
@@ -2030,6 +2534,602 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_AlertOut_"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    alert_ack_api_alerts__alert_id__ack_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AlertAckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    alert_resolve_api_alerts__alert_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AlertAckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    ingest_api_ingest_events_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-echos-token"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IngestBatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestResultOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    live_status_api_live_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveStatusOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    live_emulator_api_live_emulator_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmulatorCmdIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmulatorCmdOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    components_api_components_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComponentOut"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    agent_messages_api_agents_messages_get: {
+        parameters: {
+            query?: {
+                patient_id?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentMessageOut"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    case_file_api_patients__pid__case_get: {
+        parameters: {
+            query?: {
+                day?: string | null;
+            };
+            header?: never;
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseFileOut"] | null;
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    care_tasks_api_tasks_get: {
+        parameters: {
+            query?: {
+                /** @description OPEN or DONE */
+                status?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CareTaskOut_"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    care_task_done_api_tasks__task_id__done_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CareTaskOut"];
                 };
             };
             /** @description Forbidden */

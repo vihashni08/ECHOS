@@ -8,6 +8,14 @@
 - {{ a }}
 {% endfor %}
 {% endif %}
+{% if case %}
+
+## Case summary
+{{ case.headline }} _(evidence: {{ case.evidence_level | lower }}; a rule summary, not a probability)_
+{% for n in case.next_checks %}
+- {{ n }}
+{% endfor %}
+{% endif %}
 
 ## What changed compared with their usual pattern
 {% for c in changes %}
