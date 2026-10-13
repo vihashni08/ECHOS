@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 import { API_URL, type AlertRow } from "./api"
+import { useToken } from "./auth"
 
 export type Conn = "connecting" | "open" | "reconnecting"
 export type FeedItem = { id: string; kind: "alert"; alert_id: string; patient_id: string; type: string; event_time: string | null; seen: number }
@@ -12,9 +13,10 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   const [conn, setConn] = useState<Conn>("connecting")
   const [feed, setFeed] = useState<FeedItem[]>([])
   const seen = useRef(new Set<string>())
+  const token = useToken()
 
   useEffect(() => {
-    const es = new EventSource(`${API_URL}/api/events`)
+    const es = new EventSource(`${API_URL}/api/events${token ? `?token=${encodeURIComponent(token)}` : ""}`)
     es.onopen = () => setConn("open")
     es.onerror = () => setConn(es.readyState === EventSource.CLOSED ? "connecting" : "reconnecting")
     const refresh = (keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }))
@@ -34,7 +36,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     es.addEventListener("agent_message", () => refresh(["messages"]))
     es.addEventListener("care_task", () => refresh(["tasks"]))
     return () => es.close()
-  }, [qc])
+  }, [qc, token])
   return <Ctx.Provider value={{ conn, feed }}>{children}</Ctx.Provider>
 }
 export const useEvents = () => useContext(Ctx)

@@ -482,3 +482,12 @@ class EmulatorCmdOut(BaseModel):
     status: str
     result: Optional[dict] = None
     note: str = ""
+
+
+class LoginIn(BaseModel):
+    token: str = Field(min_length=1, max_length=200)
+
+
+class AuthOut(BaseModel):
+    auth_enabled: bool
+    role: Optional[str] = None                     # caregiver | clinician | operator | null (not logged in)

@@ -10,7 +10,8 @@
     "gen:api": "cd .. && .venv/bin/python scripts/export_openapi.py && cd web && openapi-typescript openapi.json -o src/lib/api-schema.d.ts",
     "test:e2e": "playwright test",
     "screenshots": "node ../scripts/ui_screenshots.mjs",
-    "test:e2e:live": "playwright test -c playwright.live.config.ts"
+    "test:e2e:live": "playwright test -c playwright.live.config.ts",
+    "test:e2e:auth": "playwright test -c playwright.auth.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.3.0",

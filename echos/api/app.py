@@ -22,8 +22,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from echos.api import services as V
 from echos.api import team_services as T
 from echos.api import live_services as LV
+from echos.api import auth as A
 from echos.live.schemas import IngestBatch
-from echos.api.models import (AgentHealth, AgentMessageOut, AlertAckIn, AlertOut, CareTaskOut, CaseFileOut, ComponentOut, EmulatorCmdIn, EmulatorCmdOut, IngestResultOut, LiveStatusOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
+from echos.api.models import (AgentHealth, AgentMessageOut, AlertAckIn, AlertOut, CareTaskOut, AuthOut, CaseFileOut, ComponentOut, LoginIn, EmulatorCmdIn, EmulatorCmdOut, IngestResultOut, LiveStatusOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
                               Page, PatientOut, QualityOut, RoutineOut, SourceOut, SystemConfigOut, SimControlIn, SimFallIn, SimFallOut, SimStateOut, SummaryOut, VitalsOut, WeeklyReportOut,
                               WeeklySendIn, WeeklySendOut)
 from echos.config import load_config
@@ -45,6 +46,23 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
     app.state.ctx = ctx or V.Ctx(eng=S.get_engine(os.environ.get("ECHOS_DB")), cfg=cfg, allow_kill=bool(cfg.get("api", {}).get("allow_kill", False)) or os.environ.get("ECHOS_ALLOW_KILL") == "1",
         report_root=os.environ.get("ECHOS_REPORT_ROOT") or None)
     app.add_middleware(CORSMiddleware, allow_origins=[os.environ.get("ECHOS_CORS_ORIGIN") or cfg.get("api", {}).get("cors_origin", "http://localhost:5173")], allow_methods=["GET", "POST"], allow_headers=["*"])
+
+    app.state.auth_on = A.enabled(cfg)
+    app.state.limiter = A.LoginLimiter()
+
+    @app.middleware("http")
+    async def _auth(request: Request, call_next):
+        if app.state.auth_on:
+            tok = request.headers.get("authorization", "")
+            tok = tok[7:] if tok.lower().startswith("bearer ") else (request.query_params.get("token") if request.url.path == "/api/events" else None)
+            role = A.role_of(tok)
+            code, msg = A.allowed(role, request.method, request.url.path)
+            if code != 200:
+                return JSONResponse({"error": {"status": code, "message": msg}}, status_code=code)
+            request.state.role = role
+        else:
+            request.state.role = "operator"
+        return await call_next(request)
 
     def err(status: int, msg: str) -> JSONResponse:
         return JSONResponse({"error": {"status": status, "message": msg}}, status_code=status)
@@ -162,7 +180,7 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
     def alert_ack(request: Request, alert_id: str, body: AlertAckIn = AlertAckIn()):
         """Acknowledge an alert (stops the escalation timer). Idempotent."""
         ctx = ctx_of(request)
-        T.ack(ctx, alert_id, body.by)
+        T.ack(ctx, alert_id, request.state.role if app.state.auth_on else body.by)      # with auth on, who acknowledged is the logged-in role, not client text
         return T.alert_lifecycle(ctx, [V.alert_by_id(ctx, alert_id)])[0]
 
     @r.post("/alerts/{alert_id:path}/resolve", response_model=AlertOut, tags=["alerts"])
@@ -171,6 +189,29 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         ctx = ctx_of(request)
         T.resolve(ctx, alert_id, body.note or "")
         return T.alert_lifecycle(ctx, [V.alert_by_id(ctx, alert_id)])[0]
+
+    # ------------------------------------------------------------ authentication (optional)
+    @r.post("/auth/login", response_model=AuthOut, tags=["auth"])
+    def login(request: Request, body: LoginIn):
+        """Exchange a token for a role. The token is then sent as `Authorization: Bearer <token>`. Failed attempts are rate-limited."""
+        who = request.client.host if request.client else "?"
+        if not app.state.auth_on:
+            return {"auth_enabled": False, "role": "operator"}
+        if app.state.limiter.blocked(who):
+            raise HTTPException(429, "too many failed logins: wait a minute")
+        role = A.role_of(body.token)
+        if role is None:
+            app.state.limiter.fail(who)
+            raise HTTPException(401, "wrong token")
+        return {"auth_enabled": True, "role": role}
+
+    @r.get("/auth/me", response_model=AuthOut, tags=["auth"])
+    def me(request: Request):
+        """Is authentication on, and which role does this request have? (role is null when not logged in)"""
+        if not app.state.auth_on:
+            return {"auth_enabled": False, "role": "operator"}
+        tok = request.headers.get("authorization", "")
+        return {"auth_enabled": True, "role": A.role_of(tok[7:] if tok.lower().startswith("bearer ") else None)}
 
     # ------------------------------------------------------------ live / emulator mode
     @r.post("/ingest/events", response_model=IngestResultOut, tags=["live"])

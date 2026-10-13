@@ -45,6 +45,7 @@ class PatientState:
         self.dirty_fast = False
         self.dirty_light = False
         self.reported_nonnormal = False
+        self.fall_failed = False          # an accelerometer window arrived that the Fall detector could not analyse: the day cannot be called normal
 
 
 class LiveProcessor:
@@ -110,7 +111,9 @@ class LiveProcessor:
             r = self._fall(ev)
             if r is not None:
                 st.falls.append((ev.event_id, ev.ts, r))
-                st.dirty_fast = True
+            else:
+                st.fall_failed = True
+            st.dirty_fast = True
         elif ev.kind == "vitals":
             st.vitals_ev = (ev.event_id, ev.ts)
             st.dirty_fast = True
@@ -184,7 +187,7 @@ class LiveProcessor:
         last_act = pd.Timestamp(max(acts)) if acts else None
         # Quality gate
         try:
-            quality = self._quality(pid, d, row, last_act, clock_ts, closed, None)
+            quality = self._quality(pid, d, row, last_act, clock_ts, closed, "fall_window_unanalysed" if st.fall_failed else None)
         except Exception as ex:  # noqa: BLE001
             quality = self._quality(pid, d, row, last_act, clock_ts, closed, type(ex).__name__)
         # Vitals + Behaviour (behaviour only on a closed day: it is a day-level model)
@@ -249,7 +252,7 @@ class LiveProcessor:
     def close_day(self, pid: str, day: str):
         st = self.st[pid]
         self.decide(pid, day, closed=True)
-        st.falls, st.vitals_ev, st.sig, st.reported_nonnormal = [], None, None, False
+        st.falls, st.vitals_ev, st.sig, st.reported_nonnormal, st.fall_failed = [], None, None, False, False
         if pd.Timestamp(day).weekday() == 6 and bool(self.cfg.get("weekly", {}).get("enabled", True)):      # a Sunday closed: the weekly clinician PDF
             self._weekly(pid, day)
         with self.eng.begin() as c:

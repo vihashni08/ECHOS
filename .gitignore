@@ -36,4 +36,4 @@ reports/rating/
 reports/live_check/
 .venv
 .venv/
-venv/
+venv/data/auth_tokens.txt

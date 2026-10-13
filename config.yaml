@@ -118,6 +118,7 @@ api:   # echos/api (FastAPI): bound to 127.0.0.1, NO authentication (demo only),
   port: 8000
   cors_origin: http://localhost:5173
   allow_kill: false      # POST /api/agents/{name}/kill is refused unless true
+  auth: {enabled: false} # true (or ECHOS_AUTH=on): bearer tokens from ECHOS_TOKEN_CAREGIVER / _CLINICIAN / _OPERATOR; roles caregiver < clinician < operator (echos/api/auth.py)
 
 coordinator:   # Care Coordinator agent (echos/team/coordinator.py): owns the alert lifecycle. Wall-clock seconds.
   poll_s: 1.0

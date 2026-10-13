@@ -1,4 +1,5 @@
-import { Activity, BellRing, HeartPulse, HelpCircle, LayoutDashboard, Moon, Settings2, Stethoscope, Sun, User, Users, WifiOff } from "lucide-react"
+import { useQueryClient } from "@tanstack/react-query"
+import { Activity, BellRing, LogOut, HeartPulse, HelpCircle, LayoutDashboard, Moon, Settings2, Stethoscope, Sun, User, Users, WifiOff } from "lucide-react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import ErrorBoundary from "./ErrorBoundary"
@@ -7,25 +8,28 @@ import { DemoToolsButton } from "./DemoTools"
 import { ModeBadge, ModeBanner } from "./ModeBadge"
 import { useSimState } from "@/lib/queries"
 import { useMode } from "@/lib/live"
+import { atLeast, setToken, type Role } from "@/lib/auth"
+import { useMe } from "@/lib/queries"
 import { useEvents } from "@/lib/events"
 import { useTheme } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
-const NAV = [
+const NAV: { to: string; label: string; icon: typeof User; end?: boolean; need?: Role }[] = [
   { to: "/", label: "Today", icon: LayoutDashboard, end: true },
   { to: "/alerts", label: "Alerts", icon: BellRing },
   { to: "/patient", label: "People", icon: User },
   { to: "/falls", label: "Fall Monitor", icon: Activity },
   { to: "/caregiver", label: "Caregiver report", icon: Users },
-  { to: "/clinician", label: "Clinician week", icon: Stethoscope },
+  { to: "/clinician", label: "Clinician week", icon: Stethoscope, need: "clinician" },
   { to: "/how-it-works", label: "How it works", icon: HelpCircle },
-  { to: "/system", label: "System", icon: Settings2 },
+  { to: "/system", label: "System", icon: Settings2, need: "operator" },
 ]
 
 function NavItems({ row }: { row?: boolean }) {
+  const me = useMe()
   return (
     <>
-      {NAV.map(({ to, label, icon: Icon, end }) => (
+      {NAV.filter((n) => !n.need || atLeast(me.data?.role, n.need)).map(({ to, label, icon: Icon, end }) => (
         <NavLink key={to} to={to} end={end}
           className={({ isActive }) => cn("flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
             isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground", row && "shrink-0")}>
@@ -52,6 +56,8 @@ function TopBar() {
   const { mode, live } = useMode()
   const s = sim.data
   const e = live.data?.emulator
+  const me = useMe()
+  const qc = useQueryClient()
   return (
     <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b bg-card px-4 py-2.5">
       <div className="flex items-center gap-2 md:hidden">
@@ -72,7 +78,10 @@ function TopBar() {
         {conn === "open" ? <span className="size-2 rounded-full bg-normal-line" aria-hidden="true" /> : <WifiOff className="size-4" aria-hidden="true" />}
         <span className="hidden sm:inline">{conn === "open" ? "Live" : conn === "reconnecting" ? "Reconnecting…" : "Connecting…"}</span><span className="sr-only sm:hidden">{conn === "open" ? "Live" : "Offline"}</span>
       </span>
-      <DemoToolsButton />
+      {me.data?.auth_enabled && me.data.role && (
+        <span className="inline-flex items-center gap-2 text-sm" data-testid="role"><span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold">{me.data.role}</span>
+          <Button variant="outline" size="sm" onClick={() => { setToken(null); qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" }); qc.invalidateQueries({ queryKey: ["me"] }) }} data-testid="logout"><LogOut className="size-4" aria-hidden="true" />Log out</Button></span>)}
+      {atLeast(me.data?.role, "operator") && <DemoToolsButton />}
       {mode === "replay" && <DemoGuideButton />}
       <ThemeToggle />
     </header>

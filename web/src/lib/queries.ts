@@ -116,3 +116,6 @@ export function useEmulator() {
     onSettled: () => qc.invalidateQueries(),
   })
 }
+
+// ---- authentication (optional on the server)
+export const useMe = () => useQuery({ queryKey: ["me"], queryFn: () => call(client.GET("/api/auth/me")), retry: 1, staleTime: 5000 })

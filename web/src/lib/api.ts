@@ -1,9 +1,14 @@
 import createClient from "openapi-fetch"
 import type { components, paths } from "./api-schema"
+import { getToken, setToken } from "./auth"
 
 // Typed client generated from the FastAPI OpenAPI schema (npm run gen:api). No runtime request goes anywhere but this base URL.
 export const API_URL: string = import.meta.env.VITE_API_URL ?? __API_DEFAULT__
 export const client = createClient<paths>({ baseUrl: API_URL })
+client.use({
+  onRequest({ request }) { const t = getToken(); if (t) request.headers.set("Authorization", `Bearer ${t}`); return request },
+  onResponse({ response }) { if (response.status === 401 && getToken()) setToken(null); return response },     // a token the server no longer accepts: back to the login page
+})
 
 export type Schemas = components["schemas"]
 export type Patient = Schemas["PatientOut"]

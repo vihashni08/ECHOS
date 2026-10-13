@@ -1,0 +1,58 @@
+{
+ "duplicates_and_late_events": {
+  "resent": 200,
+  "duplicates_detected": 200,
+  "late_event_stored": 1,
+  "decisions_changed": false,
+  "extra_rows": 0,
+  "seconds": 3.0
+ },
+ "vitals_detector_down": {
+  "days": 2,
+  "normal_days": 0,
+  "all_marked_data_gap": true,
+  "reasons_mention_degraded": true,
+  "seconds": 1.0
+ },
+ "fall_window_not_analysed": {
+  "status": "MONITOR",
+  "data_gap": true,
+  "alert_count": 0,
+  "processor_alive": true,
+  "seconds": 0.6
+ },
+ "smtp_down_everywhere": {
+  "alerts": 1,
+  "outbox_rows": 3,
+  "statuses": [
+   "FAILED"
+  ],
+  "none_looks_delivered": true,
+  "alert_state": [
+   "ESCALATED"
+  ],
+  "escalation_row_visible": true,
+  "seconds": 3.2
+ },
+ "report_agent_down": {
+  "status": "URGENT",
+  "alerts": 1,
+  "alert_sent_despite_report_failure": true,
+  "seconds": 0.6
+ },
+ "burst_and_latency": {
+  "patients": 4,
+  "events_processed": 1204,
+  "events_per_s": 1087,
+  "inject_to_alert_queued_s": [
+   0.179,
+   0.187,
+   0.143
+  ],
+  "seconds": 1.6
+ },
+ "notes": [
+  "fakes for mail / LLM; one machine; the emulator replays real TIHM events, falls are SisFall windows",
+  "inject_to_alert_queued_s is SOFTWARE latency inside one process (event written -> alert row), not a delivery time"
+ ]
+}
