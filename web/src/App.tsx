@@ -14,7 +14,7 @@ import System from "@/pages/System"
 
 function Need({ role, children }: { role: Role; children: React.ReactNode }) {
   const me = useMe()
-  return atLeast(me.data?.role, role) ? <>{children}</> : <div role="alert" className="rounded-md border border-monitor-line bg-monitor-bg px-3 py-2 text-sm text-monitor-fg" data-testid="forbidden">This page needs the {role} role.</div>
+  return !me.isSuccess || atLeast(me.data?.role, role) ? <>{children}</> : <div role="alert" className="rounded-md border border-monitor-line bg-monitor-bg px-3 py-2 text-sm text-monitor-fg" data-testid="forbidden">This page needs the {role} role.</div>
 }
 
 export default function App() {

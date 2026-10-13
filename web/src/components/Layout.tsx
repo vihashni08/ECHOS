@@ -29,7 +29,7 @@ function NavItems({ row }: { row?: boolean }) {
   const me = useMe()
   return (
     <>
-      {NAV.filter((n) => !n.need || atLeast(me.data?.role, n.need)).map(({ to, label, icon: Icon, end }) => (
+      {NAV.filter((n) => !n.need || !me.isSuccess || atLeast(me.data?.role, n.need)).map(({ to, label, icon: Icon, end }) => (
         <NavLink key={to} to={to} end={end}
           className={({ isActive }) => cn("flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
             isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground", row && "shrink-0")}>
