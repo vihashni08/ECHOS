@@ -46,15 +46,16 @@ def _day_event(eng, patient_id: str, day: str):
     return (r[0], r[1]) if r else (None, f"{day}T23:59:59")
 
 
-def queue_alerts(eng, dispatcher: AlertDispatcher, patient_id: str, day: str, decision: dict, results: dict) -> int:
-    """Returns the number of NEW alerts queued (duplicates / cooldown-suppressed ones are not counted)."""
+def queue_alerts(eng, dispatcher: AlertDispatcher, patient_id: str, day: str, decision: dict, results: dict, vitals_event=None) -> int:
+    """Returns the number of NEW alerts queued (duplicates / cooldown-suppressed ones are not counted).
+    vitals_event: (event_id, ts) of the critical reading when there is no day event (live mode)."""
     t, n = load_config()["triage"], 0
     types = list(dict.fromkeys(decision.get("urgent_types") or []))
     jobs = []
     if "fall" in types:
         jobs += [("FALL", eid, ts, r) for eid, ts, r in _fall_events(eng, patient_id, day, results, t)]
     if "critical_vitals" in types:
-        eid, ts = _day_event(eng, patient_id, day)
+        eid, ts = vitals_event if vitals_event else _day_event(eng, patient_id, day)   # live mode: the reading's own event id and time
         jobs.append(("CRITICAL_VITALS", eid, ts, None))
     for typ, eid, ts, fall in jobs:
         aid = alert_id(patient_id, day, typ.lower(), eid)

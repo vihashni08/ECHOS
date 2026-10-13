@@ -66,13 +66,15 @@ class Ctx:
     def pdy_df(self) -> pd.DataFrame:
         if self.pdy is None:
             self.pdy = F.patient_days()
-        return self.pdy
+        from echos.live import store as LS
+        return LS.live_pdy(self.eng, self.pdy)          # training table + live day rows (live mode); unchanged when there are none
 
     def phys_df(self) -> pd.DataFrame:
         if self.phys is None:
             from echos.data.loaders import load_physiology
             self.phys = load_physiology()
-        return self.phys
+        from echos.live import store as LS
+        return LS.merge_live(self.eng, self.phys, "vitals")
 
     def demo_df(self) -> pd.DataFrame:
         if self.demo is None:
@@ -84,7 +86,8 @@ class Ctx:
         if self.activity is None:
             from echos.data.loaders import load_activity
             self.activity = load_activity()
-        return self.activity
+        from echos.live import store as LS
+        return LS.merge_live(self.eng, self.activity, "activity")
 
 
 # ------------------------------------------------------------------ helpers

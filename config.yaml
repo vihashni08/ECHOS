@@ -127,3 +127,15 @@ coordinator:   # Care Coordinator agent (echos/team/coordinator.py): owns the al
   review_min_days: 3
 investigator:   # Case Investigator agent (echos/team/investigator.py): bounded tool loop, no LLM
   max_steps: 4
+
+live:   # live / emulator mode (echos/live). Raw events -> ingestion API -> event_log -> LiveProcessor (detectors scored from events, rolling triage).
+  decide_min_interval_s: 2.0     # activity-only batches re-decide at most this often (vitals and accelerometer events decide at once)
+  silent_hours: 6                # no activity event for this many DATA hours inside day_window while the patient's other streams advance -> sensor silent (provisional gap)
+  day_window: [7, 22]
+  offline_after_s: 120           # wall seconds without any event -> the stream shows as stale in the UI (real and emulated sources alike)
+  emulator:                      # a LABELLED emulator: replays real TIHM raw events in wall-clock time. Not a real device.
+    speed: 3600                  # simulated seconds per wall second (3600 = one data hour per second, one day in 24 s)
+    heartbeat_min: 15            # simulated minutes between device heartbeats
+    start_day: "2019-05-13"
+    n_days: 14
+    n_patients: 4

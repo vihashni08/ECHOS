@@ -197,17 +197,20 @@ def _state():
 def predict(patient_id: str, day) -> AgentResult:
     st = _state()
     d = pd.Timestamp(day).normalize()
-    art = st["art"]
     ts = datetime.utcnow()
     if (patient_id, d) not in st["df"].index:
         return AgentResult(patient_id=patient_id, day=d.date(), agent=AGENT, score=0.0, flag=False,
                            evidence={"reason": "no_vitals_reading"}, ts=ts)
-    row = st["df"].loc[[(patient_id, d)]]
+    return _score_row(patient_id, d, st["df"].loc[[(patient_id, d)]], st, ts, use_oof=True)
+
+
+def _score_row(patient_id: str, d: pd.Timestamp, row: pd.DataFrame, st: dict, ts, use_oof: bool = False) -> AgentResult:
+    art = st["art"]
     X = row[art["features"]]
     score = float(art["model"].predict_proba(X)[0, 1])
     if "calibrator" in art:
         score = float(art["calibrator"](np.array([score]))[0])
-    if oof.enabled():  # replay evaluation with out-of-fold scores
+    if use_oof and oof.enabled():  # replay evaluation with out-of-fold scores
         score = float(oof.lookup(AGENT, patient_id, d) or 0.0)
     sv = st["expl"].shap_values(X)[0]
     top = np.argsort(-np.abs(sv))[:3]
@@ -225,6 +228,25 @@ def predict(patient_id: str, day) -> AgentResult:
     }
     return AgentResult(patient_id=patient_id, day=d.date(), agent=AGENT, score=score,
                        flag=score >= art["threshold"], evidence=ev, ts=ts)
+
+
+def predict_live(patient_id: str, day, hist: pd.DataFrame) -> tuple:
+    """Score a day from the patient's own history rows (patient-day rows, past days + today, no parquet lookup).
+    Returns (AgentResult, persistence dict). Same features and model as predict(); baselines use only days before `day`."""
+    st = _state()
+    d = pd.Timestamp(day).normalize()
+    rd = hist[hist.has_reading & (hist.day <= d)].copy()
+    if rd.empty or rd.day.max() != d:
+        return AgentResult(patient_id=patient_id, day=d.date(), agent=AGENT, score=0.0, flag=False, evidence={"reason": "no_vitals_reading"}), {}
+    g = _patient_features(rd.assign(patient_id=patient_id), load_config()["agent1"]["baseline_window_days"]).set_index("day")
+    row = g.loc[[d]]
+    res = _score_row(patient_id, d, row, st, datetime.utcnow())
+    cfg = (load_config().get("health") or {}).get("persistence", {})
+    z_thr, last_n, need = cfg.get("z", 2.0), cfg.get("last_n", 3), cfg.get("need", 2)
+    tail = g.sort_index().tail(last_n)
+    beyond = [bool(np.nanmax(np.abs(r[[f"{v}_z" for v in VITALS]].astype(float).values)) >= z_thr) if r[[f"{v}_z" for v in VITALS]].notna().any() else False for _, r in tail.iterrows()]
+    pers = {"persistent": sum(beyond) >= need, "n_beyond": int(sum(beyond)), "n_readings": int(len(tail)), "last_n": last_n, "need": need, "z_threshold": z_thr}
+    return res, pers
 
 
 def persistence(patient_id: str, day, z_thr: float = 2.0, last_n: int = 3, need: int = 2) -> dict:

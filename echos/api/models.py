@@ -422,3 +422,62 @@ class SourceOut(BaseModel):
     journal: Optional[str] = None   # PubMed
     url: Optional[str] = None       # PubMed link when one exists
     excerpt: Optional[str] = None   # at most 40 words, local guidelines only (never PubMed abstract text)
+
+
+# ---- live / emulator mode
+class IngestResultOut(BaseModel):
+    accepted: int
+    duplicates: int
+    rejected: int = 0
+    patients: list[str]
+
+
+class StreamOut(BaseModel):
+    last_wall_age_s: Optional[float] = None        # seconds since the last event of this stream arrived (wall clock)
+    state: str                                     # fresh | stale | idle (idle = a sparse stream with nothing expected right now) | none
+    
+
+class LivePatientOut(BaseModel):
+    patient_id: str
+    last_event_ts: Optional[str] = None            # the patient's clock: newest DATA time seen
+    open_day: Optional[str] = None
+    status: Optional[str] = None                   # triage status of the open day so far
+    provisional: bool = True
+    as_of: Optional[str] = None
+    streams: dict[str, StreamOut] = Field(default_factory=dict)
+
+
+class EmulatorOut(BaseModel):
+    status: str                                    # idle | playing | paused | finished
+    speed: float                                   # simulated seconds per wall second
+    sim_now: Optional[str] = None
+    cursor: int = 0
+    total: int = 0
+    start: Optional[str] = None
+    end: Optional[str] = None
+    patients: list[str] = Field(default_factory=list)
+
+
+class LiveStatusOut(BaseModel):
+    mode: str                                      # replay | emulator | live
+    label: str                                     # what the viewer must know about where the data comes from
+    emulator: Optional[EmulatorOut] = None
+    patients: list[LivePatientOut] = Field(default_factory=list)
+    now: float
+
+
+class EmulatorCmdIn(BaseModel):
+    action: str = Field(description="load | play | pause | speed | fall")
+    speed: Optional[float] = None
+    patient_id: Optional[str] = None
+    subject: Optional[str] = None
+    activity: Optional[str] = None
+    start_day: Optional[str] = None
+    n_days: Optional[int] = None
+    n_patients: Optional[int] = None
+
+
+class EmulatorCmdOut(BaseModel):
+    status: str
+    result: Optional[dict] = None
+    note: str = ""

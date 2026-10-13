@@ -5,18 +5,22 @@
 #   --no-llm      template reports only: no Gemini calls and no live PubMed (local guideline index only)
 #   --no-pubmed   no live PubMed (--no-llm implies it)
 #   --demo        demo mode: enables POST /api/agents/{name}/kill and the UI's Demo guide (default off)
+#   --mode live   LIVE mode: raw events -> POST /api/ingest/events -> detectors scored from events, rolling triage; with the labelled device emulator
+#                 (default for `--mode live`; add --no-emulator to feed it from a real source). Default mode = replay (TIHM day by day, evaluation / demos).
 #   --no-runtime  API only (read-only demo of an existing data/echos.db)
 # API: http://127.0.0.1:8000  (docs at /docs; port override: ECHOS_API_PORT, CORS origin override: ECHOS_CORS_ORIGIN). NO authentication: demo only. Stop with Ctrl-C.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python
-RT=1; RT_ARGS=()
+RT=1; RT_ARGS=(); MODE=replay; EMU=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry) export ECHOS_DRY_RUN=1 ;;
     --demo) export ECHOS_ALLOW_KILL=1 ECHOS_DEMO=1 ;;
     --no-pubmed) export ECHOS_PUBMED=off ;;
     --no-llm) export ECHOS_REPORT_LLM=off ECHOS_PUBMED=off ;;
+    --mode) MODE="$2"; shift ;;
+    --no-emulator) EMU=0 ;;
     --no-runtime) RT=0 ;;
     --db) export ECHOS_DB="$2"; shift ;;
     --patients|--days) RT_ARGS+=("$1" "$2"); shift ;;
@@ -31,7 +35,12 @@ fi
 PIDS=()
 trap 'kill "${PIDS[@]}" 2>/dev/null || true' EXIT INT TERM
 if [ "$RT" = 1 ]; then
-  $PY -W ignore -m echos.sim.controller ${RT_ARGS[@]+"${RT_ARGS[@]}"} &
+  if [ "$MODE" = live ]; then
+    LARGS=(); [ "$EMU" = 0 ] && LARGS+=(--no-emulator); [ "${ECHOS_REPORT_LLM:-}" = off ] && LARGS+=(--no-llm)
+    $PY -W ignore -m echos.live.runtime ${LARGS[@]+"${LARGS[@]}"} &
+  else
+    $PY -W ignore -m echos.sim.controller ${RT_ARGS[@]+"${RT_ARGS[@]}"} &
+  fi
   PIDS+=($!)
 fi
 [ "${ECHOS_DRY_RUN:-0}" = 1 ] && echo "DRY: mail goes to the outbox only"

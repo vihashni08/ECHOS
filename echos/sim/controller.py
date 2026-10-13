@@ -138,7 +138,7 @@ class SimController:
 
     def process_commands(self) -> int:
         with self.eng.begin() as c:
-            rows = c.execute(select(S.sim_command).where(S.sim_command.c.status == "NEW").order_by(S.sim_command.c.id)).fetchall()
+            rows = c.execute(select(S.sim_command).where((S.sim_command.c.status == "NEW") & ~S.sim_command.c.cmd.like("emu_%")).order_by(S.sim_command.c.id)).fetchall()
         for r in rows:
             try:
                 res = self.handle(r.cmd, json.loads(r.args or "{}"))

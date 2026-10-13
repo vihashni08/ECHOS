@@ -21,7 +21,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from echos.api import services as V
 from echos.api import team_services as T
-from echos.api.models import (AgentHealth, AgentMessageOut, AlertAckIn, AlertOut, CareTaskOut, CaseFileOut, ComponentOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
+from echos.api import live_services as LV
+from echos.live.schemas import IngestBatch
+from echos.api.models import (AgentHealth, AgentMessageOut, AlertAckIn, AlertOut, CareTaskOut, CaseFileOut, ComponentOut, EmulatorCmdIn, EmulatorCmdOut, IngestResultOut, LiveStatusOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
                               Page, PatientOut, QualityOut, RoutineOut, SourceOut, SystemConfigOut, SimControlIn, SimFallIn, SimFallOut, SimStateOut, SummaryOut, VitalsOut, WeeklyReportOut,
                               WeeklySendIn, WeeklySendOut)
 from echos.config import load_config
@@ -169,6 +171,27 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         ctx = ctx_of(request)
         T.resolve(ctx, alert_id, body.note or "")
         return T.alert_lifecycle(ctx, [V.alert_by_id(ctx, alert_id)])[0]
+
+    # ------------------------------------------------------------ live / emulator mode
+    @r.post("/ingest/events", response_model=IngestResultOut, tags=["live"])
+    def ingest(request: Request, batch: IngestBatch, x_echos_token: Optional[str] = Header(None)):
+        """Ingestion contract for ANY source (device, hub, emulator): a batch of activity / vitals / accel / heartbeat events with DATA timestamps.
+        Idempotent: an exact repeat counts as a duplicate. If ECHOS_INGEST_TOKEN is set, send it as X-Echos-Token."""
+        try:
+            LV.check_token(x_echos_token)
+        except PermissionError as ex:
+            raise HTTPException(403, str(ex))
+        return LV.ingest(ctx_of(request), batch)
+
+    @r.get("/live/status", response_model=LiveStatusOut, tags=["live"])
+    def live_status(request: Request):
+        """Data mode (replay / emulator / live), emulator state and, per patient, how fresh each stream is."""
+        return LV.status(ctx_of(request))
+
+    @r.post("/live/emulator", response_model=EmulatorCmdOut, tags=["live"])
+    def live_emulator(request: Request, body: EmulatorCmdIn):
+        """Control the labelled device emulator: load | play | pause | speed | fall."""
+        return LV.emulator_command(ctx_of(request), body)
 
     # ------------------------------------------------------------ multi-agent layer
     @r.get("/components", response_model=list[ComponentOut], tags=["agents"])

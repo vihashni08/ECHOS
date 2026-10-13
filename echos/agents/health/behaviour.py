@@ -152,12 +152,15 @@ def predict(patient_id: str, day) -> AgentResult:
     if (patient_id, d) not in st["df"].index or not st["df"].loc[(patient_id, d), "has_activity"]:
         return AgentResult(patient_id=patient_id, day=d.date(), agent=AGENT, score=0.0, flag=False,
                            evidence={"reason": "no_activity_data"}, ts=ts)
-    art, r = st["art"], st["df"].loc[(patient_id, d)]
+    return _score_row(patient_id, d, st["df"].loc[(patient_id, d)], st["art"], ts, use_oof=True)
+
+
+def _score_row(patient_id: str, d: pd.Timestamp, r: pd.Series, art: dict, ts, use_oof: bool = False) -> AgentResult:
     X = pd.DataFrame([r[art["features"]].astype(float)])
     prob = float(art["model"].predict_proba(X)[0, 1]) if not X.isna().all(axis=None) and not np.isnan(r["total_events_z"]) else 0.0
     if "calibrator" in art:
         prob = float(art["calibrator"](np.array([prob]))[0])
-    if oof.enabled():  # replay evaluation with out-of-fold scores
+    if use_oof and oof.enabled():  # replay evaluation with out-of-fold scores
         prob = float(oof.lookup(AGENT, patient_id, d) or 0.0)
     h = load_config()["agent2"]["cusum"]["h"]
     drifted = [f for f in FEATS if r[f"{f}_cusum"] >= h]
@@ -167,6 +170,29 @@ def predict(patient_id: str, day) -> AgentResult:
           "threshold": art["threshold"]}
     return AgentResult(patient_id=patient_id, day=d.date(), agent=AGENT, score=prob,
                        flag=bool(prob >= art["threshold"] or drifted), evidence=ev, ts=ts)
+
+
+def predict_live(patient_id: str, day, hist: pd.DataFrame):
+    """Score a CLOSED day from the patient's own history rows (past days + that day). Returns (AgentResult, top_features list)."""
+    st = _state()
+    d = pd.Timestamp(day).normalize()
+    g = hist[hist.day <= d].copy()
+    g = _patient(g.assign(patient_id=patient_id), load_config()["agent2"]).set_index("day")
+    if d not in g.index or not bool(g.loc[d, "has_activity"]):
+        return AgentResult(patient_id=patient_id, day=d.date(), agent=AGENT, score=0.0, flag=False, evidence={"reason": "no_activity_data"}), []
+    r = g.loc[d]
+    res = _score_row(patient_id, d, r, st["art"], datetime.utcnow())
+    top = []
+    try:
+        if "expl" not in st:
+            import shap
+            st["expl"] = shap.TreeExplainer(st["art"]["model"])
+        X = pd.DataFrame([r[st["art"]["features"]].astype(float)])
+        sv = st["expl"].shap_values(X)[0]
+        top = [{"feature": st["art"]["features"][i], "value": None if pd.isna(X.iloc[0, i]) else float(X.iloc[0, i]), "shap": float(sv[i])} for i in np.argsort(-np.abs(sv))[:3]]
+    except Exception:  # noqa: BLE001 - SHAP is explanation only
+        pass
+    return res, top
 
 
 def top_features(patient_id: str, day, n: int = 3) -> list:

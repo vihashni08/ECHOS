@@ -190,13 +190,28 @@ def humanize_age(delta: pd.Timedelta) -> str:
     return f"{n} {u}{'' if n == 1 else 's'} before this event"
 
 
+LIVE_ENG = None     # live mode: raw events ingested through the API (set by LiveProcessor); the TIHM CSV frames below are the history before them
+
+
+def _live(df, pid: str, kind: str):
+    if LIVE_ENG is None:
+        return df
+    from echos.live import store as LS
+    base = df if df is not None else pd.DataFrame(columns=["patient_id", "location_name", "date", "day"] if kind == "activity" else ["patient_id", "device_type", "value", "date", "day"])
+    if "day" not in base:
+        base = base.assign(day=base.date.dt.normalize())
+    m = LS.merge_live(LIVE_ENG, base, kind)
+    m = m[m.patient_id == pid].sort_values("date")
+    return m if len(m) else None
+
+
 def _activity(pid: str):
     if "act" not in _CACHE:
         from echos.config import ROOT, load_config
         a = pd.read_csv(ROOT / load_config()["paths"]["tihm"] / "Activity.csv", usecols=["patient_id", "location_name", "date"],
                         parse_dates=["date"]).sort_values("date")
         _CACHE["act"] = {p: g for p, g in a.groupby("patient_id")}
-    return _CACHE["act"].get(pid)
+    return _live(_CACHE["act"].get(pid), pid, "activity")
 
 
 def recent_room_events(pid: str, event_time: str, k: int = 3) -> tuple[list[RoomEvent], Optional[str]]:
@@ -232,7 +247,7 @@ def _physiology(pid: str):
         d = pd.read_csv(ROOT / load_config()["paths"]["tihm"] / "Physiology.csv", parse_dates=["date"])
         d = d[d.device_type.isin(["Systolic blood pressure", "Diastolic blood pressure", "Heart rate", "Body Temperature"])]
         _CACHE["phys"] = {p: g.sort_values("date") for p, g in d.groupby("patient_id")}
-    return _CACHE["phys"].get(pid)
+    return _live(_CACHE["phys"].get(pid), pid, "vitals")
 
 
 def vitals_lines(eng, pid: str, day: str, event_time: str, decision: dict, results: dict) -> tuple[list[VitalLine], Optional[str]]:
