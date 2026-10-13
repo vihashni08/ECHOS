@@ -37,10 +37,12 @@ trap 'kill "${PIDS[@]}" 2>/dev/null || true' EXIT INT TERM
 if [ "$RT" = 1 ]; then
   if [ "$MODE" = live ]; then
     LARGS=(); [ "$EMU" = 0 ] && LARGS+=(--no-emulator); [ "${ECHOS_REPORT_LLM:-}" = off ] && LARGS+=(--no-llm)
-    $PY -W ignore -m echos.live.runtime ${LARGS[@]+"${LARGS[@]}"} &
+    RTCMD=($PY -W ignore -m echos.live.runtime ${LARGS[@]+"${LARGS[@]}"})
   else
-    $PY -W ignore -m echos.sim.controller ${RT_ARGS[@]+"${RT_ARGS[@]}"} &
+    RTCMD=($PY -W ignore -m echos.sim.controller ${RT_ARGS[@]+"${RT_ARGS[@]}"})
   fi
+  # the watchdog keeps the runtime process (supervisor, orchestrator / live processor, coordinator, emulator) alive: restart on exit or stale liveness
+  $PY -W ignore -m echos.orchestrator.watchdog ${ECHOS_DB:+--db "$ECHOS_DB"} -- "${RTCMD[@]}" &
   PIDS+=($!)
 fi
 [ "${ECHOS_DRY_RUN:-0}" = 1 ] && echo "DRY: mail goes to the outbox only"

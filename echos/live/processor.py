@@ -68,6 +68,7 @@ class LiveProcessor:
 
     # ------------------------------------------------------------ main loop
     def run(self, poll_s: float = 0.2):
+        self.recover()
         while not self.stop.wait(poll_s):
             try:
                 self.step()
@@ -249,3 +250,34 @@ class LiveProcessor:
         st = self.st[pid]
         self.decide(pid, day, closed=True)
         st.falls, st.vitals_ev, st.sig, st.reported_nonnormal = [], None, None, False
+        if pd.Timestamp(day).weekday() == 6 and bool(self.cfg.get("weekly", {}).get("enabled", True)):      # a Sunday closed: the weekly clinician PDF
+            self._weekly(pid, day)
+        with self.eng.begin() as c:
+            S.upsert(c, S.agent_checkpoint, ["agent_id"], agent_id="live", last_event_id=self.cursor, ts=S.now())
+
+    def _weekly(self, pid: str, day: str):
+        """Weekly PDF in the report background worker (never blocks triage or alerts). Reads live day rows and live vitals, so a real source works too."""
+        from echos.data.loaders import load_physiology
+        from echos.reports.weekly_report import make_weekly
+
+        def job():
+            pdy = LS.live_pdy(self.eng, self.parquet)
+            phys = LS.merge_live(self.eng, load_physiology(), "vitals")
+            make_weekly(self.eng, pid, day, self.dispatcher, budget=self.reporter.budget, retriever=self.reporter.retriever, use_llm=False,
+                        root=self.reporter.root, pdy=pdy, phys=phys)
+        try:
+            self.reporter._defer(job, ctx=f"weekly_pdf {pid} {day}")
+        except Exception:  # noqa: BLE001
+            log.exception("weekly report could not be queued for %s %s", pid, day)
+
+    # ------------------------------------------------------------ restart recovery
+    def recover(self):
+        """After a restart: continue from the checkpoint (the last CLOSED day boundary) and rebuild the open day of every patient from event_log, so a
+        restart loses nothing and decides nothing twice (alerts are unique per event, case rows are upserts)."""
+        with self.eng.begin() as c:
+            ck = c.execute(select(S.agent_checkpoint.c.last_event_id).where(S.agent_checkpoint.c.agent_id == "live")).scalar()
+        self.cursor = int(ck or 0)
+        n = 0
+        while self.step():
+            n += 1
+        return n

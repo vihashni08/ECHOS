@@ -69,8 +69,21 @@ class Emulator:
             t += step
         ev.sort(key=lambda x: (x[0], x[1], x[2]["kind"]))
         self.events, self.patients, self.cursor, self.sim_now, self.start, self.end = ev, pats, 0, start, start, end
-        _state(self.eng, patients=pats, start=str(start.date()), end=str(end.date()), total=len(ev), speed=self.speed, status="idle", sim_now=str(start), cursor=0, labelled="EMULATOR: replays real TIHM raw events in wall-clock time; not a real device")
+        _state(self.eng, args={"patients": pats, "start_day": str(start.date()), "n_days": n_days}, patients=pats, start=str(start.date()), end=str(end.date()), total=len(ev), speed=self.speed, status="idle", sim_now=str(start), cursor=0, labelled="EMULATOR: replays real TIHM raw events in wall-clock time; not a real device")
         return pats
+
+    def resume(self) -> bool:
+        """After a runtime restart: reload the same emulation (events are deterministic for the same arguments) and continue PAUSED from the stored position."""
+        st = read_state(self.eng)
+        a = st.get("args")
+        if not a or not st.get("cursor"):
+            return False
+        self.load(a["patients"], a["start_day"], a["n_days"])
+        self.cursor = int(st["cursor"])
+        self.sim_now = pd.Timestamp(st["sim_now"])
+        self.status = "finished" if self.cursor >= len(self.events) else "paused"
+        _state(self.eng, status=self.status, cursor=self.cursor, sim_now=str(self.sim_now))
+        return True
 
     # ------------------------------------------------------------ pace
     def tick(self, wall: Optional[float] = None) -> int:
@@ -153,6 +166,11 @@ class Emulator:
         return len(rows)
 
     def run(self, poll_s: float = 0.2):
+        try:
+            if self.resume():
+                log.info("emulator resumed (paused) at %s", self.sim_now)
+        except Exception:  # noqa: BLE001
+            log.exception("emulator resume failed")
         while not self.stop.wait(poll_s):
             try:
                 self.process_commands()

@@ -39,7 +39,10 @@ COMPONENTS = [
      "on_failure": "a template report is used",
      "never": "decide an emergency or put an LLM on the alert path"},
     {"id": "supervisor", "name": "Supervisor", "kind": "infra", "worker": False,
-     "role": "Starts the three detector workers, watches their heartbeats and restarts dead ones.",
-     "inputs": "heartbeats", "outputs": "restarts", "on_failure": "dead workers stay dead until it is restarted", "never": "touch data"},
+     "role": "Replay mode: starts the three detector workers, watches their heartbeats and restarts dead ones (in live mode the detectors run inside the live processor).",
+     "inputs": "heartbeats", "outputs": "restarts", "on_failure": "if the process holding it dies, the watchdog restarts that process", "never": "touch data"},
+    {"id": "watchdog", "name": "Watchdog", "kind": "infra", "worker": True,
+     "role": "Keeps the runtime process (supervisor, triage, live processor, Care Coordinator, emulator) alive: restarts it when it exits or stops reporting, with backoff.",
+     "inputs": "the runtime's liveness signal and exit status", "outputs": "runtime restarts (restart_log)", "on_failure": "the runtime then runs unsupervised until the watchdog is started again; nothing is lost, state is in SQLite", "never": "touch data or decide anything"},
 ]
 BY_ID = {c["id"]: c for c in COMPONENTS}

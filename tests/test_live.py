@@ -146,3 +146,37 @@ def test_silent_activity_sensor_is_a_provisional_data_gap_not_normal(eng):
         cs = c.execute(select(S.case_state)).first()
     assert cs.status == "MONITOR" and cs.data_gap and cs.provisional == 1 and "sensor" in cs.reasons
     d.flush(5)
+
+
+def test_restart_rebuilds_the_open_day_and_changes_nothing(eng):
+    proc, d = build(eng)
+    emu = Emulator(eng, cfg={"speed": 6 * 3600})
+    pats = emu.load(start_day="2019-05-13", n_days=3, n_patients=1)
+    emu.status = "playing"
+    emu.tick(wall=0.0)
+    run_emulator(eng, proc, emu, wall_steps=7)                                  # about 1.75 data days: day 1 closed, day 2 open
+    def snap():
+        with eng.begin() as c:
+            return sorted((r.day, r.status, bool(r.provisional)) for r in c.execute(select(S.case_state)))
+    before = snap()
+    assert any(not p for _, _, p in before) and any(p for _, _, p in before)
+    proc2, _ = build(eng)                                                       # a new process: nothing in memory
+    proc2.recover()
+    assert snap() == before                                                     # same decisions, same provisional flags
+    with eng.begin() as c:
+        assert c.execute(select(S.agent_checkpoint.c.last_event_id).where(S.agent_checkpoint.c.agent_id == "live")).scalar() > 0
+    d.flush(5)
+
+
+def test_a_closed_sunday_builds_the_weekly_pdf_in_the_background(eng, tmp_path):
+    proc, d = build(eng)
+    emu = Emulator(eng, cfg={"speed": 8 * 3600})
+    pats = emu.load(start_day="2019-05-12", n_days=3, n_patients=1)             # 2019-05-12 is a Sunday
+    emu.status = "playing"
+    emu.tick(wall=0.0)
+    run_emulator(eng, proc, emu, wall_steps=6)
+    proc.reporter.drain(120)
+    with eng.begin() as c:
+        w = c.execute(select(S.reports).where(S.reports.c.kind == "weekly_pdf")).fetchall()
+    assert len(w) == 1 and w[0].day == "2019-05-12" and w[0].path.endswith(".pdf")
+    d.flush(5)

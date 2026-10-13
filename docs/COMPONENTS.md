@@ -81,12 +81,21 @@ Infrastructure: keeps the others running.
 
 ### Supervisor (`supervisor`)
 
-Starts the three detector workers, watches their heartbeats and restarts dead ones.
+Replay mode: starts the three detector workers, watches their heartbeats and restarts dead ones (in live mode the detectors run inside the live processor).
 
 - **Takes in:** heartbeats
 - **Produces:** restarts
-- **If it fails:** dead workers stay dead until it is restarted
+- **If it fails:** if the process holding it dies, the watchdog restarts that process
 - **Never:** touch data
+
+### Watchdog (`watchdog`)
+
+Keeps the runtime process (supervisor, triage, live processor, Care Coordinator, emulator) alive: restarts it when it exits or stops reporting, with backoff.
+
+- **Takes in:** the runtime's liveness signal and exit status
+- **Produces:** runtime restarts (restart_log)
+- **If it fails:** the runtime then runs unsupervised until the watchdog is started again; nothing is lost, state is in SQLite
+- **Never:** touch data or decide anything
 
 ## How they talk
 
