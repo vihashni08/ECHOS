@@ -405,6 +405,14 @@ def list_alerts(ctx: Ctx, pid: Optional[str], limit: int, offset: int) -> tuple[
         return [alert_out(r) for r in c.execute(q.limit(limit).offset(offset))], c.execute(cnt).scalar()
 
 
+def alert_by_id(ctx: Ctx, alert_id: str) -> dict:
+    with ctx.eng.begin() as c:
+        r = c.execute(select(S.alerts).where(S.alerts.c.alert_id == alert_id)).first()
+    if r is None:
+        raise NotFound(f"unknown alert {alert_id!r}")
+    return alert_out(r)
+
+
 def list_outbox(ctx: Ctx, status: Optional[str], limit: int, offset: int) -> tuple[list, int]:
     q = select(S.outbox).order_by(S.outbox.c.queued_time.desc())
     cnt = select(func.count()).select_from(S.outbox)

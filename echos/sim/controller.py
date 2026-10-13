@@ -27,7 +27,8 @@ from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 
 log = logging.getLogger("echos.sim")
-WIPE = [S.event_log, S.agent_output, S.case_state, S.alerts, S.outbox, S.daily_facts, S.reports, S.gt_fall, S.agent_checkpoint]
+WIPE = [S.event_log, S.agent_output, S.case_state, S.alerts, S.outbox, S.daily_facts, S.reports, S.gt_fall, S.agent_checkpoint,
+        S.alert_state, S.care_task, S.case_file, S.agent_message]
 
 
 class SimController:
@@ -189,12 +190,18 @@ class Runtime:
         self.ctl = SimController(self.eng, n_patients=n_patients, max_days=max_days, on_reset=self._on_reset)
         self.stop_orch = threading.Event()
         self.orch = None
+        self.coord = None
         self.graph = self.conn = None
 
     def _start_orch(self):
         from echos.orchestrator.graph import run_orchestrator
         self.stop_orch = threading.Event()
         self.graph, self.conn = self._build_graph(self.eng, self.cp, report_llm=self.report_llm, weekly_pdf=self.weekly_pdf, report_root=self.report_root)
+        from echos.team.coordinator import CareCoordinator
+        if self.coord is not None:
+            self.coord.stop()
+        self.coord = CareCoordinator(self.eng, self.graph.dispatcher)    # Care Coordinator agent: alert lifecycle, escalation, tasks
+        self.coord.start()
         self.orch = threading.Thread(target=run_orchestrator, args=(self.eng, self.graph), kwargs={"stop": self.stop_orch, "poll_s": 0.2}, daemon=True)
         self.orch.start()
 
@@ -229,6 +236,8 @@ class Runtime:
     def close(self):
         self.ctl.stop.set()
         self.stop_orch.set()
+        if self.coord:
+            self.coord.stop()
         self.sup.stop_all()
 
 

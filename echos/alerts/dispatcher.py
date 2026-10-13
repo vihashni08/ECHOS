@@ -93,6 +93,27 @@ class AlertDispatcher:
                 log.error("alert %s: recipient has no address", p.alert_id)
         return True
 
+    def dispatch_escalation(self, alert_id: str, waited_s: float) -> Optional[str]:
+        """Care Coordinator: nobody acknowledged this alert in time -> the same content goes to the escalation contact (role 'escalation').
+        Once per alert (outbox unique key). Returns the address role used, or None if already escalated / no source row."""
+        now = self.clock()
+        addr = self.to.get("escalation", "")
+        with self.eng.begin() as c:
+            src = c.execute(select(S.outbox).where((S.outbox.c.alert_id == alert_id) & (S.outbox.c.recipient_role == "caregiver"))).first()
+            if src is None:
+                return None
+            subj = f"[ESCALATED: not acknowledged after {int(waited_s // 60)} min] {src.subject}"
+            body = f"No one has acknowledged this alert after {int(waited_s // 60)} minutes. Please check on the person now.\n\n{src.body}"
+            st, err = ("PENDING", None) if addr else ("FAILED", "no escalation address configured")
+            if not S.insert_ignore(c, S.outbox, alert_id=alert_id, recipient_role="escalation", address=addr, channel=self.mailer.channel, subject=subj, body=body,
+                                   body_html=None, status=st, attempts=0, error=err, event_time=src.event_time, queued_time=now, window_start=now):
+                return None
+            oid = c.execute(select(S.outbox.c.outbox_id).where((S.outbox.c.alert_id == alert_id) & (S.outbox.c.recipient_role == "escalation"))).scalar()
+        if st == "PENDING":
+            self._push(oid, 0.0, {"address": addr, "subject": subj, "body": body, "body_html": None, "alert_id": alert_id, "role": "escalation",
+                                  "attempts": 0, "window_start": now})
+        return "escalation"
+
     def dispatch_weekly(self, patient_id: str, week: str, subject: str, body: str, body_html: str, pdf_path: str, week_end: str = "",
                         force: bool = False) -> Optional[str]:
         """Queue the weekly report email to the CLINICIAN only, PDF attached. Unique per (patient, ISO week): a second call returns None unless

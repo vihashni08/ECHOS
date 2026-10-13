@@ -23,7 +23,8 @@ def load_env() -> None:
 def recipients() -> dict:
     """{'caregiver': address, 'clinician': address} from the environment ('' when unset: the outbox row then FAILS visibly)."""
     load_env()
-    return {"caregiver": os.environ.get("ECHOS_CAREGIVER_EMAIL", "").strip(), "clinician": os.environ.get("ECHOS_CLINICIAN_EMAIL", "").strip()}
+    return {"caregiver": os.environ.get("ECHOS_CAREGIVER_EMAIL", "").strip(), "clinician": os.environ.get("ECHOS_CLINICIAN_EMAIL", "").strip(),
+            "escalation": os.environ.get("ECHOS_ESCALATION_EMAIL", "").strip()}
 
 
 class Mailer:

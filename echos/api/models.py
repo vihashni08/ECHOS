@@ -169,10 +169,78 @@ class AlertOut(BaseModel):
     alert_id: str
     patient_id: str
     type: str
-    status: str
+    status: str                                    # delivery status: PENDING / SENT / FAILED (from the outbox)
     event_id: Optional[int] = None
     event_time: Optional[str] = None
     time: Optional[float] = None
+    state: Optional[str] = None                    # lifecycle (Care Coordinator): NEW / SENT / ACKNOWLEDGED / RESOLVED / ESCALATED
+    sent_ts: Optional[float] = None
+    deadline_ts: Optional[float] = None            # not acknowledged by then -> escalated
+    ack_ts: Optional[float] = None
+    ack_by: Optional[str] = None
+    escalated_ts: Optional[float] = None
+    resolved_ts: Optional[float] = None
+    note: Optional[str] = None
+
+
+class AlertAckIn(BaseModel):
+    by: str = "caregiver"
+    note: Optional[str] = None
+
+
+class CareTaskOut(BaseModel):
+    id: int
+    patient_id: str
+    day: Optional[str] = None
+    kind: str
+    title: str
+    detail: Optional[str] = None
+    created_by: Optional[str] = None
+    created_ts: Optional[float] = None
+    due_ts: Optional[float] = None
+    status: str
+    alert_id: Optional[str] = None
+
+
+class AgentMessageOut(BaseModel):
+    id: int
+    ts: float
+    sender: str
+    recipient: str
+    topic: str
+    patient_id: Optional[str] = None
+    day: Optional[str] = None
+    payload: dict = Field(default_factory=dict)
+
+
+class ComponentOut(BaseModel):
+    id: str
+    name: str
+    kind: str                                      # detector | agent | infra
+    role: str
+    inputs: str
+    outputs: str
+    on_failure: str
+    never: str
+    status: str                                    # running | idle | missing | n/a
+    heartbeat_age_s: Optional[float] = None
+    detail: Optional[str] = None                   # e.g. "3 open alerts", "last case 2019-05-07"
+
+
+class CaseFileOut(BaseModel):
+    patient_id: str
+    day: str
+    status: str
+    headline: str
+    evidence_level: str                            # STRONG | MODERATE | LIMITED (not a probability)
+    reasons: list[str] = Field(default_factory=list)
+    caveats: list[str] = Field(default_factory=list)
+    next_checks: list[str] = Field(default_factory=list)
+    trace: list[dict] = Field(default_factory=list)
+    detectors: dict = Field(default_factory=dict)
+    history: Optional[dict] = None
+    agreement: Optional[dict] = None
+    disclaimer: str = ""
 
 
 class OutboxOut(BaseModel):

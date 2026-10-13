@@ -111,7 +111,26 @@ sim_command = Table("sim_command", md, Column("id", Integer, primary_key=True, a
 event_feed = Table("event_feed", md, Column("id", Integer, primary_key=True, autoincrement=True), Column("ts", Float), Column("kind", String),
                    Column("data", Text))                                                                      # server-sent events: filled by triggers below
 
+# ---- multi-agent layer (echos/team): message bus, alert lifecycle, care tasks, case files
+agent_message = Table("agent_message", md, Column("id", Integer, primary_key=True, autoincrement=True), Column("ts", Float), Column("sender", String, index=True),
+                      Column("recipient", String, index=True), Column("topic", String), Column("patient_id", String), Column("day", String),
+                      Column("payload", Text), Column("status", String, default="NEW"))          # NEW -> DONE (consumed by the recipient)
+alert_state = Table("alert_state", md, Column("alert_id", String, primary_key=True), Column("patient_id", String, index=True), Column("type", String),
+                    Column("state", String, index=True),                                         # NEW -> SENT -> ACKNOWLEDGED -> RESOLVED, or ESCALATED
+                    Column("created_ts", Float), Column("sent_ts", Float), Column("ack_ts", Float), Column("ack_by", String), Column("resolved_ts", Float),
+                    Column("escalated_ts", Float), Column("escalation_to", String), Column("deadline_ts", Float), Column("note", Text))
+care_task = Table("care_task", md, Column("id", Integer, primary_key=True, autoincrement=True), Column("patient_id", String, index=True), Column("day", String),
+                  Column("kind", String), Column("title", Text), Column("detail", Text), Column("created_by", String), Column("created_ts", Float),
+                  Column("due_ts", Float), Column("status", String, default="OPEN"), Column("done_ts", Float), Column("alert_id", String),
+                  UniqueConstraint("patient_id", "kind", "alert_id", "day", name="uq_task"))
+case_file = Table("case_file", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True), Column("file", Text), Column("created_ts", Float))
+
 _TRIGGERS = [
+    ("feed_alert_state", "AFTER UPDATE OF state ON alert_state", "WHEN OLD.state IS NOT NEW.state", "'alert_state'",
+     "json_object('alert_id', NEW.alert_id, 'patient_id', NEW.patient_id, 'state', NEW.state)"),
+    ("feed_agent_message", "AFTER INSERT ON agent_message", "", "'agent_message'",
+     "json_object('id', NEW.id, 'sender', NEW.sender, 'recipient', NEW.recipient, 'topic', NEW.topic, 'patient_id', NEW.patient_id)"),
+    ("feed_care_task", "AFTER INSERT ON care_task", "", "'care_task'", "json_object('id', NEW.id, 'patient_id', NEW.patient_id, 'kind', NEW.kind)"),
     ("feed_alert", "AFTER INSERT ON alerts", "", "'alert'", "json_object('alert_id', NEW.alert_id, 'patient_id', NEW.patient_id, 'type', NEW.type, 'event_time', NEW.event_time)"),
     ("feed_day_ins", "AFTER INSERT ON case_state", "", "'day_status'", "json_object('patient_id', NEW.patient_id, 'day', NEW.day, 'status', NEW.status)"),
     ("feed_day_upd", "AFTER UPDATE OF status ON case_state", "WHEN OLD.status IS NOT NEW.status", "'day_status'",

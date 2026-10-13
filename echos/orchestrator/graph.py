@@ -1,4 +1,4 @@
-"""LangGraph orchestrator: load_day -> run_agents -> triage -> (immediate_alert | daily_report) -> [weekly_report].
+"""LangGraph orchestrator = the Triage agent: load_day -> run_agents -> triage -> [immediate_alert] -> investigate (Case Investigator) -> daily_report -> [weekly_report].
 
 Checkpointed per (patient, day) thread with langgraph-checkpoint-sqlite's SqliteSaver. Side-effecting nodes are
 idempotent (alerts have a unique key), so a crash and resume can never produce a duplicate alert.
@@ -115,7 +115,19 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
         return {"decision": dec.model_dump(mode="json")}
 
     def route(st: CaseState) -> str:
-        return "immediate_alert" if st["decision"]["status"] == "URGENT" else "daily_report"
+        return "immediate_alert" if st["decision"]["status"] == "URGENT" else "investigate"
+
+    def investigate(st: CaseState) -> dict:
+        """Case Investigator agent: plans a few checks and writes the case file (never changes the status; a failure never stops the case)."""
+        from echos.team import bus
+        from echos.team.investigator import Investigator
+        try:
+            bus.post(eng, "triage", "investigator", "case_opened", st["patient_id"], st["day"], {"status": st["decision"]["status"], "reasons": st["decision"].get("reasons", [])[:4]})
+            Investigator(eng).investigate(st["patient_id"], st["day"], st["decision"], st["results"])
+        except Exception:  # noqa: BLE001
+            import logging
+            logging.getLogger("echos.investigator").exception("investigation failed for %s %s", st["patient_id"], st["day"])
+        return {}
 
     def immediate_alert(st: CaseState) -> dict:
         queue_alerts(eng, dispatcher, st["patient_id"], st["day"], st["decision"], st["results"])   # fixed template, no LLM: before any report work
@@ -148,13 +160,14 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
 
     g = StateGraph(CaseState)
     for name, fn in [("load_day", load_day), ("run_agents", run_agents), ("triage", triage_node),
-                     ("immediate_alert", immediate_alert), ("daily_report", daily_report), ("weekly_report", weekly_report)]:
+                     ("immediate_alert", immediate_alert), ("investigate", investigate), ("daily_report", daily_report), ("weekly_report", weekly_report)]:
         g.add_node(name, fn)
     g.add_edge(START, "load_day")
     g.add_edge("load_day", "run_agents")
     g.add_edge("run_agents", "triage")
-    g.add_conditional_edges("triage", route, {"immediate_alert": "immediate_alert", "daily_report": "daily_report"})
-    g.add_edge("immediate_alert", "daily_report")
+    g.add_conditional_edges("triage", route, {"immediate_alert": "immediate_alert", "investigate": "investigate"})
+    g.add_edge("immediate_alert", "investigate")
+    g.add_edge("investigate", "daily_report")
     g.add_conditional_edges("daily_report", after, {"weekly_report": "weekly_report", END: END})
     g.add_edge("weekly_report", END)
     compiled = g.compile(checkpointer=saver)

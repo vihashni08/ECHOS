@@ -1,0 +1,141 @@
+"""Care Coordinator agent. Goal: every alert is acted on by a human, or someone else is told.
+
+It runs its own loop (a thread inside the runtime), keeps its state in SQLite (so a restart loses nothing) and acts through tools:
+  track delivery      NEW -> SENT when the outbox shows a delivered row; if the caregiver mail FAILED it escalates at once
+  wait for an ack     deadline = sent time + coordinator.ack_timeout_s[type]
+  escalate            no ack by the deadline -> the escalation contact gets the same alert (dispatcher.dispatch_escalation), state ESCALATED
+  follow up           an acknowledged FALL opens a CHECK_IN task; >= review_min_days non-normal days in review_window_days open a clinician REVIEW task
+It never delays or suppresses the first alert (that is the dispatcher's job, queued before any report work) and never touches triage."""
+from __future__ import annotations
+
+import logging
+import threading
+import time
+from typing import Optional
+
+from sqlalchemy import func, select
+
+from echos.config import load_config
+from echos.orchestrator import state as S
+from echos.team import bus, lifecycle
+
+log = logging.getLogger("echos.coordinator")
+AGENT = "coordinator"
+
+
+class CareCoordinator:
+    def __init__(self, eng, dispatcher=None, clock=time.time, cfg: Optional[dict] = None):
+        self.eng, self.dispatcher, self.clock = eng, dispatcher, clock
+        self.cfg = cfg or load_config().get("coordinator", {})
+        self._stop = threading.Event()
+        self._thread = None
+        self.last_beat = 0.0
+
+    # ------------------------------------------------------------ one pass (also called directly by tests with a fake clock)
+    def step(self) -> dict:
+        n = {"registered": 0, "sent": 0, "escalated": 0, "tasks": 0}
+        n["registered"] = self._register()
+        n["sent"] = self._track_delivery()
+        n["escalated"] = self._escalate_overdue()
+        n["tasks"] = self._followups() + self._reviews()
+        self.last_beat = self.clock()
+        return n
+
+    def _timeout(self, typ: str) -> float:
+        return float((self.cfg.get("ack_timeout_s") or {}).get(typ.upper(), 1800))
+
+    def _register(self) -> int:
+        k = 0
+        with self.eng.begin() as c:
+            known = {r[0] for r in c.execute(select(S.alert_state.c.alert_id))}
+            for a in c.execute(select(S.alerts.c.alert_id, S.alerts.c.patient_id, S.alerts.c.type)).fetchall():
+                if a.alert_id in known:
+                    continue
+                S.insert_ignore(c, S.alert_state, alert_id=a.alert_id, patient_id=a.patient_id, type=(a.type or "").upper(), state="NEW", created_ts=self.clock())
+                k += 1
+        return k
+
+    def _track_delivery(self) -> int:
+        k = 0
+        with self.eng.begin() as c:
+            rows = c.execute(select(S.alert_state).where(S.alert_state.c.state == "NEW")).fetchall()
+            for r in rows:
+                ob = c.execute(select(S.outbox.c.recipient_role, S.outbox.c.status, S.outbox.c.sent_time).where(S.outbox.c.alert_id == r.alert_id)).fetchall()
+                cg = [o for o in ob if o.recipient_role == "caregiver"]
+                if any(o.status == "SENT" for o in cg):
+                    sent = max([o.sent_time or 0 for o in cg if o.status == "SENT"] or [self.clock()]) or self.clock()
+                    c.execute(S.alert_state.update().where(S.alert_state.c.alert_id == r.alert_id).values(
+                        state="SENT", sent_ts=sent, deadline_ts=sent + self._timeout(r.type or "")))
+                    k += 1
+                elif cg and all(o.status == "FAILED" for o in cg):   # cannot reach the caregiver at all: do not wait for a timeout
+                    c.execute(S.alert_state.update().where(S.alert_state.c.alert_id == r.alert_id).values(
+                        state="SENT", sent_ts=self.clock(), deadline_ts=self.clock(), note="caregiver delivery failed: escalating immediately"))
+                    k += 1
+        return k
+
+    def _escalate_overdue(self) -> int:
+        k, now = 0, self.clock()
+        with self.eng.begin() as c:
+            due = c.execute(select(S.alert_state).where((S.alert_state.c.state == "SENT") & (S.alert_state.c.deadline_ts <= now))).fetchall()
+        for r in due:
+            waited = max(0.0, now - (r.sent_ts or r.created_ts or now))
+            if self.dispatcher is not None:
+                self.dispatcher.dispatch_escalation(r.alert_id, waited)
+            with self.eng.begin() as c:     # conditional update: a concurrent acknowledgement wins
+                u = c.execute(S.alert_state.update().where((S.alert_state.c.alert_id == r.alert_id) & (S.alert_state.c.state == "SENT")).values(
+                    state="ESCALATED", escalated_ts=now, escalation_to="escalation contact"))
+            if u.rowcount:
+                k += 1
+                bus.post(self.eng, AGENT, "all", "alert_escalated", r.patient_id, "", {"alert_id": r.alert_id, "waited_s": round(waited)})
+                log.warning("alert %s escalated after %.0f s without acknowledgement", r.alert_id, waited)
+        return k
+
+    def _followups(self) -> int:
+        k = 0
+        delay = float(self.cfg.get("checkin_after_ack_s", 1800))
+        with self.eng.begin() as c:
+            rows = c.execute(select(S.alert_state).where((S.alert_state.c.state == "ACKNOWLEDGED") & (S.alert_state.c.type == "FALL"))).fetchall()
+            for r in rows:
+                if S.insert_ignore(c, S.care_task, patient_id=r.patient_id, day="", kind="CHECK_IN", alert_id=r.alert_id, created_by=AGENT, created_ts=self.clock(),
+                                   due_ts=(r.ack_ts or self.clock()) + delay, status="OPEN", title="Confirm the person is well after the fall",
+                                   detail="Phone or visit and note whether they need a clinician."):
+                    k += 1
+        return k
+
+    def _reviews(self) -> int:
+        k = 0
+        msgs = bus.poll(self.eng, AGENT, ["case_file_ready"])
+        win, need = int(self.cfg.get("review_window_days", 5)), int(self.cfg.get("review_min_days", 3))
+        for m in msgs:
+            with self.eng.begin() as c:
+                n = c.execute(select(func.count()).select_from(S.case_state).where(
+                    (S.case_state.c.patient_id == m["patient_id"]) & (S.case_state.c.day <= m["day"]) & (S.case_state.c.status != "NORMAL")
+                    & (S.case_state.c.day > func.date(m["day"], f"-{win} day")))).scalar()
+                if n >= need and S.insert_ignore(
+                        c, S.care_task, patient_id=m["patient_id"], day=m["day"], kind="CLINICIAN_REVIEW", alert_id="", created_by=AGENT, created_ts=self.clock(),
+                        due_ts=self.clock() + 86400, status="OPEN", title=f"Clinician review: {n} changed days in the last {win}",
+                        detail="Repeated changes from the person's usual: see the case files."):
+                    k += 1
+        bus.done(self.eng, [m["id"] for m in msgs])
+        return k
+
+    # ------------------------------------------------------------ thread
+    def start(self):
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._run, name="coordinator", daemon=True)
+        self._thread.start()
+
+    def _run(self):
+        poll = float(self.cfg.get("poll_s", 1.0))
+        while not self._stop.wait(poll):
+            try:
+                self.step()
+                with self.eng.begin() as c:
+                    S.upsert(c, S.agent_heartbeat, ["agent_id"], agent_id=AGENT, ts=S.now(), last_event_id=0, status="running", pid=0)
+            except Exception:  # noqa: BLE001 - the agent must survive a bad pass
+                log.exception("coordinator pass failed")
+
+    def stop(self):
+        self._stop.set()

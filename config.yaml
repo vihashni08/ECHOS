@@ -118,3 +118,12 @@ api:   # echos/api (FastAPI): bound to 127.0.0.1, NO authentication (demo only),
   port: 8000
   cors_origin: http://localhost:5173
   allow_kill: false      # POST /api/agents/{name}/kill is refused unless true
+
+coordinator:   # Care Coordinator agent (echos/team/coordinator.py): owns the alert lifecycle. Wall-clock seconds.
+  poll_s: 1.0
+  ack_timeout_s: {FALL: 300, CRITICAL_VITALS: 1800}   # not acknowledged this long after SENT -> ESCALATED (second contact)
+  checkin_after_ack_s: 1800                            # after an acknowledged FALL: open a "confirm the person is well" task due this long later
+  review_window_days: 5                                # >= review_min_days non-NORMAL days within this window -> a clinician-review task
+  review_min_days: 3
+investigator:   # Case Investigator agent (echos/team/investigator.py): bounded tool loop, no LLM
+  max_steps: 4
