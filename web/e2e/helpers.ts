@@ -18,4 +18,4 @@ export async function firstPatient(): Promise<{ patient_id: string; latest_day: 
   const p = await json<{ items: { patient_id: string; latest_day: string; last_alert_type: string | null }[] }>("/patients")
   return p.items.find((x) => x.last_alert_type) ?? p.items[0]
 }
-export const setTheme = (page: Page, t: "light" | "dark") => page.addInitScript((v) => localStorage.setItem("echos-theme", v), t)
+export const setTheme = (page: Page, t: "light" | "dark") => page.addInitScript((v) => localStorage.setItem("echos-theme-v2", v), t)

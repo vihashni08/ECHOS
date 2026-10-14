@@ -71,7 +71,7 @@ export default function Clinician() {
           <>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-5" data-testid="tiles">
               {[
-                ["Days by status", d ? `Normal ${d.status_counts.NORMAL} · Monitor ${d.status_counts.MONITOR} · Urgent ${d.status_counts.URGENT}` : "n/a", d ? `data gap ${d.status_counts.DATA_GAP}` : ""],
+                ["Days by status", d ? `Normal ${d.status_counts.NORMAL} · Monitor ${d.status_counts.MONITOR} · Urgent ${d.status_counts.URGENT}` : "n/a", d ? `data gap ${d.status_counts.DATA_GAP}${(d.status_counts as Record<string, number>).NOT_PROCESSED ? ` · not yet processed ${(d.status_counts as Record<string, number>).NOT_PROCESSED}` : ""}` : ""],
                 ["Vitals alerts", String(d?.vitals_alerts?.length ?? 0), ""], ["Falls", String(d?.falls?.length ?? 0), ""], ["Unusual-pattern days", String(d?.unusual_days?.length ?? 0), ""],
                 ["Completeness", d ? `vitals ${d.completeness.days_with_vitals}/7 · activity ${d.completeness.days_with_activity}/7` : "n/a", d?.partial_week_note ?? ""],
               ].map(([t, v, s]) => (

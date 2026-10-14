@@ -7,23 +7,23 @@
 
 /* Design tokens. Every text/background pair is checked for WCAG AA by `node contrast.mjs` (keep the two in sync). */
 :root {
-  --background: #f8f5f0;
-  --foreground: #1f1b17;
+  --background: #f5f8fb;
+  --foreground: #172029;
   --card: #ffffff;
-  --card-foreground: #1f1b17;
+  --card-foreground: #172029;
   --popover: #ffffff;
-  --popover-foreground: #1f1b17;
+  --popover-foreground: #172029;
   --primary: #0b5a5e;
   --primary-foreground: #ffffff;
-  --secondary: #ece7df;
-  --secondary-foreground: #1f1b17;
-  --muted: #efeae2;
-  --muted-foreground: #5c544b;
+  --secondary: #e8eef4;
+  --secondary-foreground: #172029;
+  --muted: #eaf0f5;
+  --muted-foreground: #4f5b68;
   --accent: #e3efee;
   --accent-foreground: #0b3f42;
   --destructive: #b42318;
-  --border: #dcd5ca;
-  --input: #cfc7ba;
+  --border: #d5dde6;
+  --input: #c6d1dd;
   --ring: #0b5a5e;
   --radius: 0.625rem;
   --normal-bg: #e3f4e6; --normal-fg: #14532d; --normal-line: #5aa46b;

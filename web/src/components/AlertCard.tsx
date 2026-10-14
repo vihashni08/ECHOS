@@ -8,9 +8,10 @@ import type { AlertRow } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 export const STATE_TEXT: Record<string, string> = {
-  NEW: "Being delivered", SENT: "Delivered: waiting for someone to acknowledge", ACKNOWLEDGED: "Acknowledged", RESOLVED: "Resolved", ESCALATED: "Escalated: not acknowledged in time",
+  NEW: "Being delivered", SENT: "Delivered: waiting for someone to acknowledge", ACKNOWLEDGED: "Acknowledged", RESOLVED: "Resolved", ESCALATED: "Escalated: not acknowledged in time", EXPIRED: "Expired: too old to act on (history)",
 }
-export const isOpen = (a: AlertRow) => a.state !== "ACKNOWLEDGED" && a.state !== "RESOLVED"
+// EXPIRED = too old to act on (history after a restart or a replay): shown as history, never as "needs action now"
+export const isOpen = (a: AlertRow) => a.state !== "ACKNOWLEDGED" && a.state !== "RESOLVED" && a.state !== "EXPIRED"
 
 export function AlertCard({ a, compact }: { a: AlertRow; compact?: boolean }) {
   const now = useNow()

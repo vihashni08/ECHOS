@@ -203,10 +203,9 @@ def build_weekly_data(eng, patient_id: str, week, pdy: Optional[pd.DataFrame] = 
 
     demo = __import__("echos.data.loaders", fromlist=["x"]).load_demographics() if demo is None else demo
     dm = demo[demo.patient_id == patient_id]
-    import re
-    nums = re.findall(r"\d+", str(dm.age_band.iloc[0])) if len(dm) else []
+    from echos.data.age import band_label
     return {"patient_id": patient_id, "week": iso_week(mon), "days_in_week": 7, "week_start": dstr[0], "week_end": dstr[-1],
-            "age_band": f"{nums[0]}-{nums[1]}" if len(nums) >= 2 else "unknown", "sex": str(dm.sex.iloc[0]) if len(dm) else "unknown",
+            "age_band": band_label(dm.age_band.iloc[0]) if len(dm) else "unknown", "sex": str(dm.sex.iloc[0]) if len(dm) else "unknown",
             "days": [{"day": d, "status": status[d], "data_gap": bool(d in cs and cs[d].data_gap), "has_data": d in with_data} for d in dstr],
             "status_counts": counts, "vitals_summary": vsum, "vitals_alerts": vit_alerts, "falls": falls, "unusual_days": unusual,
             "routine_baseline_established": {k: any(b is not None for b in routine[k]["band"].values()) for k in ROUTINE},

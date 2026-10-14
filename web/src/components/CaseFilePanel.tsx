@@ -24,10 +24,10 @@ function stepText(t: { tool: string; result: unknown }): string {
 }
 
 /** "How this decision was made": the Case Investigator's file. Only changed or urgent days have one. */
-export default function CaseFilePanel({ pid, day }: { pid: string; day?: string }) {
+export default function CaseFilePanel({ pid, day, status }: { pid: string; day?: string; status?: string | null }) {
   const c = useCase(pid, day)
   if (c.isLoading) return <CardSkeleton h="h-40" />
-  if (!c.data) return <Card><CardContent className="pt-4 text-sm text-muted-foreground" data-testid="case-none">No case file: the latest day is normal, so the Case Investigator has nothing to investigate.</CardContent></Card>
+  if (!c.data) return <Card><CardContent className="pt-4 text-sm text-muted-foreground" data-testid="case-none">{status && status !== "NORMAL" ? "No case file was built for this day: the Case Investigator did not run on it (for example a replay made before it existed). The reasons above still come from the detectors." : "No case file: the latest day is normal, so the Case Investigator has nothing to investigate."}</CardContent></Card>
   const f = { ...c.data, next_checks: c.data.next_checks ?? [], caveats: c.data.caveats ?? [], trace: c.data.trace ?? [], reasons: c.data.reasons ?? [] }
   const lv = LEVEL[f.evidence_level] ?? LEVEL.LIMITED
   return (

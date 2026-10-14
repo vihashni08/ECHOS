@@ -171,8 +171,8 @@ def _age_band(pid: str) -> str:
     if "demo" not in _CACHE:
         from echos.data.loaders import load_demographics
         _CACHE["demo"] = dict(zip(load_demographics().patient_id, load_demographics().age_band))
-    m = re.findall(r"\d+", str(_CACHE["demo"].get(pid, "")))
-    return f"{m[0]}-{m[1]}" if len(m) >= 2 else "unknown"      # "(80, 90]" -> "80-90"
+    from echos.data.age import band_label
+    return band_label(_CACHE["demo"].get(pid, ""))      # "(80, 90]" -> "80-90"; the open top band "(90, 110]" -> "90+"
 
 
 ROOM_WINDOW_H = 6

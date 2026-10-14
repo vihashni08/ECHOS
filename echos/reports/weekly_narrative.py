@@ -29,7 +29,8 @@ def _plural(n, word):
 def template_items(d: dict) -> dict:
     c, comp, vs = d["status_counts"], d["completeness"], d["vitals_summary"]
     s = [f"Week {d['week_start']} to {d['week_end']}: {comp['days_with_data']} of {d['days_in_week']} days had data, with {c['NORMAL']} Normal, "
-         f"{c['MONITOR']} Monitor and {c['URGENT']} Urgent days" + (f" ({_plural(c['DATA_GAP'], 'day')} with a data gap)." if c["DATA_GAP"] else ".")]
+         f"{c['MONITOR']} Monitor and {c['URGENT']} Urgent days" + (f" ({_plural(c['DATA_GAP'], 'day')} with a data gap)" if c["DATA_GAP"] else "")
+         + (f"; {_plural(c['NOT_PROCESSED'], 'day')} with data not yet processed by ECHOS." if c.get("NOT_PROCESSED") else ".")]
     for k in ("sys", "dia", "hr", "temp", "weight"):
         v = vs[k]
         if not v["n_readings"]:

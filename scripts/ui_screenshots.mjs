@@ -47,7 +47,7 @@ const browser = await chromium.launch()
 const files = []
 for (const [theme, vp] of [["light", [1440, 900]], ["dark", [1440, 900]], ["light", [390, 844]], ["dark", [390, 844]]]) {
   const ctx = await browser.newContext({ viewport: { width: vp[0], height: vp[1] } })
-  await ctx.addInitScript((t) => localStorage.setItem("echos-theme", t), theme)
+  await ctx.addInitScript((t) => localStorage.setItem("echos-theme-v2", t), theme)
   const page = await ctx.newPage()
   const errors = []
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()))

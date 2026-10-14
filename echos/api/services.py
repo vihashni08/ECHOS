@@ -12,6 +12,7 @@ import pandas as pd
 from sqlalchemy import func, select
 
 from echos.config import ROOT, load_config
+from echos.data.age import band_label
 from echos.orchestrator import state as S
 from echos.reports import facts as F
 from echos.reports import weekly_data as WD
@@ -112,8 +113,7 @@ def demo_of(ctx: Ctx, pid: str) -> tuple[str, str]:
     try:
         d = ctx.demo_df()
         r = d[d.patient_id == pid]
-        nums = re.findall(r"\d+", str(r.age_band.iloc[0])) if len(r) else []
-        return (f"{nums[0]}-{nums[1]}" if len(nums) >= 2 else "unknown"), (str(r.sex.iloc[0]) if len(r) else "unknown")
+        return (band_label(r.age_band.iloc[0]) if len(r) else "unknown"), (str(r.sex.iloc[0]) if len(r) else "unknown")
     except Exception:  # noqa: BLE001 - demographics are optional
         return "unknown", "unknown"
 
