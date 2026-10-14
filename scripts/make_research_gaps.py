@@ -41,6 +41,7 @@ def build() -> str:
     bud = "A's budget"
     rule, sub = vit[bud]["A fixed BP rule"], vit[bud]["B vitals sub-model only"]
     one = vit["1.0 / pt-wk"]["B vitals sub-model only"]
+    rt = J("report_text_check")
     sg_share = dq["sensor_gap_days"] / dq["patient_days"]
     nl, ld = lat["no_load"], lat["load_4_busy_threads"]
     fall_ci = e2e["falls_detected_pct_ci95_wilson"]
@@ -49,8 +50,10 @@ def build() -> str:
          "Every vitals and fall alert is shown with its values against the person's own usual, a plain-words 'why it fired' line, SHAP top features and persistence evidence "
          "(drift/CUSUM explanation-only); the daily and weekly reports cite guideline sources per finding.",
          f"Alert burden with context attached: MONITOR days {pct(e2e['status_share']['MONITOR'])}, URGENT {pct(e2e['status_share']['URGENT'])} of {e2e['patient_days']} replayed patient-days; "
-         f"vitals sub-model at 1 alert/patient-week: recall {ci(one['recall'], one['recall_ci95'])} vs chance {one['chance_recall']:.2f}.",
-         "Whether the explanations are clear or useful to a reader has NOT been measured (rating kit prepared in reports/rating, not run). Replay, not live use."),
+         f"vitals sub-model at 1 alert/patient-week: recall {ci(one['recall'], one['recall_ci95'])} vs chance {one['chance_recall']:.2f}. "
+         f"Automated text proxy (not a reader study) on {rt['n_reports']} template daily reports: median reading grade {rt['reading_grade']['median']}, median length {rt['words']['median']} words, "
+         f"all checks passed in {rt['all_checks_pass']}/{rt['n_reports']} (grade <= {rt['criteria']['max_grade']:g}, <= {rt['criteria']['max_words']} words, named next steps, no banned wording).",
+         "Whether the explanations are clear or useful to a reader has NOT been measured (rating kit prepared in reports/rating, not run); the text proxy checks wording rules of simple template text, not understanding, and says nothing about LLM wording. Replay, not live use."),
         ("Fixed thresholds ignore the individual",
          "Past-only personal baselines (shift(1)); XGBoost on deviation from the person's own usual, not on absolute values alone.",
          f"Vitals PR-AUC {ci(r1['xgboost']['pr_auc'] if 'xgboost' in r1 else a1['results']['at_rule_budget']['pr_auc'], c1['xgb_pr_auc'], 3)} vs fixed BP rule {ci(r1['fixed_rule']['pr_auc'], c1['rule_pr_auc'], 3)}; "

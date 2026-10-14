@@ -99,6 +99,12 @@ def check() -> list[str]:
     t = yaml.safe_load((ROOT / "config.yaml").read_text())["triage"]
     if (t["vitals_prob"], t["agitation_prob"]) != (n["vitals_prob"], n["agitation_prob"]):
         bad.append(f"config.yaml triage thresholds {t['vitals_prob']}/{t['agitation_prob']} != monitor_thresholds.json {n['vitals_prob']}/{n['agitation_prob']}")
+    from scripts.make_research_gaps import build as gaps
+    want_gaps = gaps()
+    if want_gaps not in readme:
+        bad.append("README.md: the 'Research gaps' table differs from scripts/make_research_gaps.py (run it): includes the report-text proxy numbers")
+    if want_gaps not in (ROOT / "docs/RESEARCH_GAPS.md").read_text():
+        bad.append("docs/RESEARCH_GAPS.md differs from scripts/make_research_gaps.py (run it)")
     return bad
 
 
