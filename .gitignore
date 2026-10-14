@@ -37,3 +37,4 @@ reports/live_check/
 .venv
 .venv/
 venv/data/auth_tokens.txt
+data/archive/

@@ -22,3 +22,18 @@ built from the Data Quality agent's output (sensor gap, days without vitals, ign
 ## Output schema
 `DataQualityResult` in `echos/schemas.py`: has_vitals, invalid_values, sensor_gap, sensor_gap_reason, days_since_last_reading,
 completeness, quality_checked. The worker emits it inside the standard `AgentResult.evidence` (agent = `quality`).
+
+## Retention of raw live events (optional)
+Live / emulator databases keep every ingested raw event in `event_log`. `scripts/archive_events.py` (`echos/live/retention.py`) moves old raw events into a compressed JSON-lines file (`data/archive/event_log_*.jsonl.gz`, git-ignored) and deletes them from the database. It is a **dry run unless `--yes` is given** (`--dry-run` is also accepted); nothing is scheduled automatically.
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/archive_events.py --db data/echos_live_dev.db --older-than-days 30            # counts only
+PYTHONPATH=. .venv/bin/python scripts/archive_events.py --db data/echos_live_dev.db --older-than-days 30 --yes      # archive + delete
+```
+
+- **Kept in the database:** `live_day` (the closed patient-day rows every detector and chart reads), `case_state`, `case_file`, `alerts`, `alert_state`, `reports`, `outbox`, `agent_output`, and by default all `vitals` events (vital charts and personal baselines read them; `--include-vitals` archives them too).
+- **Never archived:** the open day of any patient; events after the `agent_checkpoint` `'live'` position; any event an alert or a detector output (a fall's waveform) points at; events of a day not yet closed in `live_day`; a day not more than N days older than **both** the wall clock and that patient's newest data day (so an emulator replaying 2019 keeps its latest days).
+- **Order of work:** the archive file is written, read back and checksummed first; if the check fails nothing is deleted. The guards are checked again inside the DELETE.
+- **Restart recovery:** `LiveProcessor.recover()` continues from the checkpoint (it only re-reads events *after* it) and rebuilds the open day from `event_log`; both only need rows the archiver never removes (tested: decisions and provisional flags are identical after archive + restart). Do **not** delete or reset `agent_checkpoint` after archiving: a processor starting from event 0 would rebuild closed days from incomplete raw data.
+- **Side effects:** archived events are no longer deduplicated (a re-sent old event is stored again; its day is closed so it is only logged as late); in emulator mode the routine charts of archived days fall back to the original TIHM CSV rows, in real mode they show nothing for those days (the day-level numbers in `live_day` remain). There is no restore command: the archive is the record (`echos.live.retention.read_archive` reads it; re-importing is manual).
+- **Not done:** no scheduled run, no encryption of the archive file (protect it like the database), no archive of the other tables. Tested with synthetic rows and one emulated run, not on a database of months of real data.
