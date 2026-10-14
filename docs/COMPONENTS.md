@@ -61,7 +61,7 @@ For every non-Normal case, plans and runs a few checks (history, agreement betwe
 
 Owns every alert until someone acts: tracks delivery, waits for acknowledgement, escalates to a second contact, opens check-in and review tasks.
 
-- **Takes in:** alerts, outbox, acknowledgements, case history
+- **Takes in:** alerts, outbox, acknowledgements (web button or the signed e-mail link), case history
 - **Produces:** alert states, escalations, care tasks
 - **If it fails:** alerts are already sent by the dispatcher; only escalation and tasks pause until it restarts (state is in the database)
 - **Never:** delay or suppress the first alert

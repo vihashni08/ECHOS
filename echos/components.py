@@ -30,7 +30,7 @@ COMPONENTS = [
      "never": "change the status or give medical advice"},
     {"id": "coordinator", "name": "Care Coordinator agent", "kind": "agent", "worker": False,
      "role": "Owns every alert until someone acts: tracks delivery, waits for acknowledgement, escalates to a second contact, opens check-in and review tasks.",
-     "inputs": "alerts, outbox, acknowledgements, case history", "outputs": "alert states, escalations, care tasks",
+     "inputs": "alerts, outbox, acknowledgements (web button or the signed e-mail link), case history", "outputs": "alert states, escalations, care tasks",
      "on_failure": "alerts are already sent by the dispatcher; only escalation and tasks pause until it restarts (state is in the database)",
      "never": "delay or suppress the first alert"},
     {"id": "report", "name": "Report agent", "kind": "agent", "worker": False,
