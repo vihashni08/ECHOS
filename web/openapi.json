@@ -1559,7 +1559,7 @@
      "live"
     ],
     "summary": "Ingest",
-    "description": "Ingestion contract for ANY source (device, hub, emulator): a batch of activity / vitals / accel / heartbeat events with DATA timestamps.\nIdempotent: an exact repeat counts as a duplicate. If ECHOS_INGEST_TOKEN is set, send it as X-Echos-Token.",
+    "description": "Ingestion contract for ANY source (device, hub, emulator): a batch of activity / vitals / accel / heartbeat events with DATA timestamps.\nIdempotent: an exact repeat counts as a duplicate. If ECHOS_INGEST_TOKEN is set, send it as X-Echos-Token. Limits (config `ingest`): 413 too large / too many events, 411 no Content-Length, 403 unregistered device, 429 rate limit (Retry-After).",
     "operationId": "ingest_api_ingest_events_post",
     "parameters": [
      {
@@ -4598,7 +4598,7 @@
        "$ref": "#/components/schemas/IngestEvent"
       },
       "type": "array",
-      "maxItems": 500,
+      "maxItems": 10000,
       "minItems": 1,
       "title": "Events"
      }

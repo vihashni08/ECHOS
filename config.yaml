@@ -131,6 +131,12 @@ coordinator:   # Care Coordinator agent (echos/team/coordinator.py): owns the al
 investigator:   # Case Investigator agent (echos/team/investigator.py): bounded tool loop, no LLM
   max_steps: 4
 
+ingest:   # limits on POST /api/ingest/events (echos/api/ingest_limits.py, docs/INGESTION.md); checked before anything is stored
+  max_body_bytes: 4000000       # 413 above this (one 6000-sample accelerometer window is about 150 KB)
+  max_batch_events: 500         # 413 above this many events in one request
+  max_events_per_window: 600    # 429 when one device_id would exceed this many events within window_s (in-memory counters, reset on API restart)
+  window_s: 60
+  devices: []                   # empty = any device_id is accepted; a list of ids = only these (403 otherwise)
 live:   # live / emulator mode (echos/live). Raw events -> ingestion API -> event_log -> LiveProcessor (detectors scored from events, rolling triage).
   decide_min_interval_s: 2.0     # activity-only batches re-decide at most this often (vitals and accelerometer events decide at once)
   silent_hours: 6                # no activity event for this many DATA hours inside day_window while the patient's other streams advance -> sensor silent (provisional gap)

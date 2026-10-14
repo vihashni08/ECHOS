@@ -45,7 +45,7 @@ class IngestEvent(BaseModel):
 
 
 class IngestBatch(BaseModel):
-    events: list[IngestEvent] = Field(min_length=1, max_length=500)
+    events: list[IngestEvent] = Field(min_length=1, max_length=10000)    # hard ceiling; the operative limit is config ingest.max_batch_events (413)
 
 
 class IngestResult(BaseModel):

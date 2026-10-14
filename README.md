@@ -1,6 +1,6 @@
 # ECHOS: Evidence-Centred Health Observation and Support through Collaborative AI Agents
 
-Multi-agent decision support for home-dwelling elderly patients. **Not a diagnostic tool.** Results and caveats: [reports/RESULTS.md](reports/RESULTS.md); limits: [docs/LIMITATIONS.md](docs/LIMITATIONS.md); design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); 5-minute demo: [docs/DEMO.md](docs/DEMO.md).
+Multi-agent decision support for home-dwelling elderly patients. **Not a diagnostic tool.** Results and caveats: [reports/RESULTS.md](reports/RESULTS.md); limits: [docs/LIMITATIONS.md](docs/LIMITATIONS.md); design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); 5-minute demo: [docs/DEMO.md](docs/DEMO.md); connecting a device: [docs/INGESTION.md](docs/INGESTION.md).
 
 **Acknowledgement:** TIHM data courtesy of the Surrey and Borders Partnership NHS Foundation Trust (Palermo et al., *Scientific Data* 2023, doi 10.1038/s41597-023-02519-y; research and patient-benefit use only, no commercial use; see [docs/DATA_STATEMENT.md](docs/DATA_STATEMENT.md)). SisFall (Sucerquia et al., *Sensors* 2017) is used for the fall model.
 

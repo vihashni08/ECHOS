@@ -23,7 +23,7 @@ outbox, agent_heartbeat). Lists take `limit` (1-500) and `offset`; errors look l
 | GET | /api/tasks?status=OPEN, POST /api/tasks/{id}/done | care tasks opened by the Care Coordinator (check-in after a fall, clinician review after repeated changes) |
 | GET | /api/patients/{id}/case?day= | the Case Investigator's file (headline, evidence level, next checks, caveats, trace); `null` when that day has none |
 | GET | /api/components, /api/agents/messages | the detector / agent / infrastructure registry with live status; the message bus |
-| POST | /api/ingest/events | ingestion contract for any source (activity, vitals, accel, heartbeat; data timestamps; idempotent); optional `X-Echos-Token` when `ECHOS_INGEST_TOKEN` is set |
+| POST | /api/ingest/events | ingestion contract for any source (activity, vitals, accel, heartbeat; data timestamps; idempotent); optional `X-Echos-Token` when `ECHOS_INGEST_TOKEN` is set; limits (config `ingest`): 413 too large / too many events, 411 no Content-Length, 403 unregistered device, 429 rate limit with Retry-After; see [INGESTION.md](INGESTION.md) |
 | GET | /api/live/status | data mode (replay / emulator / live), emulator state, per-patient stream freshness |
 | POST | /api/live/emulator | `{action: load / play / pause / speed / fall}`: control the labelled device emulator |
 | GET | /api/falls, /api/falls/{id} | detail: downsampled 3-axis waveform, impact, probability, inactivity, alert + outbox rows |

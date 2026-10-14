@@ -25,6 +25,7 @@ from echos.api import team_services as T
 from echos.api import live_services as LV
 from echos.api import auth as A
 from echos.alerts import acklink
+from echos.api import ingest_limits as IL
 from echos.team import lifecycle
 from echos.live.schemas import IngestBatch
 from echos.api.models import (AgentHealth, AgentMessageOut, AlertAckIn, AlertOut, CareTaskOut, AuthOut, CaseFileOut, ComponentOut, LoginIn, EmulatorCmdIn, EmulatorCmdOut, IngestResultOut, LiveStatusOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
@@ -50,6 +51,7 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         report_root=os.environ.get("ECHOS_REPORT_ROOT") or None)
     app.add_middleware(CORSMiddleware, allow_origins=[os.environ.get("ECHOS_CORS_ORIGIN") or cfg.get("api", {}).get("cors_origin", "http://localhost:5173")], allow_methods=["GET", "POST"], allow_headers=["*"])
 
+    app.state.ingest_guard = IL.IngestGuard(cfg)
     app.state.auth_on = A.enabled(cfg)
     app.state.limiter = A.LoginLimiter()
 
@@ -65,6 +67,11 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
             request.state.role = role
         else:
             request.state.role = "operator"
+        if request.method == "POST" and request.url.path == "/api/ingest/events":
+            try:
+                app.state.ingest_guard.check_size(request.headers.get("content-length"))
+            except IL.LimitError as e:
+                return JSONResponse({"error": {"status": e.status, "message": e.message}}, status_code=e.status)
         return await call_next(request)
 
     def err(status: int, msg: str) -> JSONResponse:
@@ -240,11 +247,15 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
     @r.post("/ingest/events", response_model=IngestResultOut, tags=["live"])
     def ingest(request: Request, batch: IngestBatch, x_echos_token: Optional[str] = Header(None)):
         """Ingestion contract for ANY source (device, hub, emulator): a batch of activity / vitals / accel / heartbeat events with DATA timestamps.
-        Idempotent: an exact repeat counts as a duplicate. If ECHOS_INGEST_TOKEN is set, send it as X-Echos-Token."""
+        Idempotent: an exact repeat counts as a duplicate. If ECHOS_INGEST_TOKEN is set, send it as X-Echos-Token. Limits (config `ingest`): 413 too large / too many events, 411 no Content-Length, 403 unregistered device, 429 rate limit (Retry-After)."""
         try:
             LV.check_token(x_echos_token)
         except PermissionError as ex:
             raise HTTPException(403, str(ex))
+        try:
+            request.app.state.ingest_guard.check_batch(batch.events)
+        except IL.LimitError as e:
+            return JSONResponse({"error": {"status": e.status, "message": e.message}}, status_code=e.status, headers={"Retry-After": str(e.retry_after)} if e.retry_after else None)
         return LV.ingest(ctx_of(request), batch)
 
     @r.get("/live/status", response_model=LiveStatusOut, tags=["live"])
