@@ -21,8 +21,7 @@ Purpose: watch the sensors and vitals of one older person and tell caregiver + c
 - Infra: supervisor (replay: restarts the 3 detector workers; heartbeats in SQLite), watchdog (echos/orchestrator/watchdog.py: restarts the whole runtime process on exit / stale `sim_state.updated`; run_api.sh starts it), alert dispatcher, ingestion + live store (echos/live). Live restart: LiveProcessor.recover() (checkpoint `agent_checkpoint` 'live' + rebuild the open day from event_log); Emulator.resume() (paused at its stored position). A Sunday close builds the weekly PDF in the background.
 - Auth (optional, echos/api/auth.py): `--auth` / ECHOS_AUTH=on; tokens ECHOS_TOKEN_CAREGIVER / _CLINICIAN / _OPERATOR from the environment ONLY (run_api.sh --auth writes random ones to data/auth_tokens.txt, never printed); roles caregiver < clinician < operator; devices use X-Echos-Token (ECHOS_INGEST_TOKEN). Playwright: `npx playwright test -c playwright.auth.config.ts` (API :8031, Vite :5201).
 - THREE DATA MODES, labelled in the UI: REPLAY (simulator replays TIHM day by day; evaluation/demos), EMULATOR (echos/live/emulator.py: labelled device emulator replaying real TIHM raw events in wall-clock time; falls injected from SisFall), LIVE (real devices call POST /api/ingest/events; schema echos/live/schemas.py). Live detectors are scored FROM raw events (echos/live/features.py builds the patient-day row; the training table only supplies earlier history); vitals on arrival, behaviour when the day closes; an open day is PROVISIONAL (case_state.as_of / provisional). `scripts/run_api.sh --mode live` (default mode = replay). scripts/live_parity.py checks live == replay scores.
-- NO trained fusion model: triage is plain if-then rules. NO alert lifecycle (no ack/escalation): `alerts` rows record only PENDING/SENT/FAILED,
-  derived from the `outbox` table (one row per alert x recipient role: alert_id, recipient_role, address, channel, subject, body, status
+- NO trained fusion model: triage is plain if-then rules. `alerts.status` records only PENDING/SENT/FAILED (delivery), derived from the `outbox` table; the lifecycle (ack / escalation) lives in `alert_state` (Care Coordinator). Outbox rows: (one row per alert x recipient role: alert_id, recipient_role, address, channel, subject, body, status
   PENDING->SENT|FAILED, attempts <=3 with backoff 1,2,4 s, error, event_time, queued_time, sent_time).
 - Fall and critical-vitals alerts (echos/alerts/: payload.py, dispatcher.py, mailer.py) go immediately to caregiver (ECHOS_CAREGIVER_EMAIL) and
   clinician (ECHOS_CLINICIAN_EMAIL) as a fixed template built only from structured data (no LLM, no RAG, no PubMed anywhere in that path; de-identified
@@ -48,7 +47,7 @@ Purpose: watch the sensors and vitals of one older person and tell caregiver + c
   `source` column (tihm / sisfall) and trainers call echos.data.guard.assert_real_source.
 
 ## API and live runtime
-- echos/api (FastAPI, `scripts/run_api.sh [--dry] [--no-llm]`): bound to 127.0.0.1, CORS for http://localhost:5173 only, NO authentication (demo). The API process never
+- echos/api (FastAPI, `scripts/run_api.sh [--dry] [--no-llm]`): bound to 127.0.0.1, CORS for http://localhost:5173 only, authentication OPTIONAL and off by default (--auth). The API process never
   loads xgboost/torch/models: it reads SQLite + saved reports + reports/metrics/*.json and sends commands (play/pause/speed/reset, inject_fall) through the
   `sim_command` table to echos/sim/controller.py (the runtime: supervisor workers + orchestrator + controller). SSE /api/events reads `event_feed`, filled by SQLite
   triggers. Never returns raw secrets or full e-mail addresses (masked `ab***@domain`); `api.allow_kill` (default false) guards POST /api/agents/{name}/kill.
