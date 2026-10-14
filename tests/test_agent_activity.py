@@ -128,3 +128,11 @@ def test_live_fall_workflow_leaves_the_whole_chain_in_order(live_eng):
     lifecycle.resolve(eng, aid, "handled")
     acts = [e["action"] for e in AC.events(c, 200, agent="coordinator", patient_id=pats[0])]
     assert "acknowledged" in acts and "resolved" in acts
+
+
+def test_triage_decision_is_ordered_before_the_alert_it_caused_even_if_case_state_was_updated_later(db):
+    seed(db)
+    with db.begin() as c:
+        c.execute(S.case_state.update().where(S.case_state.c.patient_id == "p1").values(updated_ts=500.0))      # re-upserted long after (e.g. after the report)
+    order = [e["agent"] for e in AC.events(ctx(db), 100, patient_id="p1", day="2019-05-05", asc=True)]
+    assert order.index("triage") < order.index("dispatcher") < order.index("coordinator")

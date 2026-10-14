@@ -67,7 +67,7 @@ ok() { curl -fs -o /dev/null --max-time 3 "$1"; }
 # the runtime (watchdog -> controller / live runtime) writes sim_state.updated every second or two once it is up: fresh = alive
 # (a value left over from the previous run does not count: it must differ from the one seen before the start)
 U0=$(sqlite3 "$DB" "select value from sim_state where key='updated'" 2>/dev/null || true)
-rt_ok() { local u; u=$(sqlite3 "$DB" "select value from sim_state where key='updated'" 2>/dev/null) || return 1; [ -n "$u" ] && [ "$u" != "$U0" ] && awk -v u="$u" -v n="$(date +%s)" 'BEGIN{exit !(n-u<15)}'; }
+rt_ok() { local u m; [ "$MODE" = live ] && { m=$(sqlite3 "$DB" "select value from sim_state where key='mode'" 2>/dev/null); [ -n "$m" ] || return 1; };  u=$(sqlite3 "$DB" "select value from sim_state where key='updated'" 2>/dev/null) || return 1; [ -n "$u" ] && [ "$u" != "$U0" ] && awk -v u="$u" -v n="$(date +%s)" 'BEGIN{exit !(n-u<15)}'; }
 for i in $(seq 1 150); do
   ok "$API/api/auth/me" && ok "http://127.0.0.1:$WEB_PORT/" && rt_ok && break
   for p in "${PIDS[@]}"; do kill -0 "$p" 2>/dev/null || { echo "a process exited while starting: see data/logs/api.log and data/logs/web.log"; exit 1; }; done

@@ -7,7 +7,7 @@ import json
 import time
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from echos.api.services import Ctx
 from echos.api import team_services as T
@@ -67,9 +67,17 @@ def events(ctx: Ctx, limit: int = 100, agent: Optional[str] = None, patient_id: 
                 act, txt = _detector_text(r.agent_id, _j(r.result, {}))
                 out.append(_ev(r.done_ts, r.agent_id, act, txt, r.patient_id, r.day, f"event {r.event_id}"))
         if want("triage"):
+            # case_state is an upsert: its timestamp is the LAST update (after the report), not the decision. The decision came before everything it caused, so use the
+            # earliest of: the update, the first hand-over Triage posted for that day, and the first alert queued for that day.
+            first: dict = {}
+            for m in c.execute(select(S.agent_message.c.patient_id, S.agent_message.c.day, func.min(S.agent_message.c.ts)).where(S.agent_message.c.sender == "triage").group_by(S.agent_message.c.patient_id, S.agent_message.c.day)):
+                first[(m[0], m[1])] = m[2]
+            for m in c.execute(select(S.alerts.c.patient_id, S.alerts.c.event_time, func.min(S.alerts.c.time)).group_by(S.alerts.c.patient_id, S.alerts.c.event_time)):
+                k = (m[0], (m[1] or "")[:10])
+                first[k] = min(first.get(k, m[2]), m[2])
             for r in rows(select(S.case_state).order_by(S.case_state.c.updated_ts.desc()), S.case_state, S.case_state.c.day):
                 why = (_j(r.reasons, []) or [])[:2]
-                out.append(_ev(r.updated_ts, "triage", "decided", f"decided {r.status}{' (day still open)' if r.provisional else ''}" + (": " + "; ".join(str(x) for x in why) if why else ""), r.patient_id, r.day))
+                out.append(_ev(min(r.updated_ts or 0, first.get((r.patient_id, r.day), r.updated_ts or 0)) - 0.001, "triage", "decided", f"decided {r.status}{' (day still open)' if r.provisional else ''}" + (": " + "; ".join(str(x) for x in why) if why else ""), r.patient_id, r.day))
         for r in rows(select(S.agent_message).order_by(S.agent_message.c.id.desc()), S.agent_message, S.agent_message.c.day):
             if agent and r.sender != agent:
                 continue

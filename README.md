@@ -6,9 +6,22 @@ Multi-agent decision support for home-dwelling elderly patients. **Not a diagnos
 
 ## Overview
 
-A simulator replays TIHM activity and physiology day by day and injects SisFall fall windows (synthetic, for tests and demos). A rule-based **Data Quality agent** cleans each patient-day; the **Health Monitoring agent** scores it with a vitals sub-model and a behaviour sub-model (kept separate; SHAP, personal-baseline and persistence evidence; drift/CUSUM is explanation only); the **Fall agent** (SisFall only, independent of both) scores accelerometer windows. A **LangGraph orchestrator** applies deterministic if-then triage (Normal / Changed-monitor / Urgent) and queues fall and critical-vitals alerts immediately, before any report work. The **Report agent** (LLM + tools + non-LLM validator) writes the daily report; the weekly clinician report is a PDF by e-mail. A **supervisor** restarts dead workers. A FastAPI service and a React web app show everything.
+ECHOS watches the room sensors, vital signs and accelerometer data of one older person living at home and tells their caregiver and clinician **at once** about a fall or a critical reading, and **every day** about anything that differs from that person's own usual, with the evidence. It is decision support, not diagnosis: the language model only words reports and never decides an emergency; plain rules do.
 
-There is no trained fusion model and no alert lifecycle (no acknowledgement or escalation). The LLM never decides an emergency; rules do. With no key, reports run in template mode.
+- **Detectors sense, never decide:** a rule-based **Data Quality gate**; the **Vitals + Behaviour detector** (XGBoost with SHAP, personal past-only baselines, persistence; drift/CUSUM explains only); the **Fall detector** (SisFall only, independent of the others).
+- **Agents act and leave a trace:** **Triage** (plain if-then rules: Normal / Changed-monitor / Urgent), the **Case Investigator** (bounded tool loop, writes the case file), the **Care Coordinator** (owns the alert until someone acts: acknowledgement, escalation to a second contact, check-in and review tasks) and the **Report agent** (LLM wording behind a non-LLM validator, template fallback). They hand work to each other over a SQLite message bus; the **Agent activity** page shows it live.
+- **Alerts** for falls and critical vitals go out first, as a fixed template with no LLM, with retries and dedup; the e-mail can carry a signed "I have seen this" link. Mail is a dry run unless you switch it on.
+- **Three data modes, always labelled:** REPLAY (TIHM day by day, for evaluation), EMULATOR (labelled device emulator, real TIHM events in real time) and LIVE (real devices through `POST /api/ingest/events`, see [docs/INGESTION.md](docs/INGESTION.md)).
+- There is no trained fusion model. Small cohort (about 49 labelled patients), simulated falls and no real device yet: see [docs/LIMITATIONS.md](docs/LIMITATIONS.md) before drawing conclusions.
+
+### Quick start
+
+```bash
+scripts/start.sh --live --fresh     # API + watchdog + runtime + web app; prints the URLs; Ctrl-C stops all. Dry-run mail, no LLM, no PubMed.
+scripts/start.sh --replay           # the TIHM study replayed day by day (needs data/echos.db, see Reproduce)
+```
+
+Open the printed web address. In *Demo tools* press **Start** (emulator) or **Play** (replay), then watch **Today**, **Alerts** and **Agent activity**. A 5-minute walk-through is in [docs/DEMO.md](docs/DEMO.md); screenshots of every page are in [web/screenshots/](web/screenshots/).
 
 | Component | What it does | Data |
 |---|---|---|

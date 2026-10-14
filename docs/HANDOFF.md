@@ -1,5 +1,7 @@
 # ECHOS handoff: where the project stands and what to build next
 
+> **Update (tag `echos-v3.4`):** section 6 was implemented (ack link, ingest limits and device client, `scripts/start.sh`, retention archiver, report-text proxy), plus a light default theme, the **Agent activity** page (`/agents`, `GET /api/agents/summary` and `/activity`), and a rebuilt demo database with case files. All 37 Python test files and the replay (11), live (6) and auth (3) Playwright suites pass. Still open: the real-Gemini path is unverified, no real device, no TLS, the rating study is not planned. The sections below describe the state at v3.1.
+
 Written at tag `echos-v3.1` (commit `89451a6` plus the CLAUDE.md fix). Read `CLAUDE.md` first (project rules, architecture, commands), then this file. Everything below is checked against the code and the last full test run.
 
 ## 1. What ECHOS is
