@@ -130,9 +130,19 @@ test("keyboard: demo guide drawer traps focus, closes with Escape and returns fo
   await expect(btn).toBeFocused()
 })
 
+test("Agent activity page: every part has a card, the latest activity lists real records and filters by agent", async ({ page }) => {
+  await page.goto("/agents", { waitUntil: "networkidle" })
+  await expect(page.getByTestId("agent-cards").locator("li")).toHaveCount(10)
+  await expect(page.getByTestId("feed").getByTestId("activity-row").first()).toBeVisible()
+  await page.getByTestId("agent-card-fall").click()
+  const agents = await page.getByTestId("feed").getByTestId("activity-row").evaluateAll((els) => els.map((e) => e.getAttribute("data-agent")))
+  expect(agents.length).toBeGreaterThan(0)
+  expect(new Set(agents)).toEqual(new Set(["fall"]))
+})
+
 test("axe: no serious or critical violations on any page, light and dark", async ({ page }) => {
   const p = await firstPatient()
-  const pages = ["/", "/alerts", "/how-it-works", "/falls", `/patients/${p.patient_id}`, `/caregiver?patient=${p.patient_id}&day=${p.latest_day}`, `/clinician?patient=201d8&week=${WEEK}`, "/system"]
+  const pages = ["/", "/alerts", "/how-it-works", "/agents", "/falls", `/patients/${p.patient_id}`, `/caregiver?patient=${p.patient_id}&day=${p.latest_day}`, `/clinician?patient=201d8&week=${WEEK}`, "/system"]
   const found: { page: string; theme: string; id: string; impact: string; nodes: number; first: string }[] = []
   for (const theme of ["light", "dark"] as const) {
     await setTheme(page, theme)

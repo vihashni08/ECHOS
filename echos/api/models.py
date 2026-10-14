@@ -491,3 +491,25 @@ class LoginIn(BaseModel):
 class AuthOut(BaseModel):
     auth_enabled: bool
     role: Optional[str] = None                     # caregiver | clinician | operator | null (not logged in)
+
+
+class ActivityEventOut(BaseModel):
+    ts: float                                       # wall-clock seconds
+    agent: str
+    action: str
+    text: str
+    patient_id: str = ""
+    day: str = ""
+    ref: str = ""
+
+
+class AgentSummaryOut(BaseModel):
+    id: str
+    name: str
+    kind: str
+    status: str
+    detail: Optional[str] = None
+    heartbeat_age_s: Optional[float] = None
+    actions: int
+    last_ts: Optional[float] = None
+    last_text: Optional[str] = None

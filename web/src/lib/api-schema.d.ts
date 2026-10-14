@@ -437,6 +437,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agents/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Agents Summary
+         * @description Every detector, agent and infrastructure part: live status, how many actions it has logged and its latest one.
+         */
+        get: operations["agents_summary_api_agents_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agents/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Agents Activity
+         * @description What the agents did, newest first, from the tables they write. With `patient_id` + `day` (one case) the detector steps are included and the order can be oldest first.
+         */
+        get: operations["agents_activity_api_agents_activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/patients/{pid}/case": {
         parameters: {
             query?: never;
@@ -766,6 +806,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ActivityEventOut */
+        ActivityEventOut: {
+            /** Ts */
+            ts: number;
+            /** Agent */
+            agent: string;
+            /** Action */
+            action: string;
+            /** Text */
+            text: string;
+            /**
+             * Patient Id
+             * @default
+             */
+            patient_id: string;
+            /**
+             * Day
+             * @default
+             */
+            day: string;
+            /**
+             * Ref
+             * @default
+             */
+            ref: string;
+        };
         /** AgentHealth */
         AgentHealth: {
             /** Agent */
@@ -806,6 +872,27 @@ export interface components {
             payload?: {
                 [key: string]: unknown;
             };
+        };
+        /** AgentSummaryOut */
+        AgentSummaryOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+            /** Detail */
+            detail?: string | null;
+            /** Heartbeat Age S */
+            heartbeat_age_s?: number | null;
+            /** Actions */
+            actions: number;
+            /** Last Ts */
+            last_ts?: number | null;
+            /** Last Text */
+            last_text?: string | null;
         };
         /** AlertAckIn */
         AlertAckIn: {
@@ -3198,6 +3285,124 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentMessageOut"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    agents_summary_api_agents_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSummaryOut"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    agents_activity_api_agents_activity_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                agent?: string | null;
+                patient_id?: string | null;
+                day?: string | null;
+                oldest_first?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityEventOut"][];
                 };
             };
             /** @description Forbidden */

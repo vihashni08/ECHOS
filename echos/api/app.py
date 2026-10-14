@@ -24,11 +24,12 @@ from echos.api import services as V
 from echos.api import team_services as T
 from echos.api import live_services as LV
 from echos.api import auth as A
+from echos.api import activity as AC
 from echos.alerts import acklink
 from echos.api import ingest_limits as IL
 from echos.team import lifecycle
 from echos.live.schemas import IngestBatch
-from echos.api.models import (AgentHealth, AgentMessageOut, AlertAckIn, AlertOut, CareTaskOut, AuthOut, CaseFileOut, ComponentOut, LoginIn, EmulatorCmdIn, EmulatorCmdOut, IngestResultOut, LiveStatusOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
+from echos.api.models import (ActivityEventOut, AgentSummaryOut, AgentHealth, AgentMessageOut, AlertAckIn, AlertOut, CareTaskOut, AuthOut, CaseFileOut, ComponentOut, LoginIn, EmulatorCmdIn, EmulatorCmdOut, IngestResultOut, LiveStatusOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
                               Page, PatientOut, QualityOut, RoutineOut, SourceOut, SystemConfigOut, SimControlIn, SimFallIn, SimFallOut, SimStateOut, SummaryOut, VitalsOut, WeeklyReportOut,
                               WeeklySendIn, WeeklySendOut)
 from echos.config import load_config
@@ -278,6 +279,16 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
     def agent_messages(request: Request, patient_id: Optional[str] = None, limit: int = Query(50, ge=1, le=300)):
         """The message bus: who told whom what (newest first)."""
         return T.messages(ctx_of(request), patient_id, limit)
+
+    @r.get("/agents/summary", response_model=list[AgentSummaryOut], tags=["agents"])
+    def agents_summary(request: Request):
+        """Every detector, agent and infrastructure part: live status, how many actions it has logged and its latest one."""
+        return AC.summary(ctx_of(request))
+
+    @r.get("/agents/activity", response_model=list[ActivityEventOut], tags=["agents"])
+    def agents_activity(request: Request, limit: int = Query(100, ge=1, le=500), agent: Optional[str] = None, patient_id: Optional[str] = None, day: Optional[str] = None, oldest_first: bool = False):
+        """What the agents did, newest first, from the tables they write. With `patient_id` + `day` (one case) the detector steps are included and the order can be oldest first."""
+        return AC.events(ctx_of(request), limit, agent, patient_id, day, oldest_first)
 
     @r.get("/patients/{pid}/case", response_model=Optional[CaseFileOut], tags=["patients"])
     def case_file(request: Request, pid: str, day: Optional[str] = None):

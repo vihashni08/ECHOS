@@ -1939,6 +1939,210 @@
     }
    }
   },
+  "/api/agents/summary": {
+   "get": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Agents Summary",
+    "description": "Every detector, agent and infrastructure part: live status, how many actions it has logged and its latest one.",
+    "operationId": "agents_summary_api_agents_summary_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/AgentSummaryOut"
+         },
+         "type": "array",
+         "title": "Response Agents Summary Api Agents Summary Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/agents/activity": {
+   "get": {
+    "tags": [
+     "agents"
+    ],
+    "summary": "Agents Activity",
+    "description": "What the agents did, newest first, from the tables they write. With `patient_id` + `day` (one case) the detector steps are included and the order can be oldest first.",
+    "operationId": "agents_activity_api_agents_activity_get",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 500,
+       "minimum": 1,
+       "default": 100,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "agent",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Agent"
+      }
+     },
+     {
+      "name": "patient_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Patient Id"
+      }
+     },
+     {
+      "name": "day",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Day"
+      }
+     },
+     {
+      "name": "oldest_first",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Oldest First"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ActivityEventOut"
+         },
+         "title": "Response Agents Activity Api Agents Activity Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
   "/api/patients/{pid}/case": {
    "get": {
     "tags": [
@@ -3337,6 +3541,49 @@
  },
  "components": {
   "schemas": {
+   "ActivityEventOut": {
+    "properties": {
+     "ts": {
+      "type": "number",
+      "title": "Ts"
+     },
+     "agent": {
+      "type": "string",
+      "title": "Agent"
+     },
+     "action": {
+      "type": "string",
+      "title": "Action"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id",
+      "default": ""
+     },
+     "day": {
+      "type": "string",
+      "title": "Day",
+      "default": ""
+     },
+     "ref": {
+      "type": "string",
+      "title": "Ref",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "ts",
+     "agent",
+     "action",
+     "text"
+    ],
+    "title": "ActivityEventOut"
+   },
    "AgentHealth": {
     "properties": {
      "agent": {
@@ -3457,6 +3704,83 @@
      "topic"
     ],
     "title": "AgentMessageOut"
+   },
+   "AgentSummaryOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "detail": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Detail"
+     },
+     "heartbeat_age_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Heartbeat Age S"
+     },
+     "actions": {
+      "type": "integer",
+      "title": "Actions"
+     },
+     "last_ts": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Ts"
+     },
+     "last_text": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "kind",
+     "status",
+     "actions"
+    ],
+    "title": "AgentSummaryOut"
    },
    "AlertAckIn": {
     "properties": {

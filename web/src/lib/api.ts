@@ -49,3 +49,6 @@ export async function call<T>(p: Promise<{ data?: T; error?: unknown; response: 
     throw new ApiError(0, "API not reachable")
   }
 }
+
+export type AgentSummary = Schemas["AgentSummaryOut"]
+export type ActivityEvent = Schemas["ActivityEventOut"]

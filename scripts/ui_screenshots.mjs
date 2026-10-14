@@ -20,6 +20,7 @@ const wk = "2019-W20"
 const pages = [
   ["today", "/"],
   ["alerts", "/alerts"],
+  ["agents", "/agents"],
   ["how-it-works", "/how-it-works"],
   ["person-case-file", `/patients/${pid}`],
   ["falls", `/falls?patient=${pid}`],
@@ -38,6 +39,7 @@ const pages = [
 const livePages = [
   ["today", "/"],
   ["alerts", "/alerts"],
+  ["agents", "/agents"],
   ["how-it-works", "/how-it-works"],
   ["demo-tools", "/", async (p) => p.getByTestId("demo-tools-button").click()],
   ...(pid ? [["person-case-file", `/patients/${pid}`]] : []),

@@ -119,3 +119,7 @@ export function useEmulator() {
 
 // ---- authentication (optional on the server)
 export const useMe = () => useQuery({ queryKey: ["me"], queryFn: () => call(client.GET("/api/auth/me")), retry: 1, staleTime: 5000 })
+
+export const useAgentSummary = () => useQuery({ queryKey: ["agents", "summary"], queryFn: () => call(client.GET("/api/agents/summary")), ...poll(2000) })
+export const useActivity = (o: { agent?: string; pid?: string; day?: string; oldestFirst?: boolean; limit?: number }) =>
+  useQuery({ queryKey: ["agents", "activity", o], queryFn: () => call(client.GET("/api/agents/activity", { params: { query: { limit: o.limit ?? 80, agent: o.agent, patient_id: o.pid, day: o.day, oldest_first: o.oldestFirst } } })), ...poll(2000) })

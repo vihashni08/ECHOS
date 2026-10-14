@@ -75,9 +75,27 @@ test("How it works lists three detectors and four agents, with the message bus",
   await expect(page.getByTestId("bus")).toContainText("case_opened")
 })
 
+test("Agent activity shows every agent and the whole chain of the fall case, in order", async ({ page, request }) => {
+  await page.goto("/agents", { waitUntil: "networkidle" })
+  for (const id of ["fall", "triage", "investigator", "coordinator", "report", "dispatcher"]) await expect(page.getByTestId(`agent-card-${id}`)).toBeVisible()
+  await expect(page.getByTestId("agent-card-coordinator").getByTestId("agent-status")).toHaveText("running")
+  await expect(page.getByTestId("case-select")).toContainText("fall alert")
+  const rows = page.getByTestId("flow").getByTestId("activity-row")
+  await expect(rows.first()).toBeVisible({ timeout: 15000 })
+  const agents = await rows.evaluateAll((els) => els.map((e) => e.getAttribute("data-agent")))
+  for (const a of ["fall", "triage", "dispatcher", "investigator", "coordinator"]) expect(agents).toContain(a)
+  expect(agents.indexOf("fall")).toBeLessThan(agents.indexOf("triage"))
+  expect(agents.indexOf("triage")).toBeLessThan(agents.indexOf("investigator"))
+  // choosing one agent filters the latest-activity list to it
+  await page.getByTestId("agent-card-coordinator").click()
+  await expect(page.getByTestId("feed").getByTestId("activity-row").first()).toHaveAttribute("data-agent", "coordinator")
+  const all = await page.getByTestId("feed").getByTestId("activity-row").evaluateAll((els) => els.map((e) => e.getAttribute("data-agent")))
+  expect(new Set(all)).toEqual(new Set(["coordinator"]))
+})
+
 test("axe: no serious or critical violations on the live-mode pages", async ({ page }) => {
   const found: unknown[] = []
-  for (const path of ["/", "/alerts", "/how-it-works"]) {
+  for (const path of ["/", "/alerts", "/how-it-works", "/agents"]) {
     await page.goto(path, { waitUntil: "networkidle" })
     await page.waitForTimeout(1000)
     const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()

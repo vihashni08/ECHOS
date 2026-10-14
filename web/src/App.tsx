@@ -5,6 +5,7 @@ import { useMe } from "@/lib/queries"
 import { atLeast, type Role } from "@/lib/auth"
 import Today from "@/pages/Today"
 import Alerts from "@/pages/Alerts"
+import AgentActivity from "@/pages/AgentActivity"
 import HowItWorks from "@/pages/HowItWorks"
 import FallMonitor from "@/pages/FallMonitor"
 import PatientPage, { PatientRedirect } from "@/pages/PatientPage"
@@ -25,6 +26,7 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<Today />} />
         <Route path="alerts" element={<Alerts />} />
+        <Route path="agents" element={<AgentActivity />} />
         <Route path="how-it-works" element={<HowItWorks />} />
         <Route path="falls" element={<FallMonitor />} />
         <Route path="patient" element={<PatientRedirect />} />
