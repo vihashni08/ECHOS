@@ -94,6 +94,8 @@ PYTHONPATH=. python -m echos.knowledge.ingest
 PYTHONPATH=. python scripts/run_demo.py 4 28
 ```
 
+One command (API + watchdog + runtime + web app, dry-run mail, no LLM, no PubMed; prints only URLs; Ctrl-C stops everything): `scripts/start.sh --live` or `scripts/start.sh --replay` (add `--auth`, `--fresh`; `--llm` / `--pubmed` only if you want those real services). Logs in `data/logs/`.
+
 ```bash
 # 6a. LIVE / EMULATOR mode (the main way to run it): raw events -> ingestion API -> detectors scored from events -> rolling triage, with the labelled device emulator
 rm -f data/echos_live_dev.db data/echos_live_dev.db-wal data/echos_live_dev.db-shm

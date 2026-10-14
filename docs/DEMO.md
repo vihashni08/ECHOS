@@ -4,6 +4,8 @@ Everything is offline: dry-run mail (nothing is sent), no Gemini, no live PubMed
 
 ## Start the live / emulator mode (the main demo)
 
+One command: `scripts/start.sh --live --fresh` (then open the printed web URL). Or by hand:
+
 Terminal 1, from the repo root (fresh database; the first start also builds the replay fall model):
 ```bash
 rm -f data/echos_live_dev.db data/echos_live_dev.db-wal data/echos_live_dev.db-shm
