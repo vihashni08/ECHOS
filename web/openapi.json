@@ -1261,6 +1261,79 @@
     }
    }
   },
+  "/api/ack/{token}": {
+   "get": {
+    "tags": [
+     "alerts"
+    ],
+    "summary": "Ack By Link",
+    "description": "The \"I have seen this\" link in alert e-mails: signed (HMAC) and expiring, no login. Acknowledges the alert it names (idempotent) and shows a small page\nthat says nothing about the person. Forged / malformed tokens all get the same answer.",
+    "operationId": "ack_by_link_api_ack__token__get",
+    "parameters": [
+     {
+      "name": "token",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "text/html": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "text/html": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "text/html": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "text/html": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "text/html": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
   "/api/alerts/{alert_id}/resolve": {
    "post": {
     "tags": [

@@ -132,7 +132,7 @@ def _lines(p: AlertPayload) -> list[tuple[str, str]]:
     return rows
 
 
-def render_text(p: AlertPayload) -> str:
+def render_text(p: AlertPayload, ack_url: Optional[str] = None) -> str:
     out = []
     if p.is_test:
         out += ["*** TEST MESSAGE - NO REAL EVENT ***", ""]
@@ -143,20 +143,23 @@ def render_text(p: AlertPayload) -> str:
     out += [f"  {r}" for r in _room_rows(p)]
     out += ["", "Data quality: " + (p.data_quality_note or "no issues noted"), "", "Checklist:"]
     out += [f"  [ ] {c}" for c in p.checklist]
+    if ack_url:
+        out += ["", f"I have seen this (acknowledge, no login needed): {ack_url}"]
     out += ["", "ECHOS is a decision-support system, not a diagnostic tool. This message is a fixed template."]
     return "\n".join(out)
 
 
-def render_html(p: AlertPayload) -> str:
+def render_html(p: AlertPayload, ack_url: Optional[str] = None) -> str:
     e = html.escape
     rows = "".join(f"<tr><th align=left>{e(k)}</th><td>{e(v)}</td></tr>" for k, v in _lines(p))
     vit = "".join(f"<li>{e(r)}</li>" for r in _vital_rows(p))
     rooms = "".join(f"<li>{e(r)}</li>" for r in _room_rows(p))
     chk = "".join(f"<li>{e(c)}</li>" for c in p.checklist)
+    ack = f'<p><a href="{e(ack_url)}">I have seen this</a> (acknowledges the alert; no login needed)</p>' if ack_url else ""
     test = "<p><b>*** TEST MESSAGE - NO REAL EVENT ***</b></p>" if p.is_test else ""
     return (f"<html><body>{test}<h2>{e(TITLE[p.alert_type])}</h2><table>{rows}</table>"
             f"<h3>Latest vitals vs this patient's own baseline</h3><ul>{vit}</ul><h3>Last room-sensor events (within 6 h of the event)</h3><ul>{rooms}</ul>"
-            f"<p>Data quality: {e(p.data_quality_note or 'no issues noted')}</p><h3>Checklist</h3><ol>{chk}</ol>"
+            f"<p>Data quality: {e(p.data_quality_note or 'no issues noted')}</p><h3>Checklist</h3><ol>{chk}</ol>{ack}"
             "<p><i>ECHOS is a decision-support system, not a diagnostic tool. This message is a fixed template.</i></p></body></html>")
 
 

@@ -13,7 +13,8 @@ from typing import Optional
 
 LEVEL = {"caregiver": 1, "clinician": 2, "operator": 3}
 ENV = {"caregiver": "ECHOS_TOKEN_CAREGIVER", "clinician": "ECHOS_TOKEN_CLINICIAN", "operator": "ECHOS_TOKEN_OPERATOR"}
-PUBLIC = (("POST", re.compile(r"^/api/auth/login$")), ("GET", re.compile(r"^/api/auth/me$")), ("POST", re.compile(r"^/api/ingest/events$")))
+PUBLIC = (("POST", re.compile(r"^/api/auth/login$")), ("GET", re.compile(r"^/api/auth/me$")), ("POST", re.compile(r"^/api/ingest/events$")),
+          ("GET", re.compile(r"^/api/ack/[^/]+$")))    # the e-mail "I have seen this" link: its own signed token is the credential
 # (method, path pattern, minimum role): first match wins; anything not listed is operator-only for POST and caregiver for GET
 RULES = [
     ("POST", re.compile(r"^/api/alerts/.+/(ack|resolve)$"), "caregiver"),

@@ -19,6 +19,7 @@ outbox, agent_heartbeat). Lists take `limit` (1-500) and `offset`; errors look l
 | POST / GET | /api/auth/login, /api/auth/me | token -> role (caregiver / clinician / operator); only when authentication is on (`--auth`); failed logins are rate-limited. Send `Authorization: Bearer <token>`; the event stream takes `?token=` |
 | GET | /api/alerts, /api/outbox | paginated; alerts carry the lifecycle state (NEW / SENT / ACKNOWLEDGED / RESOLVED / ESCALATED / EXPIRED), deadline and acknowledgement |
 | POST | /api/alerts/{id}/ack, /resolve | acknowledge (stops the escalation timer) / mark as handled; idempotent |
+| GET | /api/ack/{token} | the signed, expiring "I have seen this" link in alert e-mails (`ECHOS_LINK_SECRET`, `ECHOS_PUBLIC_URL`; `alerts.ack_link_ttl_s`): no login even with auth on, acknowledges only, idempotent; HTML page (200 done, 400 not valid, 404 alert not registered yet, 410 expired, 503 not configured) |
 | GET | /api/tasks?status=OPEN, POST /api/tasks/{id}/done | care tasks opened by the Care Coordinator (check-in after a fall, clinician review after repeated changes) |
 | GET | /api/patients/{id}/case?day= | the Case Investigator's file (headline, evidence level, next checks, caveats, trace); `null` when that day has none |
 | GET | /api/components, /api/agents/messages | the detector / agent / infrastructure registry with live status; the message bus |

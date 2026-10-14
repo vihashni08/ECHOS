@@ -15,6 +15,7 @@ from fastapi import APIRouter, FastAPI, Header, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from sqlalchemy import func, select
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -23,6 +24,8 @@ from echos.api import services as V
 from echos.api import team_services as T
 from echos.api import live_services as LV
 from echos.api import auth as A
+from echos.alerts import acklink
+from echos.team import lifecycle
 from echos.live.schemas import IngestBatch
 from echos.api.models import (AgentHealth, AgentMessageOut, AlertAckIn, AlertOut, CareTaskOut, AuthOut, CaseFileOut, ComponentOut, LoginIn, EmulatorCmdIn, EmulatorCmdOut, IngestResultOut, LiveStatusOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
                               Page, PatientOut, QualityOut, RoutineOut, SourceOut, SystemConfigOut, SimControlIn, SimFallIn, SimFallOut, SimStateOut, SummaryOut, VitalsOut, WeeklyReportOut,
@@ -182,6 +185,26 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         ctx = ctx_of(request)
         T.ack(ctx, alert_id, request.state.role if app.state.auth_on else body.by)      # with auth on, who acknowledged is the logged-in role, not client text
         return T.alert_lifecycle(ctx, [V.alert_by_id(ctx, alert_id)])[0]
+
+    @r.get("/ack/{token}", response_class=HTMLResponse, tags=["alerts"], include_in_schema=True)
+    def ack_by_link(request: Request, token: str):
+        """The "I have seen this" link in alert e-mails: signed (HMAC) and expiring, no login. Acknowledges the alert it names (idempotent) and shows a small page
+        that says nothing about the person. Forged / malformed tokens all get the same answer."""
+        page = lambda code, title, msg: HTMLResponse(f"<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>ECHOS</title>"  # noqa: E731
+                                                     f"<body style='font-family:system-ui;max-width:32rem;margin:3rem auto;padding:0 1rem'><h1>{title}</h1><p>{msg}</p></body></html>", status_code=code,
+                                                     headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+        try:
+            alert_id = acklink.verify_token(token)
+        except acklink.LinkError as e:
+            if e.kind == "expired":
+                return page(410, "Link expired", "This link is no longer valid. Open ECHOS and acknowledge the alert there.")
+            if e.kind == "unconfigured":
+                return page(503, "Not available", "Acknowledging by link is not set up on this server. Open ECHOS and acknowledge the alert there.")
+            return page(400, "Link not valid", "This link is not valid. Open ECHOS and acknowledge the alert there.")
+        st = lifecycle.acknowledge(ctx_of(request).eng, alert_id, "email link")
+        if st is None:
+            return page(404, "Alert not found yet", "The alert is not registered yet. Try the link again in a minute, or open ECHOS.")
+        return page(200, "Thank you: alert acknowledged", "ECHOS has recorded that you have seen this alert. The escalation timer is stopped. Please still check on the person if you have not.")
 
     @r.post("/alerts/{alert_id:path}/resolve", response_model=AlertOut, tags=["alerts"])
     def alert_resolve(request: Request, alert_id: str, body: AlertAckIn = AlertAckIn()):

@@ -17,7 +17,7 @@ from typing import Optional
 
 from sqlalchemy import func, select
 
-from echos.alerts import payload as P
+from echos.alerts import acklink, payload as P
 from echos.alerts.mailer import DryRunMailer, Mailer, recipients as env_recipients
 from echos.config import load_config
 from echos.orchestrator import state as S
@@ -69,7 +69,8 @@ class AlertDispatcher:
         if p.alert_type == "CRITICAL_VITALS" and self._in_cooldown(p):
             log.info("alert suppressed (cooldown): %s", p.alert_id)
             return False
-        subj, text, html = P.subject(p), P.render_text(p), P.render_html(p)
+        link = None if p.is_test else acklink.ack_url(p.alert_id, float(load_config().get("alerts", {}).get("ack_link_ttl_s", acklink.DEFAULT_TTL_S)), self.clock())   # None when the secret / public URL is not set: no link, never a broken one
+        subj, text, html = P.subject(p), P.render_text(p, link), P.render_html(p, link)
         rows = []
         status = "PENDING"
         with self.eng.begin() as c:

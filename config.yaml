@@ -83,6 +83,7 @@ alerts:   # immediate alerts (fall, critical vitals): fixed template, no LLM; se
   backoff_cap_s: 60
   sweep_interval_s: 300     # a background sweeper retries FAILED alert rows this often ...
   sweep_window_s: 7200      # ... for this long after queueing (POST /api/outbox/{id}/retry resends one row on demand)
+  ack_link_ttl_s: 86400     # the "I have seen this" link in alert e-mails (needs ECHOS_LINK_SECRET and ECHOS_PUBLIC_URL; without them the mail has no link) expires after this
   critical_cooldown_sim_h: 12   # per patient: a second critical-vitals alert inside this many SIMULATED hours is suppressed
 pubmed:   # live PubMed (NCBI E-utilities) for MONITOR / URGENT daily reports only; env: ECHOS_NCBI_EMAIL, optional NCBI_API_KEY
   enabled: true
