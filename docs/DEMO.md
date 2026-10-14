@@ -21,7 +21,7 @@ Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`).
 | 0:30 | **Demo tools** -> *Start* | "Events arrive; each person gets a status as the data comes in. A day stays provisional until it closes." Point at *Is the data arriving?* and *What the agents are doing*. |
 | 1:15 | **How it works** | "Three detectors sense; four agents act: Triage decides with plain rules, the Case Investigator builds a case file, the Care Coordinator owns the alert until someone acts, the Report agent words it. They talk over a message bus." Show a detector card (Never: ...) and the bus. |
 | 2:00 | **Demo tools** -> *Inject a fall now* | "A SisFall recording is written as one accelerometer event at the patient's current data time. The URGENT alert is queued before any other work: fixed template, no LLM." Back on **Today**: the alert card, the escalation countdown. |
-| 2:45 | **Open case** (Person page) | "How this decision was made": headline, evidence level (not a probability), suggested next checks, and the Investigator's step-by-step trace. |
+| 2:45 | **Open case** (People -> the person) | "How this decision was made": headline, evidence level (not a probability), suggested next checks, and the Investigator's step-by-step trace. |
 | 3:30 | **Acknowledge** | "Acknowledging stops the escalation timer; the Care Coordinator opens a check-in task. If nobody acknowledges, the same alert goes to a second contact." (Alerts page: delivery log, tasks.) |
 | 4:15 | **Today** -> *Data needs checking* | "A day with only data problems is a device to check, not a change in the person; it can never be Normal." |
 | 4:40 | **System** -> limitations | "What we do not claim: clinical validity, forecasting, novelty. Small cohort, simulated falls, no real device." |

@@ -39,7 +39,7 @@ flowchart LR
     REP --> BUD["LLM budget manager<br/>cache, primary, fallback model, template"]
     BUD --> VAL["Non-LLM validator<br/>numbers, citation ids, no diagnosis / medication advice"]
     VAL -->|rejected, timeout, no key| TPL["Template report"]
-    VAL -->|ok| OUT["Daily report (dashboard)<br/>Weekly clinician PDF (e-mail)"]
+    VAL -->|ok| OUT["Daily report (web app)<br/>Weekly clinician PDF (e-mail)"]
     TPL --> OUT
     OUT --> API["FastAPI<br/>reads SQLite + saved reports, no models"]
     API --> WEB["React web app"]
