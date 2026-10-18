@@ -9,17 +9,22 @@ import { cn } from "@/lib/utils"
 const LEVEL: Record<string, { text: string; cls: string; hint: string }> = {
   STRONG: { text: "Strong evidence", cls: "bg-urgent-bg text-urgent-fg border-urgent-line", hint: "An absolute rule fired or two independent sources agree. Not a probability." },
   MODERATE: { text: "Moderate evidence", cls: "bg-monitor-bg text-monitor-fg border-monitor-line", hint: "One flag that repeats or persists. Not a probability." },
+  WATCH: { text: "Watch only", cls: "bg-gap-bg text-gap-fg border-gap-line", hint: "No rule fired; a detector is close to its own alert threshold." },
   LIMITED: { text: "Limited evidence", cls: "bg-gap-bg text-gap-fg border-gap-line", hint: "A single flag, or the data has caveats. Not a probability." },
 }
-const TOOL: Record<string, string> = { read_detectors: "Read what the detectors found", check_history: "Compared with the last days", check_agreement: "Checked whether sources agree", check_data_caveats: "Looked for data problems" }
+const TOOL: Record<string, string> = { nearest_threshold: "Found the detector closest to its alert threshold", read_detectors: "Read what the detectors found", check_history: "Compared with the last days", check_agreement: "Checked whether sources agree", check_data_caveats: "Looked for data problems", check_trend: "Checked the trend of the readings", check_personal_history: "Looked at this person's earlier deviations", check_corroboration: "Checked the routine against the vitals" }
 const DET: Record<string, string> = { vitals: "Vitals detector", behaviour: "Behaviour detector", fall: "Fall detector" }
 
 function stepText(t: { tool: string; result: unknown }): string {
   const r = t.result as Record<string, unknown>
   if (t.tool === "read_detectors") { const f = (r.flagged as string[]) ?? []; return f.length ? `Flagged by: ${f.map((x) => DET[x] ?? x).join(", ")}` : "No detector flagged anything; the case comes from the data checks" }
+  if (t.tool === "nearest_threshold") return `${DET[r.detector as string] ?? r.detector} at ${Math.round(Number(r.ratio) * 100)}% of its alert threshold`
   if (t.tool === "check_history") return `${r.non_normal_days} changed day(s) in the last ${r.days_seen}; ${r.streak_before_today} in a row before today`
   if (t.tool === "check_agreement") return `${r.independent_sources} independent source(s) point the same way`
   if (t.tool === "check_data_caveats") { const c = (t.result as string[]) ?? []; return c.length ? c.join(" ") : "No data problems found" }
+  if (t.tool === "check_trend") { const c = (r.confirmed as string[]) ?? []; const o = (r.outside_usual as string[]) ?? []; return r.available ? (c.length ? `On a trend away from the usual: ${c.join(", ")}` : o.length ? `Outside the usual (${o.join(", ")}) but not on a trend` : "Readings within the usual") : "Not enough earlier readings" }
+  if (t.tool === "check_personal_history") return r.available ? `${r.prior_deviation_days} earlier day(s) outside their usual; ${r.prior_deviation_days_with_event} carried a recorded clinical event` : "Not enough earlier history"
+  if (t.tool === "check_corroboration") { const u = (r.routine_unusual as string[]) ?? []; return r.available ? (u.length ? `Activity also outside the usual: ${u.map((x) => x.replace("_", " ")).join(", ")}` : "Activity within the usual") : "No activity data to compare" }
   return ""
 }
 
@@ -28,7 +33,7 @@ export default function CaseFilePanel({ pid, day, status }: { pid: string; day?:
   const c = useCase(pid, day)
   if (c.isLoading) return <CardSkeleton h="h-40" />
   if (!c.data) return <Card><CardContent className="pt-4 text-sm text-muted-foreground" data-testid="case-none">{status && status !== "NORMAL" ? "No case file was built for this day: the Case Investigator did not run on it (for example a replay made before it existed). The reasons above still come from the detectors." : "No case file: the latest day is normal, so the Case Investigator has nothing to investigate."}</CardContent></Card>
-  const f = { ...c.data, next_checks: c.data.next_checks ?? [], caveats: c.data.caveats ?? [], trace: c.data.trace ?? [], reasons: c.data.reasons ?? [] }
+  const f = { ...c.data, specifics: c.data.specifics ?? [], next_checks: c.data.next_checks ?? [], caveats: c.data.caveats ?? [], trace: c.data.trace ?? [], reasons: c.data.reasons ?? [] }
   const lv = LEVEL[f.evidence_level] ?? LEVEL.LIMITED
   return (
     <Card data-testid="case-file">
@@ -38,6 +43,9 @@ export default function CaseFilePanel({ pid, day, status }: { pid: string; day?:
       </CardHeader>
       <CardContent className="flex flex-col gap-4 text-sm">
         <p className="text-base font-medium" data-testid="case-headline">{f.headline}</p>
+        {f.specifics.length > 0 && (
+          <div data-testid="case-specifics"><h3 className="mb-1 font-semibold">What was recorded</h3>
+            <ul className="list-disc space-y-1 pl-5">{f.specifics.map((x, i) => <li key={i}>{x}</li>)}</ul></div>)}
         {f.next_checks.length > 0 && (
           <div><h3 className="mb-1 flex items-center gap-1.5 font-semibold"><ListChecks className="size-4" aria-hidden="true" />Suggested next checks</h3>
             <ul className="list-disc space-y-1 pl-5">{f.next_checks.map((x, i) => <li key={i}>{x}</li>)}</ul></div>)}

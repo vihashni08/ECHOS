@@ -64,14 +64,19 @@ triage:
   fall_prob: 0.8   # URGENT with post-fall inactivity (MONITOR without, if fall_prob_high is null); scripts/fall_audit.py
   critical_vitals: {sys_high: 180, sys_low: 85, dia_high: 120, hr_high: 130, hr_low: 40}
   max_vitals_gap_days: 7   # readings exist on ~62% of days; >7 days silent -> data_gap
+planner:   # Triage stage 2 (echos/team/planner.py): which agents a case needs. r = max_k p_k / tau_k (detector score over its own alert threshold); equations in docs/TEAM_DESIGN.md
+  # a fired rule -> Investigator + Coordinator; no rule but r > theta (near miss) -> Investigator writes a short watch file. theta = call budget: false calls on Normal days <= budget_per_patient_week.
+  theta: 0.8594   # = watch a day when a detector is above 86% of its own alert threshold; from reports/metrics/routing_thresholds.json (scripts/choose_routing_threshold.py)
+  budget_per_patient_week: 0.25
+  source: scripts/choose_routing_threshold.py
 llm:
   model: gemini-3.5-flash-lite
-  fallback_model: gemini-3.5-flash         # Gemini model name, set by the user; null -> template mode (no LLM calls)
+  fallback_model: gemini-3.8-flash         # Gemini model name, set by the user; null -> template mode (no LLM calls)
   temperature: 0.2
   retries: 1           # failed (non-timeout) LLM output is retried at most this many times, then Jinja2 template fallback
   timeout_s: 45        # hard per-call timeout; a timeout is never retried
   max_requests_per_min: 5   # legacy limiter, used only by the weekly report's direct generate() calls
-  rpm: {primary: 15, fallback: 10}   # requests/min limits of the primary / fallback model (set from your Gemini quota); the budget manager stays 20% below
+  rpm: {primary: 15, fallback: 5}   # requests/min limits of the primary / fallback model (set from your Gemini quota); the budget manager stays 20% below
   cooldown_s: 60       # a model that returned HTTP 429 is skipped this long
   cache_path: data/llm_cache.sqlite   # response cache + call log (SQLite)
   max_pending: 200     # background report backlog; beyond it reports stay template (logged)
@@ -128,8 +133,10 @@ coordinator:   # Care Coordinator agent (echos/team/coordinator.py): owns the al
   stale_after_s: 21600                                 # an unacknowledged alert older than this is EXPIRED, never escalated (history after a restart)
   review_window_days: 5                                # >= review_min_days non-NORMAL days within this window -> a clinician-review task
   review_min_days: 3
+  bus_keep_s: 2592000                                  # handled agent messages older than this (30 days) are deleted, once an hour
+  prune_every_s: 3600
 investigator:   # Case Investigator agent (echos/team/investigator.py): bounded tool loop, no LLM
-  max_steps: 4
+  max_steps: 7
 
 ingest:   # limits on POST /api/ingest/events (echos/api/ingest_limits.py, docs/INGESTION.md); checked before anything is stored
   max_body_bytes: 4000000       # 413 above this (one 6000-sample accelerometer window is about 150 KB)

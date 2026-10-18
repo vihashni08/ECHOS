@@ -49,7 +49,7 @@ class FakeLLM:
             raise RuntimeError(str(e))
         return r
 
-    def step(self, system, messages, tools=None) -> Step:
+    def step(self, system, messages, tools=None, schema=None) -> Step:
         r = self._next(system, messages, tools)
         return Step(text=r.get("text", ""), calls=list(r.get("calls", [])), prompt_tokens=r.get("prompt_tokens", 100), output_tokens=r.get("output_tokens", 50))
 

@@ -14,8 +14,8 @@ from echos.api import team_services as T
 from echos.orchestrator import state as S
 
 DETECTORS = ("quality", "health_monitoring", "fall")
-ORDER = ("quality", "health_monitoring", "fall", "triage", "dispatcher", "investigator", "coordinator", "report", "supervisor", "watchdog")
-NAMES = {"quality": "Data Quality gate", "health_monitoring": "Vitals + Behaviour detector", "fall": "Fall detector", "triage": "Triage agent", "dispatcher": "Alert dispatcher",
+ORDER = ("quality", "health_monitoring", "fall", "triage", "planner", "dispatcher", "investigator", "coordinator", "report", "supervisor", "watchdog")
+NAMES = {"quality": "Data Quality gate", "health_monitoring": "Vitals + Behaviour detector", "fall": "Fall detector", "triage": "Triage agent", "planner": "Team Planner", "dispatcher": "Alert dispatcher",
          "investigator": "Case Investigator", "coordinator": "Care Coordinator", "report": "Report agent", "supervisor": "Supervisor", "watchdog": "Watchdog"}
 ALERT = {"fall": "possible fall", "critical_vitals": "critical vitals reading"}
 
@@ -80,6 +80,9 @@ def events(ctx: Ctx, limit: int = 100, agent: Optional[str] = None, patient_id: 
                 out.append(_ev(min(r.updated_ts or 0, first.get((r.patient_id, r.day), r.updated_ts or 0)) - 0.001, "triage", "decided", f"decided {r.status}{' (day still open)' if r.provisional else ''}" + (": " + "; ".join(str(x) for x in why) if why else ""), r.patient_id, r.day))
         for r in rows(select(S.agent_message).order_by(S.agent_message.c.id.desc()), S.agent_message, S.agent_message.c.day):
             if agent and r.sender != agent:
+                continue
+            if r.topic == "team_plan":
+                out.append(_ev(r.ts, r.sender, "planned", "planned the team: " + str(_j(r.payload, {}).get("summary", "")), r.patient_id, r.day, f"message {r.id}"))
                 continue
             out.append(_ev(r.ts, r.sender, "told", f"told {NAMES.get(r.recipient, r.recipient)}: {r.topic.replace('_', ' ')}", r.patient_id, r.day, f"message {r.id}"))
         if want("dispatcher"):

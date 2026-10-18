@@ -14,6 +14,7 @@ from sqlalchemy import select
 from echos.config import load_config
 from echos.orchestrator import state as S
 from echos.orchestrator.triage import drift_level
+from echos.reports import specifics as SP
 from echos.reports import vitals_why as VW
 
 VITAL_VARS = ["sys", "dia", "hr", "temp", "weight"]
@@ -162,20 +163,23 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
         if (s_ is not None and (s_ >= crit["sys_high"] or s_ < crit["sys_low"])) or (di_ is not None and di_ >= crit["dia_high"]) \
                 or (h_ is not None and (h_ >= crit["hr_high"] or h_ < crit["hr_low"])):
             kc = VW.classify({k: x for k, x in {"sys": s_, "dia": di_, "hr": h_}.items() if x is not None}, bases, zs=zs, critical=True)
-            add(kc["types"][0], kind="critical", sys=s_, dia=di_, hr=h_, why=kc["why"], **detail)
+            add(kc["types"][0], kind="critical", sys=s_, dia=di_, hr=h_, why=kc["why"], **detail,
+                specifics=SP.vital_sentences(vals_now, bases, zs), action_hints=SP.vital_actions(kc["types"], vals_now, critical=True))
         if vit["probability"] >= t["vitals_prob"] and not health.get("degraded"):
             ka = VW.classify(vals_now, bases, zs=zs)
             add(ka["types"][0], kind="vitals_alert", risk=round(vit["probability"], 2),
                 **{f"{k}_now": _r(v["current"]) for k, v in cv.items()},
-                **{f"{k}_baseline": _r(v["baseline"]) for k, v in cv.items()}, why=ka["why"], **detail)
+                **{f"{k}_baseline": _r(v["baseline"]) for k, v in cv.items()}, why=ka["why"], **detail,
+                specifics=SP.vital_sentences(vals_now, bases, zs), action_hints=SP.vital_actions(ka["types"], vals_now))
     # ---- behaviour
     if beh.get("available") and not health.get("degraded"):
         ev = beh.get("drift") or {}
         if beh["probability"] >= t["agitation_prob"]:
             add("agitation", risk=round(beh["probability"], 2), night_events=routine["night_events"]["value"],
-                night_events_baseline=routine["night_events"]["baseline"])
+                night_events_baseline=routine["night_events"]["baseline"], specifics=SP.routine_sentences(routine), action_hints=SP.routine_actions(None, routine))
         if drift_level(ev) >= t["drift_evidence_cusum"]:
-            add("routine_change", features=list(ev.get("drifted_features", [])), drift_score=_r(ev.get("drift_score"), 2))
+            add("routine_change", features=list(ev.get("drifted_features", [])), drift_score=_r(ev.get("drift_score"), 2),
+                specifics=SP.routine_sentences(routine), action_hints=SP.routine_actions(list(ev.get("drifted_features", [])), routine))
     # ---- data gaps
     gaps = [r for r in decision.get("reasons", []) if str(r).startswith("DATA_GAP:")]
     for g in gaps:

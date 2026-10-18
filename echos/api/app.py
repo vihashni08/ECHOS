@@ -29,7 +29,7 @@ from echos.alerts import acklink
 from echos.api import ingest_limits as IL
 from echos.team import lifecycle
 from echos.live.schemas import IngestBatch
-from echos.api.models import (ActivityEventOut, AgentSummaryOut, AgentHealth, AgentMessageOut, AlertAckIn, AlertOut, CareTaskOut, AuthOut, CaseFileOut, ComponentOut, LoginIn, EmulatorCmdIn, EmulatorCmdOut, IngestResultOut, LiveStatusOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
+from echos.api.models import (ActivityEventOut, AgentSummaryOut, AgentHealth, AgentMessageOut, AlertAckIn, AlertOut, CareTaskOut, AuthOut, CaseFileOut, ComponentOut, TeamPlanOut, LoginIn, EmulatorCmdIn, EmulatorCmdOut, IngestResultOut, LiveStatusOut, DailyReportOut, DayStatus, ErrorOut, FallDetail, FallItem, KillOut, LimitationsOut, LLMBudgetOut, MetricsOut, OutboxOut,
                               Page, PatientOut, QualityOut, RoutineOut, SourceOut, SystemConfigOut, SimControlIn, SimFallIn, SimFallOut, SimStateOut, SummaryOut, VitalsOut, WeeklyReportOut,
                               WeeklySendIn, WeeklySendOut)
 from echos.config import load_config
@@ -296,6 +296,13 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         ctx = ctx_of(request)
         V.require_patient(ctx, pid)
         return T.case_file(ctx, pid, day)
+
+    @r.get("/patients/{pid}/team-plan", response_model=Optional[TeamPlanOut], tags=["patients"])
+    def team_plan(request: Request, pid: str, day: Optional[str] = None):
+        """Which agents the Team Planner called for on a day (latest day if none is given) and why; null when no plan was recorded."""
+        ctx = ctx_of(request)
+        V.require_patient(ctx, pid)
+        return T.team_plan(ctx, pid, day)
 
     @r.get("/tasks", response_model=Page[CareTaskOut], tags=["alerts"])
     def care_tasks(request: Request, status: Optional[str] = Query(None, description="OPEN or DONE"), limit: int = Limit, offset: int = Offset):

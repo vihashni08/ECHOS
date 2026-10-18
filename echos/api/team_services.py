@@ -106,6 +106,11 @@ def case_file(ctx: Ctx, pid: str, day: Optional[str]) -> Optional[dict]:
     return load_case_file(ctx.eng, pid, day)
 
 
+def team_plan(ctx: Ctx, pid: str, day: Optional[str]) -> Optional[dict]:
+    from echos.team.planner import latest_plan
+    return latest_plan(ctx.eng, pid, day)
+
+
 def messages(ctx: Ctx, pid: Optional[str], limit: int) -> list[dict]:
     q = select(S.agent_message).order_by(S.agent_message.c.id.desc()).limit(limit)
     if pid:

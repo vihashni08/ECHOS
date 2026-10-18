@@ -497,6 +497,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/patients/{pid}/team-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Team Plan
+         * @description Which agents the Team Planner called for on a day (latest day if none is given) and why; null when no plan was recorded.
+         */
+        get: operations["team_plan_api_patients__pid__team_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tasks": {
         parameters: {
             query?: never;
@@ -873,6 +893,24 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** AgentPickOut */
+        AgentPickOut: {
+            /** Id */
+            id: string;
+            /** Active */
+            active: boolean;
+            /**
+             * Role
+             * @default
+             */
+            role: string;
+            /** Reason */
+            reason: string;
+            /** Need */
+            need?: number | null;
+            /** Threshold */
+            threshold?: number | null;
+        };
         /** AgentSummaryOut */
         AgentSummaryOut: {
             /** Id */
@@ -983,6 +1021,8 @@ export interface components {
             evidence_level: string;
             /** Reasons */
             reasons?: string[];
+            /** Specifics */
+            specifics?: string[];
             /** Caveats */
             caveats?: string[];
             /** Next Checks */
@@ -1812,6 +1852,46 @@ export interface components {
             dry_run_mail: boolean;
             /** Llm Enabled */
             llm_enabled: boolean;
+        };
+        /**
+         * TeamPlanOut
+         * @description The Team Planner's record for one patient-day: which of the four agents the case needed and why (a ratio and a cutoff, not a model).
+         */
+        TeamPlanOut: {
+            /** Patient Id */
+            patient_id: string;
+            /** Day */
+            day: string;
+            /** Status */
+            status: string;
+            /** Team Size */
+            team_size: number;
+            /** Max Llm Requests */
+            max_llm_requests: number;
+            /** Summary */
+            summary: string;
+            /** Agents */
+            agents: components["schemas"]["AgentPickOut"][];
+            /**
+             * Rules Version
+             * @default
+             */
+            rules_version: string;
+            /** Needs */
+            needs?: {
+                [key: string]: unknown;
+            };
+            /** Thresholds */
+            thresholds?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Watch
+             * @default false
+             */
+            watch: boolean;
+            /** Closest */
+            closest?: string | null;
         };
         /** VitalPoint */
         VitalPoint: {
@@ -3463,6 +3543,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CaseFileOut"] | null;
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    team_plan_api_patients__pid__team_plan_get: {
+        parameters: {
+            query?: {
+                day?: string | null;
+            };
+            header?: never;
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamPlanOut"] | null;
                 };
             };
             /** @description Forbidden */

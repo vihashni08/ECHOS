@@ -1,0 +1,17 @@
+# systemd unit (Linux): restarts ECHOS (API + watchdog + runtime) if the whole thing dies. NOT installed by any script.
+# Copy to /etc/systemd/system/echos.service, replace __ECHOS_DIR__ and __USER__, then: systemctl daemon-reload && systemctl enable --now echos
+# Secrets stay in __ECHOS_DIR__/.env (read by the app) or an EnvironmentFile with mode 600, never in this file. See scripts/service/README.md.
+[Unit]
+Description=ECHOS (API + watchdog + runtime)
+After=network.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__ECHOS_DIR__
+ExecStart=/bin/bash __ECHOS_DIR__/scripts/run_api.sh --mode live --dry --no-llm
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

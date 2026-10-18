@@ -1,6 +1,6 @@
 """Fault demo against the REAL supervisor through the API (run the backend with scripts/run_api.sh --dry --no-llm --demo --db <throw-away db>).
 For each agent: POST /agents/{name}/kill, measure the time until its heartbeat is stale and until it is alive again, inject a fall DURING the outage and
-check that exactly one alert (two DryRun outbox rows) exists for it afterwards. Usage: PYTHONPATH=. python scripts/api_kill_check.py [base_url]"""
+check that exactly one alert (two DryRun outbox rows) exists for it afterwards. Usage: PYTHONPATH=. python research/api_kill_check.py [base_url]"""
 import sys
 import threading
 import time

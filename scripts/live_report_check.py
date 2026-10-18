@@ -52,7 +52,7 @@ class CappedClient:
     def __init__(self, client, run: Run, primary: bool):
         self.client, self.run, self.primary, self.model = client, run, primary, client.model
 
-    def step(self, system, messages, tools=None):
+    def step(self, system, messages, tools=None, schema=None):
         r, it = self.run, self.run.item
         if r.stop_reason:
             raise CapReached(f"stopped: {r.stop_reason}")
@@ -67,7 +67,7 @@ class CappedClient:
         if it is not None:
             r.per_item[it] = r.per_item.get(it, 0) + 1
         try:
-            out = self.client.step(system, messages, tools)
+            out = self.client.step(system, messages, tools, **({"schema": schema} if schema else {}))
         except Exception as ex:   # noqa: BLE001
             code = getattr(ex, "code", None)
             if it is not None:

@@ -20,11 +20,13 @@ test("a caregiver sees the care pages only and is stopped from the rest; log out
   await login(page, "e2e-care")
   await expect(page.getByTestId("role")).toContainText("caregiver")
   await expect(page.getByRole("link", { name: "Alerts" }).first()).toBeVisible()
-  await expect(page.getByRole("link", { name: "System" })).toHaveCount(0)
   await expect(page.getByRole("link", { name: "Clinician week" })).toHaveCount(0)
   await expect(page.getByTestId("demo-tools-button")).toHaveCount(0)
   await page.goto("/system", { waitUntil: "networkidle" })           // a fresh load keeps the session (sessionStorage) but not the page
-  await expect(page.getByTestId("forbidden")).toContainText("operator")
+  await expect(page.getByRole("tab", { name: "How it works" })).toBeVisible()      // the explanation tabs are open to every role ...
+  await expect(page.getByRole("tab", { name: "Health" })).toHaveCount(0)            // ... the health and metrics tabs are operator-only
+  await page.goto("/clinician", { waitUntil: "networkidle" })
+  await expect(page.getByTestId("forbidden")).toContainText("clinician")
   await page.getByTestId("logout").click()
   await expect(page.getByTestId("token")).toBeVisible()
 })

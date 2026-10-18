@@ -88,6 +88,9 @@ export const useTasks = (status: "OPEN" | "DONE" | undefined = "OPEN") =>
 export const useCase = (pid: string, day?: string) =>
   useQuery({ queryKey: ["case", pid, day], enabled: !!pid, retry: false, refetchInterval: 4000,
     queryFn: async () => (await call(client.GET("/api/patients/{pid}/case", { params: { path: { pid }, query: { day } } }))) ?? null })
+export const useTeamPlan = (pid: string, day?: string) =>
+  useQuery({ queryKey: ["team-plan", pid, day], enabled: !!pid, retry: false, refetchInterval: 4000,
+    queryFn: async () => (await call(client.GET("/api/patients/{pid}/team-plan", { params: { path: { pid }, query: { day } } }))) ?? null })
 export function useAck() {
   const qc = useQueryClient()
   return useMutation({

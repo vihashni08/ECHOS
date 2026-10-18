@@ -1,9 +1,13 @@
 import { AlertTriangle, CheckCircle2 } from "lucide-react"
+import { useSearchParams } from "react-router-dom"
+import AgentActivity from "@/pages/AgentActivity"
+import HowItWorks from "@/pages/HowItWorks"
+import { atLeast } from "@/lib/auth"
 import { CardSkeleton, ErrorNote } from "@/components/States"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fmt3, fmtCI } from "@/lib/format"
-import { useAgents, useBudget, useLimitations, useMetrics, useQuality } from "@/lib/queries"
+import { useAgents, useBudget, useLimitations, useMe, useMetrics, useQuality } from "@/lib/queries"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const Th = ({ children }: { children: React.ReactNode }) => <th className="pb-1 pr-3 font-medium">{children}</th>
@@ -106,15 +110,26 @@ function Limitations() {
 }
 
 export default function System() {
+  const me = useMe()
+  const operator = !me.isSuccess || atLeast(me.data?.role, "operator")        // the health / metrics tabs read operator-only endpoints
+  const [params, setParams] = useSearchParams()
+  const tab = params.get("tab") ?? (operator ? "health" : "how")
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">System</h1>
-      <Tabs defaultValue="health">
-        <TabsList className="h-auto flex-wrap"><TabsTrigger value="health">Health</TabsTrigger><TabsTrigger value="quality">Data quality</TabsTrigger><TabsTrigger value="models">Models</TabsTrigger><TabsTrigger value="limits">Limitations</TabsTrigger></TabsList>
-        <TabsContent value="health" className="mt-3"><Health /></TabsContent>
-        <TabsContent value="quality" className="mt-3"><Quality /></TabsContent>
-        <TabsContent value="models" className="mt-3"><Models /></TabsContent>
-        <TabsContent value="limits" className="mt-3"><Limitations /></TabsContent>
+      <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })}>
+        <TabsList className="h-auto flex-wrap">
+          <TabsTrigger value="how">How it works</TabsTrigger><TabsTrigger value="agents">Agent activity</TabsTrigger>
+          {operator && <><TabsTrigger value="health">Health</TabsTrigger><TabsTrigger value="quality">Data quality</TabsTrigger><TabsTrigger value="models">Models</TabsTrigger><TabsTrigger value="limits">Limitations</TabsTrigger></>}
+        </TabsList>
+        <TabsContent value="how" className="mt-3"><HowItWorks /></TabsContent>
+        <TabsContent value="agents" className="mt-3"><AgentActivity /></TabsContent>
+        {operator && <>
+          <TabsContent value="health" className="mt-3"><Health /></TabsContent>
+          <TabsContent value="quality" className="mt-3"><Quality /></TabsContent>
+          <TabsContent value="models" className="mt-3"><Models /></TabsContent>
+          <TabsContent value="limits" className="mt-3"><Limitations /></TabsContent>
+        </>}
       </Tabs>
     </div>
   )

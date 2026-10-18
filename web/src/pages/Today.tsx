@@ -95,7 +95,7 @@ function Activity_() {
           <ol className="flex flex-col gap-1.5 text-sm" data-testid="agent-activity">
             {m.data.map((x) => <li key={x.id}><strong>{WHO[x.sender] ?? x.sender}</strong> {TOPIC[x.topic] ?? x.topic} <span className="num">{x.patient_id ? personLabel(x.patient_id) : ""}</span> <span className="text-muted-foreground">→ {WHO[x.recipient] ?? x.recipient}</span></li>)}
           </ol>)}
-        <Link to="/how-it-works" className="mt-2 inline-block text-sm underline">How the agents work together</Link>
+        <Link to="/system?tab=how" className="mt-2 inline-block text-sm underline">How the agents work together</Link>
       </CardContent>
     </Card>
   )

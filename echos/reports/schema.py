@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 class Item(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    text: str = Field(min_length=1, pattern=r"\S", description="one plain-language sentence")
+    text: str = Field(min_length=1, pattern=r"\S", description="2 to 4 plain-language sentences naming the exact measure, its recorded value and time, the person's own usual and the direction and size of the difference")
     cites: list[str] = Field(description="flag ids (F1) or retrieved source ids (KB-12, PM-123); [] when nothing applies")
 
 

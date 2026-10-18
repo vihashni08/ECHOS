@@ -73,3 +73,13 @@ def test_data_only_days_are_separated_from_changes(api):
 def json_dumps(x):
     import json
     return json.dumps(x)
+
+
+def test_team_plan_endpoint_returns_the_recorded_plan(api):
+    from echos.team.planner import plan_team, record_plan
+    c, ctx = api
+    assert c.get(f"/api/patients/{PID}/team-plan").json() is None
+    record_plan(ctx.eng, PID, "2019-05-09", plan_team({"status": "URGENT", "urgent_types": ["fall"], "reasons": ["fall"]}))
+    out = M.TeamPlanOut.model_validate(c.get(f"/api/patients/{PID}/team-plan?day=2019-05-09").json())
+    assert out.team_size == 4 and out.status == "URGENT" and all(a.reason for a in out.agents)
+    assert c.get("/api/patients/nobody/team-plan").status_code == 404

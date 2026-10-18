@@ -71,7 +71,7 @@ export default function AgentActivity() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-semibold">Agent activity</h1>
+        <h2 className="text-xl font-semibold">Agent activity</h2>
         <p className="max-w-3xl text-sm text-muted-foreground">What each detector and agent has done, taken from the records they write (not a separate log). Detectors sense, agents decide and act, infrastructure delivers and restarts. Nothing here can change what they do.</p>
       </div>
       {sum.isError && <ErrorNote error={sum.error} />}

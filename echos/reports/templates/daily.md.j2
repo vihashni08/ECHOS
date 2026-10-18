@@ -1,6 +1,16 @@
 # Daily report for {{ pid }} - {{ day }}
 
 **Status: {{ status }}** - {{ label }}
+
+## Situation
+{{ situation }}
+{% if background %}
+
+## Background (this person's usual pattern)
+{% for b in background %}
+- {{ b }}
+{% endfor %}
+{% endif %}
 {% if alerts %}
 
 ## Alerts
@@ -17,13 +27,13 @@
 {% endfor %}
 {% endif %}
 
-## What changed compared with their usual pattern
+## What changed compared with their usual pattern (assessment)
 {% for c in changes %}
 - {{ c.text }}{% if c.cites %} [{{ c.cites | join(', ') }}]{% endif %}
 
 {% endfor %}
 
-## What to monitor today
+## What to monitor today (recommendation)
 {% for m in monitor %}
 - {{ m.text }}
 {% endfor %}
@@ -35,7 +45,7 @@
 
 {% endfor %}
 {% for r in refs %}
-- [{{ r.id }}] {{ r.title }} - {{ r.source }}{% if r.url %} - {{ r.url }}{% endif %}
+- [{{ r.id }}] {{ r.title }}{% if r.source %} - {{ r.source }}{% endif %}{% if r.url %} - {{ r.url }}{% endif %}
 
 {% endfor %}
 {% endif %}

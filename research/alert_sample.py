@@ -1,5 +1,5 @@
 """Rebuild ONE alert payload from data/echos.db (read only) with the current template and print it. Sends nothing.
-Usage: PYTHONPATH=. python scripts/alert_sample.py [alert_id]"""
+Usage: PYTHONPATH=. python research/alert_sample.py [alert_id]"""
 import json
 import sys
 

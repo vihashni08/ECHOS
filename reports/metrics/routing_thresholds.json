@@ -1,0 +1,69 @@
+{
+ "method": "call budget (label-free): false calls on Normal days <= B per patient-week",
+ "default_budget_per_patient_week": 0.25,
+ "patient_days": 1266,
+ "patients": 20,
+ "patient_weeks": 180.86,
+ "normal_days": 845,
+ "labelled_days_total": 216,
+ "labelled_normal_days": 62,
+ "theta": 0.8594,
+ "false_calls_per_patient_week_achieved": 0.243,
+ "bootstrap_by_patient_95": {
+  "lo": 0.8154,
+  "median": 0.8594,
+  "hi": 0.89,
+  "n_boot": 1000,
+  "n_patients": 20
+ },
+ "budget_grid": {
+  "0.1": {
+   "allowed_false_calls": 18,
+   "theta": 0.9403,
+   "false_calls": 18,
+   "false_calls_per_patient_week": 0.1,
+   "labelled_normal_days_called": 4,
+   "labelled_share_called": 0.222,
+   "labelled_share_not_called": 0.07
+  },
+  "0.25": {
+   "allowed_false_calls": 45,
+   "theta": 0.8594,
+   "false_calls": 44,
+   "false_calls_per_patient_week": 0.243,
+   "labelled_normal_days_called": 11,
+   "labelled_share_called": 0.25,
+   "labelled_share_not_called": 0.064
+  },
+  "0.5": {
+   "allowed_false_calls": 90,
+   "theta": 0.7421,
+   "false_calls": 90,
+   "false_calls_per_patient_week": 0.498,
+   "labelled_normal_days_called": 24,
+   "labelled_share_called": 0.267,
+   "labelled_share_not_called": 0.05
+  },
+  "1.0": {
+   "allowed_false_calls": 180,
+   "theta": 0.5826,
+   "false_calls": 180,
+   "false_calls_per_patient_week": 0.995,
+   "labelled_normal_days_called": 36,
+   "labelled_share_called": 0.2,
+   "labelled_share_not_called": 0.039
+  }
+ },
+ "r_normal_quantiles_50_90_99_max": [
+  0.344,
+  0.761,
+  0.966,
+  0.999
+ ],
+ "notes": [
+  "theta is a fraction of each detector's own alert threshold (r = p / tau, max over detectors); it is a quantile of r on the Normal days, so it depends on those days and on the detectors' score scale.",
+  "patient-level bootstrap over 20 patients: wide intervals mean few patients drive the tail of the r distribution",
+  "Labels.csv provenance is unverified; the label columns are a weak sensitivity check, not validation (no claim that near-miss days are more often clinically relevant).",
+  "r is a routing score, not a probability; nothing labels 'the right agents', so the budget is a stated preference (how many near-miss watch files per patient-week), not an estimate of harm."
+ ]
+}

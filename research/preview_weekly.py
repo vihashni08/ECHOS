@@ -1,5 +1,5 @@
 """Render pages of a weekly PDF to PNG under data/reports/weekly/preview/ (pdftoppm if present, else macOS sips). Prints the PNG paths.
-Usage: PYTHONPATH=. python scripts/preview_weekly.py <pdf> [pages=2]"""
+Usage: PYTHONPATH=. python research/preview_weekly.py <pdf> [pages=2]"""
 import shutil
 import subprocess
 import sys

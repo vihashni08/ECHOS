@@ -235,6 +235,7 @@ class CaseFileOut(BaseModel):
     headline: str
     evidence_level: str                            # STRONG | MODERATE | LIMITED (not a probability)
     reasons: list[str] = Field(default_factory=list)
+    specifics: list[str] = Field(default_factory=list)       # the recorded values behind the flags, each with the person's own usual and the difference
     caveats: list[str] = Field(default_factory=list)
     next_checks: list[str] = Field(default_factory=list)
     trace: list[dict] = Field(default_factory=list)
@@ -242,6 +243,31 @@ class CaseFileOut(BaseModel):
     history: Optional[dict] = None
     agreement: Optional[dict] = None
     disclaimer: str = ""
+
+
+class AgentPickOut(BaseModel):
+    id: str
+    active: bool
+    role: str = ""
+    reason: str
+    need: Optional[float] = None          # the nearest-threshold ratio r
+    threshold: Optional[float] = None     # the cutoff theta it had to exceed (None: a fired rule decided it)
+
+
+class TeamPlanOut(BaseModel):
+    """The Team Planner's record for one patient-day: which of the four agents the case needed and why (a ratio and a cutoff, not a model)."""
+    patient_id: str
+    day: str
+    status: str
+    team_size: int
+    max_llm_requests: int
+    summary: str
+    agents: list[AgentPickOut]
+    rules_version: str = ""
+    needs: dict = Field(default_factory=dict)
+    thresholds: dict = Field(default_factory=dict)
+    watch: bool = False                   # a near miss: no rule fired, r > theta
+    closest: Optional[str] = None         # the detector nearest its alert threshold, in plain words
 
 
 class OutboxOut(BaseModel):

@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { Activity, BellRing, LogOut, HeartPulse, HelpCircle, LayoutDashboard, Moon, Settings2, Stethoscope, Sun, User, Users, WifiOff, Workflow } from "lucide-react"
+import { Activity, BellRing, LogOut, HeartPulse, LayoutDashboard, Moon, Settings2, Stethoscope, Sun, User, Users, WifiOff } from "lucide-react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import ErrorBoundary from "./ErrorBoundary"
@@ -21,9 +21,7 @@ const NAV: { to: string; label: string; icon: typeof User; end?: boolean; need?:
   { to: "/falls", label: "Fall Monitor", icon: Activity },
   { to: "/caregiver", label: "Caregiver report", icon: Users },
   { to: "/clinician", label: "Clinician week", icon: Stethoscope, need: "clinician" },
-  { to: "/agents", label: "Agent activity", icon: Workflow },
-  { to: "/how-it-works", label: "How it works", icon: HelpCircle },
-  { to: "/system", label: "System", icon: Settings2, need: "operator" },
+  { to: "/system", label: "System", icon: Settings2 },
 ]
 
 function NavItems({ row }: { row?: boolean }) {

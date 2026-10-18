@@ -146,12 +146,12 @@ class RunContext:
     def model(self) -> str:
         return self.backend.name
 
-    def step(self, system: str, messages: list, tools: Optional[list] = None) -> Step:
+    def step(self, system: str, messages: list, tools: Optional[list] = None, schema: Optional[dict] = None) -> Step:
         b = self.backend
         waited = b.limiter.wait()
         t0 = time.monotonic()
         try:
-            r = b.client.step(system, messages, tools)
+            r = b.client.step(system, messages, tools, **({"schema": schema} if schema else {}))
         except Exception as ex:   # noqa: BLE001 - logged with its HTTP status, then handled by LLMBudget.run
             b.requests += 1
             self.res.requests += 1

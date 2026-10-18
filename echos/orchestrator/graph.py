@@ -21,6 +21,7 @@ from echos.alerts.dispatcher import AlertDispatcher
 from echos.alerts.mailer import make_mailer
 from echos.orchestrator.alerts import queue_alerts
 from echos.orchestrator.triage import triage as run_triage
+from echos.team.planner import TeamPlan, plan_team, record_plan
 
 
 class CaseState(TypedDict, total=False):
@@ -30,6 +31,7 @@ class CaseState(TypedDict, total=False):
     results: dict
     days_since_vitals: int
     decision: dict
+    plan: dict
     weekly: bool
 
 
@@ -112,21 +114,20 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
             S.upsert(c, S.case_state, ["patient_id", "day"], patient_id=st["patient_id"], day=st["day"],
                      status=dec.status.value, data_gap=dec.data_gap, days_since_vitals=st["days_since_vitals"],
                      reasons=S.j(dec.reasons), report=None, updated_ts=S.now())
-        return {"decision": dec.model_dump(mode="json")}
+        decision = dec.model_dump(mode="json")
+        plan = plan_team(decision, st["results"])                       # Team Planner: which agents this case needs, and why (recorded on the bus)
+        record_plan(eng, st["patient_id"], st["day"], plan)
+        return {"decision": decision, "plan": plan.model_dump(mode="json")}
 
     def route(st: CaseState) -> str:
         return "immediate_alert" if st["decision"]["status"] == "URGENT" else "investigate"
 
     def investigate(st: CaseState) -> dict:
         """Case Investigator agent: plans a few checks and writes the case file (never changes the status; a failure never stops the case)."""
-        from echos.team import bus
-        from echos.team.investigator import Investigator
-        try:
-            bus.post(eng, "triage", "investigator", "case_opened", st["patient_id"], st["day"], {"status": st["decision"]["status"], "reasons": st["decision"].get("reasons", [])[:4]})
-            Investigator(eng).investigate(st["patient_id"], st["day"], st["decision"], st["results"])
-        except Exception:  # noqa: BLE001
-            import logging
-            logging.getLogger("echos.investigator").exception("investigation failed for %s %s", st["patient_id"], st["day"])
+        from echos.team.investigator import run_investigation
+        if st.get("plan") and not TeamPlan(**st["plan"]).has("investigator"):
+            return {}                                                    # the plan did not call for it (Normal day)
+        run_investigation(eng, st["patient_id"], st["day"], st["decision"], st["results"])
         return {}
 
     def immediate_alert(st: CaseState) -> dict:

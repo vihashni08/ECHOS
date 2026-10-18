@@ -50,10 +50,10 @@ Turns detector outputs into one status (Normal / Changed-monitor / Urgent) with 
 
 ### Case Investigator agent (`investigator`)
 
-For every non-Normal case, plans and runs a few checks (history, agreement between detectors, data caveats) and writes the case file.
+For every non-Normal case, plans and runs up to 7 checks (case history, agreement between detectors, data caveats and three computed on the person's own past: trend of the readings, earlier deviation days with recorded events, routine agreement) and writes the case file.
 
 - **Takes in:** triage decision + detector outputs + history
-- **Produces:** case file: headline, corroboration, trend, caveats, evidence level, trace of steps
+- **Produces:** case file: headline, evidence level, supports, context (trend, routine agreement), caveats, next checks, trace of steps
 - **If it fails:** the case still goes on without a case file
 - **Never:** change the status or give medical advice
 
@@ -79,6 +79,15 @@ Writes the daily caregiver report and the weekly clinician PDF from the case fil
 
 Infrastructure: keeps the others running.
 
+### Team Planner (`planner`)
+
+Right after Triage, decides which of the four agents this case needs (and so how many) and writes one plain sentence of why per agent. One ratio r = the highest detector score over its own alert threshold, one cutoff theta chosen by a call budget: a fired rule adds the Investigator and the Care Coordinator (owner of an urgent alert); no rule but r above theta (a near miss) adds only a short watch file from the Investigator; otherwise only Triage and a template report.
+
+- **Takes in:** triage decision + detector outputs
+- **Produces:** team plan (agents, size, r, theta, LLM request ceiling, reasons) on the bus and GET /api/patients/{id}/team-plan
+- **If it fails:** the case goes on with the fixed pipeline; an alert never waits for it
+- **Never:** change the status, delay or suppress an alert, or use a model or an LLM
+
 ### Supervisor (`supervisor`)
 
 Replay mode: starts the three detector workers, watches their heartbeats and restarts dead ones (in live mode the detectors run inside the live processor).
@@ -94,7 +103,7 @@ Keeps the runtime process (supervisor, triage, live processor, Care Coordinator,
 
 - **Takes in:** the runtime's liveness signal and exit status
 - **Produces:** runtime restarts (restart_log)
-- **If it fails:** the runtime then runs unsupervised until the watchdog is started again; nothing is lost, state is in SQLite
+- **If it fails:** the runtime runs unsupervised until the watchdog is started again (an OS service manager can do that: templates in scripts/service/, not installed); nothing is lost, state is in SQLite
 - **Never:** touch data or decide anything
 
 ## How they talk

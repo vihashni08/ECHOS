@@ -2240,6 +2240,103 @@
     }
    }
   },
+  "/api/patients/{pid}/team-plan": {
+   "get": {
+    "tags": [
+     "patients"
+    ],
+    "summary": "Team Plan",
+    "description": "Which agents the Team Planner called for on a day (latest day if none is given) and why; null when no plan was recorded.",
+    "operationId": "team_plan_api_patients__pid__team_plan_get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "day",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Day"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "anyOf": [
+          {
+           "$ref": "#/components/schemas/TeamPlanOut"
+          },
+          {
+           "type": "null"
+          }
+         ],
+         "title": "Response Team Plan Api Patients  Pid  Team Plan Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
   "/api/tasks": {
    "get": {
     "tags": [
@@ -3705,6 +3802,56 @@
     ],
     "title": "AgentMessageOut"
    },
+   "AgentPickOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "active": {
+      "type": "boolean",
+      "title": "Active"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role",
+      "default": ""
+     },
+     "reason": {
+      "type": "string",
+      "title": "Reason"
+     },
+     "need": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Need"
+     },
+     "threshold": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Threshold"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "active",
+     "reason"
+    ],
+    "title": "AgentPickOut"
+   },
    "AgentSummaryOut": {
     "properties": {
      "id": {
@@ -4104,6 +4251,13 @@
       },
       "type": "array",
       "title": "Reasons"
+     },
+     "specifics": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Specifics"
      },
      "caveats": {
       "items": {
@@ -6510,6 +6664,84 @@
      "llm_enabled"
     ],
     "title": "SystemConfigOut"
+   },
+   "TeamPlanOut": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "team_size": {
+      "type": "integer",
+      "title": "Team Size"
+     },
+     "max_llm_requests": {
+      "type": "integer",
+      "title": "Max Llm Requests"
+     },
+     "summary": {
+      "type": "string",
+      "title": "Summary"
+     },
+     "agents": {
+      "items": {
+       "$ref": "#/components/schemas/AgentPickOut"
+      },
+      "type": "array",
+      "title": "Agents"
+     },
+     "rules_version": {
+      "type": "string",
+      "title": "Rules Version",
+      "default": ""
+     },
+     "needs": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Needs"
+     },
+     "thresholds": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Thresholds"
+     },
+     "watch": {
+      "type": "boolean",
+      "title": "Watch",
+      "default": false
+     },
+     "closest": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Closest"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "day",
+     "status",
+     "team_size",
+     "max_llm_requests",
+     "summary",
+     "agents"
+    ],
+    "title": "TeamPlanOut",
+    "description": "The Team Planner's record for one patient-day: which of the four agents the case needed and why (a ratio and a cutoff, not a model)."
    },
    "VitalPoint": {
     "properties": {

@@ -12,13 +12,22 @@ from echos.reports.llm_budget import GenerationFailed, LLMBudget, make_key
 from echos.reports.validator import validate_report
 from echos.reports.weekly_data import narrative_payload
 
-PROMPT_VERSION = "weekly-v1"
+PROMPT_VERSION = "weekly-v2"
+SCHEMA = {"type": "object", "required": ["key_findings", "guidance"], "properties": {
+    "key_findings": {"type": "array", "minItems": 3, "maxItems": 6, "items": {"type": "object", "required": ["text", "cites"], "properties": {
+        "text": {"type": "string", "description": "1-2 factual sentences with the exact values, dates and the comparison with the personal baseline"},
+        "cites": {"type": "array", "items": {"type": "string"}}}}},
+    "guidance": {"type": "array", "maxItems": 2, "items": {"type": "object", "required": ["text", "cites"], "properties": {
+        "text": {"type": "string", "description": "one paraphrased statement from a listed source"},
+        "cites": {"type": "array", "items": {"type": "string"}}}}}}}
 SYSTEM = ("You write the 'Key findings' paragraph of a weekly report for a clinician, about 120 words, plain factual language. Use ONLY the structured data "
           "in the JSON. Copy numbers exactly; never invent one. Describe vitals against this person's own baseline. Never mention any probability or score "
           "except the fall probability given for a fall. Say 'activity pattern differs from usual', not more. Never state a diagnosis (no 'diagnosis', "
           "'you have', 'suffering from') and never give advice about medicines or doses. Guidance statements must paraphrase a listed source and cite its id. Reply with JSON only.")
-ASK = ('Return {{"key_findings":[{{"text":str,"cites":[]}}],"guidance":[{{"text":str,"cites":[source ids]}}]}}. "key_findings": 3 to 5 sentences covering '
-       'day statuses, vitals against baseline, falls, unusual-activity days and data completeness. "guidance": 0 to 2 short paraphrased statements, only from '
+ASK = ('Return {{"key_findings":[{{"text":str,"cites":[]}}],"guidance":[{{"text":str,"cites":[source ids]}}]}} (exactly these two keys, no others). '
+       'Write in the style of a clinical handover (situation, background, assessment): "key_findings" is 4 to 6 items of 1-2 sentences each, about 120 to 200 words in all. '
+       'Cover, in this order: (1) the week at a glance: days with data and Normal / Monitor / Urgent counts; (2) each vital sign: weekly mean, personal baseline, number of readings outside the band, with exact values; '
+       '(3) falls (day, time, whether inactivity followed) or that none were detected; (4) days the activity pattern differed from usual, with dates; (5) data completeness and any gap, stating that missing readings are not evidence of normal values. "guidance": 0 to 2 short paraphrased statements, only from '
        'the sources below, each citing its id; [] if there are none.\n\nDATA:\n{data}\n\nSOURCES:\n{sources}')
 
 
@@ -89,7 +98,7 @@ def make_narrative(d: dict, sources: list, budget: Optional[LLMBudget] = None, u
             def attempt(ctx):
                 fb, vv, attempts = "", None, []
                 for _ in range(2):
-                    r = ctx.step(SYSTEM, [{"role": "user", "text": ASK.format(data=json.dumps(pseudonymise(narrative_payload(d), d["patient_id"]), default=str), sources=src_json) + fb}], None)
+                    r = ctx.step(SYSTEM, [{"role": "user", "text": ASK.format(data=json.dumps(pseudonymise(narrative_payload(d), d["patient_id"]), default=str), sources=src_json) + fb}], None, SCHEMA)
                     t = r.text.strip()
                     if t.startswith("```"):
                         t = t.strip("`").removeprefix("json").strip()

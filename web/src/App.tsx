@@ -5,8 +5,6 @@ import { useMe } from "@/lib/queries"
 import { atLeast, type Role } from "@/lib/auth"
 import Today from "@/pages/Today"
 import Alerts from "@/pages/Alerts"
-import AgentActivity from "@/pages/AgentActivity"
-import HowItWorks from "@/pages/HowItWorks"
 import FallMonitor from "@/pages/FallMonitor"
 import PatientPage, { PatientRedirect } from "@/pages/PatientPage"
 import Caregiver from "@/pages/Caregiver"
@@ -26,14 +24,14 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<Today />} />
         <Route path="alerts" element={<Alerts />} />
-        <Route path="agents" element={<AgentActivity />} />
-        <Route path="how-it-works" element={<HowItWorks />} />
+        <Route path="agents" element={<Navigate to="/system?tab=agents" replace />} />
+        <Route path="how-it-works" element={<Navigate to="/system?tab=how" replace />} />
         <Route path="falls" element={<FallMonitor />} />
         <Route path="patient" element={<PatientRedirect />} />
         <Route path="patients/:id" element={<PatientPage />} />
         <Route path="caregiver" element={<Caregiver />} />
         <Route path="clinician" element={<Need role="clinician"><Clinician /></Need>} />
-        <Route path="system" element={<Need role="operator"><System /></Need>} />
+        <Route path="system" element={<System />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

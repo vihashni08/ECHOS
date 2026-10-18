@@ -2,19 +2,19 @@
   "patient_days": 2797,
   "patient_weeks": 399.57142857142856,
   "old": {
-    "vitals_prob": 0.443,
-    "agitation_prob": 0.592,
+    "vitals_prob": 0.278,
+    "agitation_prob": 0.129,
     "drift_evidence_cusum": 10.4,
-    "vitals_alerts_per_patient_week": 0.9960672148730784,
-    "vitals_recall": 0.7238095238095238,
-    "vitals_precision": 0.5728643216080402,
-    "agitation_recall": 0.5272727272727272,
+    "vitals_alerts_per_patient_week": 0.998569896317483,
+    "vitals_recall": 0.7206349206349206,
+    "vitals_precision": 0.568922305764411,
+    "agitation_recall": 0.509090909090909,
     "drift_recall": 0.01818181818181818,
-    "behaviour_monitor_recall": 0.5272727272727272,
+    "behaviour_monitor_recall": 0.509090909090909,
     "behaviour_monitor_share_of_patient_days": 0.09939220593493028,
     "drift_share_of_patient_days": 0.042188058634250986,
-    "config_vitals_prob": 0.435,
-    "config_agitation_prob": 0.587
+    "config_vitals_prob": 0.278,
+    "config_agitation_prob": 0.129
   },
   "score_scale": "calibrated",
   "new": {

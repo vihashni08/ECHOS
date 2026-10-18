@@ -8,12 +8,16 @@ import re
 from typing import Literal, Optional
 
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 CHECKLIST = ("Check that the person is responsive.",
              "Call the clinician line.",
              "Check the device / sensors.",
              "Note the time.")
+CHECKLIST_VITALS = ("Check that the person is awake and responsive.",
+                    "Repeat the reading after a few minutes of rest.",
+                    "Call the clinician line.",
+                    "Note the time and the values.")
 TITLE = {"FALL": "Possible fall detected", "CRITICAL_VITALS": "Critical vitals reading"}
 _BAD = re.compile(r"[^A-Za-z0-9 _.:,/%+\-()|]")
 
@@ -90,10 +94,13 @@ class AlertPayload(BaseModel):
     def _safe_note(cls, v):
         return None if v is None else clean(v, 160)
 
-    @field_validator("checklist")
-    @classmethod
-    def _fixed(cls, v):
-        return CHECKLIST   # the checklist can never be altered by input
+    @model_validator(mode="after")
+    def _fixed(self):
+        # the checklist can never be altered by input: a fixed list per alert type (fall vs critical vitals)
+        want = CHECKLIST_VITALS if self.alert_type == "CRITICAL_VITALS" else CHECKLIST
+        if self.checklist != want:
+            object.__setattr__(self, "checklist", want)
+        return self
 
 
 def _fmt(v, unit="") -> str:

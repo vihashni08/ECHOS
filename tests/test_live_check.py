@@ -16,7 +16,7 @@ def make_fake(behaviour):
         def __init__(self, key, model, *a, **k):
             self.model = model
 
-        def step(self, system, messages, tools=None):
+        def step(self, system, messages, tools=None, schema=None):
             log.append((self.model, bool(tools), len(messages)))
             err = behaviour.get(self.model)
             if err == "timeout":

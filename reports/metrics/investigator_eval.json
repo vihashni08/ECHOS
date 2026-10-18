@@ -1,0 +1,178 @@
+{
+ "n_days": 517,
+ "n_patients": 49,
+ "event_rate_all_deviation_days": 0.23404255319148937,
+ "signals": {
+  "trend": {
+   "n_with": 241,
+   "n_without": 276,
+   "event_rate_with": 0.23651452282157676,
+   "event_rate_without": 0.2318840579710145,
+   "difference": 0.00463046485056226,
+   "ci95": [
+    -0.0792586017682994,
+    0.07616805290109886
+   ],
+   "separates": false
+  },
+  "corrob": {
+   "n_with": 111,
+   "n_without": 406,
+   "event_rate_with": 0.22522522522522523,
+   "event_rate_without": 0.23645320197044334,
+   "difference": -0.01122797674521811,
+   "ci95": [
+    -0.11094011463947502,
+    0.0849698846977292
+   ],
+   "separates": false
+  },
+  "history": {
+   "n_with": 96,
+   "n_without": 421,
+   "event_rate_with": 0.375,
+   "event_rate_without": 0.20190023752969122,
+   "difference": 0.17309976247030878,
+   "ci95": [
+    0.0016185955944992053,
+    0.29237874926707225
+   ],
+   "separates": true
+  },
+  "never (weakens)": {
+   "n_with": 73,
+   "n_without": 444,
+   "event_rate_with": 0.1643835616438356,
+   "event_rate_without": 0.24549549549549549,
+   "difference": -0.08111193385165988,
+   "ci95": [
+    -0.1943755458463462,
+    0.09844409710294286
+   ],
+   "separates": false
+  },
+  "net >= 1": {
+   "n_with": 286,
+   "n_without": 231,
+   "event_rate_with": 0.24825174825174826,
+   "event_rate_without": 0.21645021645021645,
+   "difference": 0.03180153180153181,
+   "ci95": [
+    -0.058255933015361624,
+    0.10655853039008341
+   ],
+   "separates": false
+  },
+  "net <= -1": {
+   "n_with": 23,
+   "n_without": 494,
+   "event_rate_with": 0.17391304347826086,
+   "event_rate_without": 0.23684210526315788,
+   "difference": -0.06292906178489702,
+   "ci95": [
+    -0.2012504436408533,
+    0.21404267217275338
+   ],
+   "separates": false
+  }
+ },
+ "notes": [
+  "population: reading-days outside the person's own usual on a vital (|z|>=2, past-only); outcome: same-day BP / pulse / body-water label",
+  "all signals use data before the day only; difference = event rate with the signal minus without it; CI = patient bootstrap (1000)",
+  "a CI that includes 0 means the signal is NOT shown to separate event days from non-event days in this cohort",
+  "labels are described as clinician-verified but we did not verify how they were produced: associative, not clinical validation"
+ ],
+ "level_rules": {
+  "n_days": 346,
+  "n_patients": 20,
+  "event_rate_all": 0.4046242774566474,
+  "by_level": {
+   "STRONG": {
+    "n": 32,
+    "event_rate": 0.6875
+   },
+   "MODERATE": {
+    "n": 143,
+    "event_rate": 0.46853146853146854
+   },
+   "LIMITED": {
+    "n": 171,
+    "event_rate": 0.2982456140350877
+   },
+   "STRONG minus LIMITED": {
+    "difference": 0.3892543859649123,
+    "ci95": [
+     0.2626880411255411,
+     0.7088662239089184
+    ],
+    "separates": true
+   },
+   "MODERATE minus LIMITED": {
+    "difference": 0.17028585449638084,
+    "ci95": [
+     0.09577350394985294,
+     0.26851651400841464
+    ],
+    "separates": true
+   },
+   "STRONG minus MODERATE": {
+    "difference": 0.21896853146853146,
+    "ci95": [
+     0.09402771728610143,
+     0.5276516905974987
+    ],
+    "separates": true
+   }
+  },
+  "signals": {
+   "agree": {
+    "n_with": 28,
+    "n_without": 269,
+    "event_rate_with": 0.6785714285714286,
+    "event_rate_without": 0.4349442379182156,
+    "difference": 0.24362719065321298,
+    "ci95": [
+     0.10144905645702834,
+     0.5706913230821222
+    ],
+    "separates": true
+   },
+   "repeat": {
+    "n_with": 152,
+    "n_without": 145,
+    "event_rate_with": 0.4934210526315789,
+    "event_rate_without": 0.4206896551724138,
+    "difference": 0.07273139745916513,
+    "ci95": [
+     -0.007832677762242472,
+     0.16596634980171485
+    ],
+    "separates": false
+   },
+   "persistent": {
+    "n_with": 30,
+    "n_without": 267,
+    "event_rate_with": 0.6333333333333333,
+    "event_rate_without": 0.43820224719101125,
+    "difference": 0.19513108614232205,
+    "ci95": [
+     0.006666487518459839,
+     0.35062162162162164
+    ],
+    "separates": true
+   },
+   "caveat": {
+    "n_with": 53,
+    "n_without": 293,
+    "event_rate_with": 0.11320754716981132,
+    "event_rate_without": 0.45733788395904434,
+    "difference": -0.344130336789233,
+    "ci95": [
+     -0.4525632711411375,
+     -0.2606332755086701
+    ],
+    "separates": true
+   }
+  }
+ }
+}

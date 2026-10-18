@@ -72,6 +72,7 @@ def get_engine(path=None):
     md.create_all(eng)
     with eng.begin() as c:
         create_feed_triggers(c)
+        create_indexes(c)
     with eng.begin() as c:   # databases created before these columns existed
         for table, col, typ in (("reports", "provenance", "TEXT"), ("outbox", "attachment_name", "TEXT"), ("outbox", "attachment_path", "TEXT"),
                                 ("outbox", "next_attempt_time", "REAL"), ("outbox", "last_attempt_time", "REAL"), ("outbox", "window_start", "REAL"), ("case_state", "as_of", "TEXT"), ("case_state", "provisional", "INTEGER")):
@@ -153,6 +154,13 @@ _TRIGGERS = [
     ("feed_agent_status", "AFTER UPDATE OF status ON agent_heartbeat", "WHEN OLD.status IS NOT NEW.status", "'agent_health'",
      "json_object('agent', NEW.agent_id, 'status', NEW.status, 'alive', 1)"),
 ]
+
+
+def create_indexes(conn) -> None:
+    """Indexes for the queries the agents repeat every second (also added to databases created before them)."""
+    for name, on in (("ix_agent_message_poll", "agent_message (recipient, status, id)"), ("ix_outbox_alert_role", "outbox (alert_id, recipient_role)"),
+                     ("ix_alert_state_state", "alert_state (state)")):
+        conn.execute(text(f"CREATE INDEX IF NOT EXISTS {name} ON {on}"))
 
 
 def create_feed_triggers(conn) -> None:

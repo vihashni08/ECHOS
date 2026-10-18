@@ -44,7 +44,7 @@ export default function HowItWorks() {
   const infra = comps.data?.filter((c) => c.kind === "infra") ?? []
   return (
     <div className="flex flex-col gap-5">
-      <div><h1 className="text-2xl font-semibold">How ECHOS works</h1>
+      <div><h2 className="text-xl font-semibold">How ECHOS works</h2>
         <p className="max-w-3xl text-sm text-muted-foreground">ECHOS watches the sensors and vital signs of one older person and tells their caregiver and clinician, at once when a fall or critical reading is detected, and once a day whether anything differs from that person's own usual. It supports decisions; it never diagnoses, and a language model never decides an emergency.</p></div>
       <Card><CardHeader><CardTitle>Data source right now: {MODE[mode].label}</CardTitle></CardHeader><CardContent className="text-sm">{MODE[mode].what}</CardContent></Card>
       <ol className="flex flex-wrap items-center gap-2 text-sm" aria-label="Pipeline" data-testid="pipeline">

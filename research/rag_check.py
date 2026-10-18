@@ -1,5 +1,5 @@
 """Eyeball RAG relevance: for 10 typical findings print the top-1 retrieved source title, page and score.
-Usage: PYTHONPATH=. python3 scripts/rag_check.py   (run `python3 -m echos.knowledge.ingest` first)"""
+Usage: PYTHONPATH=. python3 research/rag_check.py   (run `python3 -m echos.knowledge.ingest` first)"""
 from echos.knowledge.retrieve import build_query, retrieve
 
 CASES = [("fall", {}), ("fall_inactivity", {"post_fall_inactive": True}), ("fall", {"kind": "alert"}),

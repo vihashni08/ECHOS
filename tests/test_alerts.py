@@ -268,3 +268,11 @@ def test_room_events_last3_within_6h_else_plain_sentence(eng, fake):
     assert "minutes before" in P.render_text(p)
     p = P.build_payload(eng, "a|4", "FALL", "p1", "2019-05-05", "2019-05-05T20:00:00", 1, {}, {}, None)
     assert p.recent_room_events == [] and "No room-sensor activity recorded in the 6 hours before the event (last recorded: 2019-05-05 12:00:00)" in P.render_text(p)
+
+
+def test_fall_and_critical_vitals_are_distinct_alerts():
+    f, c = fall_payload(), crit_payload(1, "2019-05-05T10:00:00")
+    assert P.subject(f) != P.subject(c) and "fall" in P.subject(f).lower() and "vitals" in P.subject(c).lower()
+    assert f.checklist == P.CHECKLIST and c.checklist == P.CHECKLIST_VITALS and f.checklist != c.checklist
+    assert "Fall probability" in P.render_text(f) and "Fall probability" not in P.render_text(c)
+    assert f.alert_id.split("|")[2] == "fall" and c.alert_id.split("|")[2] == "critical_vitals"

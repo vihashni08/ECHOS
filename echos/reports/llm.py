@@ -143,8 +143,8 @@ class GeminiLLM:
                 out.append(types.Content(role="user", parts=[types.Part.from_function_response(name=r["name"], response=r["response"]) for r in m["results"]]))
         return out
 
-    def step(self, system: str, messages: list, tools: list | None = None) -> Step:
-        """ONE request. tools=None -> final answer (JSON mime type + response_json_schema = DailyReport, no function calling); else manual function calling
+    def step(self, system: str, messages: list, tools: list | None = None, schema: dict | None = None) -> Step:
+        """ONE request. tools=None -> final answer (JSON mime type + response_json_schema = `schema`, default DailyReport, no function calling); else manual function calling
         (automatic_function_calling disabled: the agent executes tools itself and enforces the step limit)."""
         from google.genai import types
         if tools:
@@ -156,7 +156,7 @@ class GeminiLLM:
         else:
             from echos.reports.schema import json_schema     # structured output: the same DailyReport model the prompt and the validator use
             cfg = types.GenerateContentConfig(system_instruction=system, temperature=self.temperature, response_mime_type="application/json",
-                                              response_json_schema=json_schema())
+                                              response_json_schema=schema or json_schema())
 
         def call():
             return self._client.models.generate_content(model=self.model, contents=self._contents(messages), config=cfg)

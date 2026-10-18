@@ -1,0 +1,78 @@
+{
+ "patient_days": 1266,
+ "days_by_status": {
+  "NORMAL": 845,
+  "MONITOR": 364,
+  "URGENT": 57
+ },
+ "theta": 0.8594,
+ "parity_with_previous_routing": {
+  "days_equal_with_cutoff_off": 1266,
+  "of": 1266,
+  "all_equal_with_cutoff_off": true,
+  "days_changed_with_configured_theta": 44,
+  "changed_are_all_normal_watch_days": true,
+  "agents_added_on_changed_days": {
+   "investigator": 44
+  }
+ },
+ "watch": {
+  "days": 44,
+  "per_patient_week": 0.243,
+  "coordinator_called": 0,
+  "note": "each watch day writes a short watch file (Investigator only); no alert, no Coordinator, template report"
+ },
+ "normal_days": 845,
+ "r_normal_quantiles_50_90_99_max": [
+  0.344,
+  0.761,
+  0.966,
+  0.999
+ ],
+ "sensitivity": [
+  {
+   "theta": 0.5,
+   "watch_days": 247,
+   "watch_days_per_patient_week": 1.366,
+   "mean_team_size": 2.86
+  },
+  {
+   "theta": 0.6,
+   "watch_days": 164,
+   "watch_days_per_patient_week": 0.907,
+   "mean_team_size": 2.795
+  },
+  {
+   "theta": 0.7,
+   "watch_days": 108,
+   "watch_days_per_patient_week": 0.597,
+   "mean_team_size": 2.75
+  },
+  {
+   "theta": 0.8,
+   "watch_days": 74,
+   "watch_days_per_patient_week": 0.409,
+   "mean_team_size": 2.724
+  },
+  {
+   "theta": 0.9,
+   "watch_days": 30,
+   "watch_days_per_patient_week": 0.166,
+   "mean_team_size": 2.689
+  },
+  {
+   "theta": 1.0,
+   "watch_days": 0,
+   "watch_days_per_patient_week": 0.0,
+   "mean_team_size": 2.665
+  }
+ ],
+ "safety_floor": {
+  "urgent_days": 57,
+  "investigator_and_owner_coordinator_for_any_theta": {
+   "0.0": true,
+   "1.0": true,
+   "1000000000.0": true
+  }
+ }
+}

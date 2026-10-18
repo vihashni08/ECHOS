@@ -4,6 +4,7 @@ import { Info } from "lucide-react"
 import BandBars from "@/charts/BandBars"
 import Heatmap from "@/charts/Heatmap"
 import VitalChart from "@/charts/VitalChart"
+import TeamPlanPanel from "@/components/TeamPlanPanel"
 import CaseFilePanel from "@/components/CaseFilePanel"
 import { CardSkeleton, Empty, ErrorNote } from "@/components/States"
 import Timeline from "@/components/Timeline"
@@ -70,6 +71,7 @@ export default function PatientPage() {
       </div>
       <WhyFlagged pid={id} />
       <CaseFilePanel pid={id} status={me?.latest_status} />
+      <TeamPlanPanel pid={id} />
       <div className="flex flex-wrap items-end gap-3 text-sm">
         <label className="flex flex-col gap-1">From<input type="date" value={from} min={min} max={to || max} onChange={(e) => setFrom(e.target.value)} className="num h-9 rounded-md border bg-card px-2" aria-label="From date" /></label>
         <label className="flex flex-col gap-1">To<input type="date" value={to} min={from || min} max={max} onChange={(e) => setTo(e.target.value)} className="num h-9 rounded-md border bg-card px-2" aria-label="To date" /></label>

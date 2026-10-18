@@ -30,6 +30,7 @@ class CareCoordinator:
         self._stop = threading.Event()
         self._thread = None
         self.last_beat = 0.0
+        self._last_prune = 0.0
 
     # ------------------------------------------------------------ one pass (also called directly by tests with a fake clock)
     def step(self) -> dict:
@@ -38,8 +39,20 @@ class CareCoordinator:
         n["sent"] = self._track_delivery()
         n["escalated"] = self._escalate_overdue()
         n["tasks"] = self._followups() + self._reviews()
+        self._housekeeping()
         self.last_beat = self.clock()
         return n
+
+    def _housekeeping(self) -> None:
+        """Once an hour: drop handled bus messages older than bus.keep_s (a bad pass here must never stop the alert lifecycle)."""
+        now = self.clock()
+        if now - self._last_prune < float(self.cfg.get("prune_every_s", 3600)):
+            return
+        self._last_prune = now
+        try:
+            bus.prune(self.eng, float(self.cfg.get("bus_keep_s", 30 * 86400)), now=S.now())
+        except Exception:  # noqa: BLE001
+            log.exception("bus prune failed")
 
     def _timeout(self, typ: str) -> float:
         return float((self.cfg.get("ack_timeout_s") or {}).get(typ.upper(), 1800))
@@ -47,10 +60,9 @@ class CareCoordinator:
     def _register(self) -> int:
         k = 0
         with self.eng.begin() as c:
-            known = {r[0] for r in c.execute(select(S.alert_state.c.alert_id))}
-            for a in c.execute(select(S.alerts.c.alert_id, S.alerts.c.patient_id, S.alerts.c.type)).fetchall():
-                if a.alert_id in known:
-                    continue
+            unknown = select(S.alerts.c.alert_id, S.alerts.c.patient_id, S.alerts.c.type).where(
+                ~S.alerts.c.alert_id.in_(select(S.alert_state.c.alert_id)))        # only alerts the Coordinator has not seen yet
+            for a in c.execute(unknown).fetchall():
                 S.insert_ignore(c, S.alert_state, alert_id=a.alert_id, patient_id=a.patient_id, type=(a.type or "").upper(), state="NEW", created_ts=self.clock())
                 k += 1
         return k

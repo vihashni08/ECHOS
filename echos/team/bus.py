@@ -26,6 +26,15 @@ def poll(eng, recipient: str, topics: Optional[Iterable[str]] = None, limit: int
     return [{"id": r.id, "ts": r.ts, "sender": r.sender, "recipient": r.recipient, "topic": r.topic, "patient_id": r.patient_id, "day": r.day, "payload": json.loads(r.payload or "{}")} for r in rows]
 
 
+def prune(eng, keep_s: float, now: Optional[float] = None) -> int:
+    """Delete handled (DONE) messages and broadcasts (recipient 'all', never consumed) older than keep_s seconds. Unhandled NEW messages to an
+    agent are never deleted. Returns the number removed. The Agent activity page keeps `bus.keep_s` of history (default 30 days)."""
+    cutoff = (now if now is not None else S.now()) - keep_s
+    with eng.begin() as c:
+        r = c.execute(S.agent_message.delete().where((S.agent_message.c.ts < cutoff) & ((S.agent_message.c.status == "DONE") | (S.agent_message.c.recipient == "all"))))
+    return r.rowcount or 0
+
+
 def done(eng, ids: Iterable[int]) -> None:
     ids = list(ids)
     if ids:

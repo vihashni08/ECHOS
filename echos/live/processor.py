@@ -29,7 +29,8 @@ from echos.orchestrator.alerts import queue_alerts
 from echos.orchestrator.triage import triage as run_triage
 from echos.schemas import AgentResult, BehaviourPart, DataQualityResult, HealthResult, VitalsPart
 from echos.team import bus
-from echos.team.investigator import Investigator
+from echos.team.investigator import Investigator, run_investigation
+from echos.team.planner import plan_team, record_plan
 
 log = logging.getLogger("echos.live")
 DETECTORS = ("quality", "health_monitoring", "fall")
@@ -40,6 +41,7 @@ class PatientState:
         self.open_day: Optional[str] = None
         self.falls: list = []             # fall detector results of the open day: (event_id, ts, AgentResult dict)
         self.vitals_ev: Optional[tuple] = None   # (event_id, ts) of the newest vitals reading of the open day
+        self.plan_sig = None              # (day, status, active agents) of the last recorded Team Plan
         self.sig = None                   # decision signature -> the Investigator re-runs only when it changes
         self.last_decide = 0.0
         self.dirty_fast = False
@@ -222,16 +224,16 @@ class LiveProcessor:
                      reasons=S.j(dec["reasons"]),
                      report=None, updated_ts=S.now(), as_of=clock_ts.isoformat(), provisional=not closed)
         st.last_decide, st.dirty_fast, st.dirty_light = self.clock(), False, False
+        plan = plan_team(dec, results)                                    # Team Planner: which agents this case needs, and why
+        if (day, dec["status"], tuple(plan.active_ids)) != st.plan_sig:        # recorded when it changes, not at every re-score of the open day
+            st.plan_sig = (day, dec["status"], tuple(plan.active_ids))
+            record_plan(self.eng, pid, day, plan)
         if dec["status"] == "URGENT":
             queue_alerts(self.eng, self.dispatcher, pid, day, dec, results, vitals_event=st.vitals_ev)       # BEFORE any investigation or report work
         sig = (dec["status"], tuple(dec["reasons"]))
-        if dec["status"] != "NORMAL" and sig != st.sig:
+        if plan.has("investigator") and sig != st.sig:
             st.sig = sig
-            try:
-                bus.post(self.eng, "triage", "investigator", "case_opened", pid, day, {"status": dec["status"], "reasons": dec["reasons"][:4], "as_of": clock_ts.isoformat()})
-                self.investigator.investigate(pid, day, dec, results)
-            except Exception:  # noqa: BLE001
-                log.exception("investigation failed")
+            run_investigation(self.eng, pid, day, dec, results, self.investigator, {"as_of": clock_ts.isoformat()})
         if closed or (dec["status"] != "NORMAL" and not st.reported_nonnormal):
             st.reported_nonnormal = st.reported_nonnormal or dec["status"] != "NORMAL"
             self._report(pid, day, dec, results, closed)

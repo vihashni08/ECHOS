@@ -85,7 +85,7 @@ def _rule(msg: str) -> str:
                       (r"^diagnostic wording: /.*(agitation|probability)", "score_quoted"), (r"^diagnostic wording", "medication_advice"),
                       (r"without a citation", "guidance_uncited"), (r"was not retrieved", "guidance_not_retrieved"),
                       (r"verbatim", "guidance_quoted"), (r"unknown evidence id", "unknown_cite_id"), (r"cites no evidence", "item_uncited"),
-                      (r"item without text", "item_without_text"), (r"^flag .* not cited", "flag_not_cited"), (r"status text", "status_mismatch"),
+                      (r"item without text", "item_without_text"), (r"quotes none of its recorded values", "not_specific"), (r"^flag .* not cited", "flag_not_cited"), (r"status text", "status_mismatch"),
                       (r"^schema mismatch", "schema_mismatch"), (r"not a JSON object", "not_json_object"), (r"monitor needs", "monitor_count"), (r"words expected", "length"),
                       (r"not valid JSON", "json_invalid")):
         if re.search(pat, msg):
@@ -116,8 +116,32 @@ def check_guidance(output: dict, guidance: dict, errors: list):
             errors.append("guidance quotes the source verbatim (paraphrase required)")
 
 
+def check_specific(output: dict, flags: list, errors: list, where: dict):
+    """A `changes` sentence about a flag that carries recorded values (evidence.specifics: which vital / routine measure, its value, the person's own usual)
+    must quote at least one of those numbers. 'The activity pattern differs from usual.' with no value is vague, not wrong, and is rejected so the one
+    retry (or the template, which always quotes them) produces a specific sentence."""
+    import re
+    nums = {}
+    for f in flags or []:
+        sp = (f.get("evidence") or {}).get("specifics") or []
+        n = {round(float(m), 1) for s_ in sp for m in re.findall(r"(?<![\w.])\d+(?:\.\d+)?", s_)}
+        if n:
+            nums[f["id"]] = n
+    for i, it in enumerate(output.get("changes", []) or []):
+        if not isinstance(it, dict):
+            continue
+        cited = [c for c in (it.get("cites") or []) if c in nums]
+        if not cited:
+            continue
+        have = {round(float(m), 1) for m in re.findall(r"(?<![\w.])\d+(?:\.\d+)?", CITE_TOKEN.sub(" ", str(it.get("text", ""))))}
+        if not any(have & nums[c] for c in cited):
+            e = f"change for {cited[0]} quotes none of its recorded values"
+            errors.append(e)
+            where.setdefault(e, f"changes[{i}]")
+
+
 def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=None, cite_sections=(), guidance=None,
-                    expected_status=None) -> dict:
+                    expected_status=None, flags=None) -> dict:
     """Return {ok, errors}. required_ids: ids that must be cited; valid_ids: ids that may be cited;
     cite_sections: sections whose every item must cite at least one id; guidance: see check_guidance."""
     errors = []
@@ -165,6 +189,7 @@ def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=No
                 errors.append(f"{k}: item cites no evidence")
     if guidance:
         check_guidance(output, guidance, errors)
+    check_specific(output, flags, errors, where)
     for rid in (required_ids or []):
         if rid not in cites_text:
             errors.append(f"flag {rid} is not cited")

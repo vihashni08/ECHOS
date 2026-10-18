@@ -62,7 +62,7 @@ DAILY_ASK = ('Write for a family caregiver. Return {"changes":[{"text":str,"cite
              '(one item per flag; if there are no flags write one item saying everything looked normal, cites []). '
              '"monitor": 2 or 3 simple things to watch today. Every flag id in the JSON must be cited at least once.')
 WEEKLY_ASK = ('Write for a clinician. Return {"highlights":[{"text":str,"cites":[evidence ids]}],"guidance":[{"text":str,"cites":[KB ids]}]}. '
-              '"highlights": 3 to 6 factual highlights of the week (vitals vs baseline, alerts, routine, data completeness); each must cite at '
+              '"highlights": 3 to 6 factual highlights of the week (vitals vs baseline, alerts, routine, data completeness); each about a vital must name the measure (for example "systolic blood pressure"), its value or range for the week and the days; when an evidence item has "specifics" quote at least one of its numbers; each must cite at '
               'least one evidence id (E..) and every evidence id must be cited at least once. "guidance": at most one short statement per '
               'finding type, using ONLY the retrieved chunks in "guidelines" (ids like KB-3). PARAPHRASE them in your own words (never copy '
               'more than a few words in a row), cite the KB id(s) used in every guidance statement, and give no diagnosis. '
@@ -70,12 +70,12 @@ WEEKLY_ASK = ('Write for a clinician. Return {"highlights":[{"text":str,"cites":
 
 
 # ------------------------------------------------------------------ daily report: tool loop
-PROMPT_VERSION = "daily-v4"
+PROMPT_VERSION = "daily-v6"
 MAX_TOOL_STEPS = 3     # tool calls in the one tool loop; the next request is the final answer with tools switched off.
                        # Worst case per report = MAX_TOOL_STEPS tool requests + 1 final + 1 validator retry (no tools).
 DAILY_SYSTEM = ("You write short, plain-language notes for a family caregiver in a home-care report. The structured facts are in the message; "
                 "the tools can fetch more. Use ONLY facts in the message or returned by the tools. Never invent or alter a number; copy numbers exactly. Describe vitals as above or below "
-                "this person's usual range. Never quote any probability or score; for activity say 'activity pattern differs from usual'. Never state or "
+                "this person's usual range. Never quote any probability or score; for activity name the measure (for example night-time bathroom visits) with its number and the person's usual, never just 'the activity pattern differs'. Never state or "
                 "imply a medical diagnosis (do not use 'diagnosis', 'you have', 'suffering from'). Never give advice about medicines or doses. "
                 "Any guidance statement must paraphrase a source returned by retrieve_guidance and cite its id (like KB-65 or PM-12345678). Reply "
                 "with JSON only.")
@@ -83,7 +83,7 @@ DAILY_ASK = ('Today is {day}; the arbiter decided status {status}. Flag ids to c
              'person\'s own baseline, routine, flags, falls, data-quality notes) is below. Optionally call get_last_7_days, and retrieve_guidance(finding_type, '
              'details) for the findings (finding_type one of {types}). Then reply with ONE JSON object that follows exactly this JSON Schema '
              '(every list item is an object {{"text","cites"}}, never a bare string; no other keys): {shape}. "status" must be exactly "{status}". '
-             '"changes": one item per flag (cite its id; every flag id must be cited at least once). "guidance": each item cites a retrieved source id; [] if nothing was retrieved.\n\n'
+             '"changes": one item per flag, each 2 to 4 sentences like a clinical handover note: name the exact measure (for example "systolic blood pressure", never just "a vital sign" or "the activity pattern"), give its recorded value and the time/date, how far it is from the person\'s own usual and in which direction (above or below), and what that could mean for today in plain words, without diagnosing. Each flag has "specifics" (sentences with the recorded numbers): restate at least one of those numbers in your own words and never leave a flag described only as "differs from usual". Cite its id (every flag id must be cited at least once). "monitor": 2 or 3 items; each must name the exact measure or behaviour to check, say how and when (for example "re-measure blood pressure this evening, seated and rested, and write both readings down"), and say what to look for or report; use the flag\'s "action_hints" as a starting point and adapt them to the values; no generic items such as "watch for signs of discomfort". "guidance": each item is a 1 to 2 sentence PARAPHRASE of a retrieved source and cites its id; [] if nothing was retrieved.\n\n'
              'PATIENT CONTEXT:\n{context}')
 RETRY_ASK = ('Your previous reply was rejected by the checker for these reasons: {errors}. Write the reply again, fixing exactly these points. No tools are available now; '
              'use only the facts and retrieved sources below. Reply with ONE JSON object that follows exactly this JSON Schema (every list item is an object {{"text","cites"}}, never a bare string; no other keys): {shape}. '
@@ -147,6 +147,11 @@ def _fmt(x):
 
 
 # ------------------------------------------------------------------ daily
+def _spec(e: dict) -> str:
+    """' ' + the finding's number-bearing sentences (which vital / routine measure, its value, the usual, the difference), or ''."""
+    return (" " + " ".join(e["specifics"])) if e.get("specifics") else ""
+
+
 def _flag_items(facts: dict):
     """Deterministic wording for each flag -> (changes, monitor) lists."""
     ch, mon = [], []
@@ -159,8 +164,9 @@ def _flag_items(facts: dict):
             mon.append({"text": "Check on them in person and ask how they feel; look for any pain or injury.", "cites": i})
         elif e.get("kind") == "critical":
             ch.append({"text": "A reading in the critical range was recorded: " + F.vitals_detail_text(e.get("values") or {k: e.get(k) for k in ("sys", "dia", "hr")}, e.get("reading_time"),
-                                                                                                   e.get("baselines"), bool(e.get("baseline_established"))) + "." + (" Why it fired: " + e["why"] + "." if e.get("why") else ""), "cites": i})
-            mon.append({"text": "Contact the care team or doctor today about this reading and repeat it at rest.", "cites": i})
+                                                                                                   e.get("baselines"), bool(e.get("baseline_established"))) + "." + (" Why it fired: " + e["why"] + "." if e.get("why") else "")
+                       + _spec(e), "cites": i})
+            mon.extend({"text": a, "cites": i} for a in (e.get("action_hints") or ["Contact the care team or doctor today about this reading and repeat it at rest."]))
         elif e.get("kind") == "vitals_alert":
             parts = []
             for k, nm in (("sys", "Systolic blood pressure"), ("dia", "Diastolic blood pressure"), ("hr", "Heart rate")):
@@ -173,22 +179,49 @@ def _flag_items(facts: dict):
                 txt = ("; ".join(parts) + ".") if parts else F.NOT_STORED + "."
             if e.get("why"):
                 txt += " Why it fired: " + e["why"] + "."
-            ch.append({"text": txt, "cites": i})
-            mon.append({"text": "Repeat the blood pressure and pulse later today, sitting and rested, and write the numbers down.", "cites": i})
+            ch.append({"text": txt + _spec(e), "cites": i})
+            mon.extend({"text": a, "cites": i} for a in (e.get("action_hints") or ["Repeat the blood pressure and pulse later today, sitting and rested, and write the numbers down."]))
         elif t == "agitation":
             nb = e.get("night_events_baseline")
             extra = f" Night-time movements: {_fmt(e['night_events'])} against usual {_fmt(nb)}." if e.get("night_events") is not None and nb is not None else ""
-            ch.append({"text": "The activity pattern differs from usual." + extra, "cites": i})
-            mon.append({"text": "Watch for restlessness or distress, especially in the evening and at night, and note what seems to trigger it.", "cites": i})
+            ch.append({"text": "The activity pattern differs from usual." + (_spec(e) or extra), "cites": i})
+            mon.extend({"text": a, "cites": i} for a in (e.get("action_hints") or ["Watch for restlessness or distress, especially in the evening and at night, and note what seems to trigger it."]))
         elif t == "routine_change":
             feats = ", ".join(FEAT_NAME.get(x, x.replace("_", " ")) for x in e.get("features", [])) or "daily activity"
-            ch.append({"text": f"The activity pattern differs from usual ({feats}).", "cites": i})
-            mon.append({"text": "Notice how often they get up at night or move between rooms, and whether meals and drinks are taken.", "cites": i})
+            ch.append({"text": f"The activity pattern differs from usual ({feats})." + _spec(e), "cites": i})
+            mon.extend({"text": a, "cites": i} for a in (e.get("action_hints") or ["Notice how often they get up at night or move between rooms, and whether meals and drinks are taken."]))
     return ch, mon
 
 
 FILLERS = ["Make sure meals and drinks are taken as usual.", "Keep walkways and the route to the bathroom clear and well lit.",
            "Tell the care team if anything seems out of the ordinary."]
+
+
+VNAME = {"sys": "Systolic blood pressure", "dia": "Diastolic blood pressure", "hr": "Heart rate", "temp": "Body temperature", "weight": "Body weight"}
+RNAME = {"total_events": "daily room-sensor events", "night_events": "night-time room-sensor events", "night_bathroom": "night-time bathroom visits"}
+
+
+def daily_situation(facts: dict, alerts: list) -> str:
+    """One deterministic line: status, number of flags and the headline alert (SBAR 'Situation')."""
+    n = len(facts["flags"])
+    head = f"{facts['status'].capitalize()} ({LABEL[facts['status']].lower()}) on {facts['day']}: {n} finding{'' if n == 1 else 's'} compared with this person's own usual."
+    return head + (" " + alerts[0] if alerts else "")
+
+
+def daily_background(facts: dict) -> list:
+    """Deterministic 'usual pattern' lines (past-only baselines) next to today's value (SBAR 'Background'); empty when no baseline exists."""
+    out = []
+    for k, nm in VNAME.items():
+        v = (facts.get("vitals") or {}).get(k) or {}
+        if v.get("baseline") is not None:
+            now = f"today {_fmt(v['value'])} {UNIT[k]}" if v.get("value") is not None else "no reading today"
+            out.append(f"{nm}: usual {_fmt(v['baseline'])} {UNIT[k]} (past 28 days); {now}.")
+    for k, nm in RNAME.items():
+        v = (facts.get("routine") or {}).get(k) or {}
+        if v.get("baseline") is not None:
+            now = f"today {_fmt(v['value'])}" if v.get("value") is not None else "no activity data today"
+            out.append(f"{nm[0].upper() + nm[1:]}: usual {_fmt(v['baseline'])}; {now}.")
+    return out
 
 
 def daily_payload(facts: dict) -> dict:
@@ -317,7 +350,12 @@ def weekly_template_items(stats: dict) -> dict:
                  "agitation": "Agitation flagged", "routine_change": "Routine drift flagged",
                  "fall": "Possible fall detected", "fall_inactivity": "Possible fall with inactivity detected"}.get(e["type"], e["type"])
         extra = " (critical range)" if e["kind"] == "critical" else ""
-        out.append({"text": f"{label}{extra} on {e['count']} occasion(s): {', '.join(e['days'])}.", "cites": [e["id"]]})
+        occ = sorted((x for x in e["detail"] if x.get("specifics")), key=lambda x: x["day"])
+        if occ:      # which measure, its value, the person's usual and the difference on each occasion (the first sentence of each day's finding)
+            shown = "; ".join(f"{x['day']}: {x['specifics'][0].rstrip('.')}" for x in occ[:3]) + (f"; and {len(occ) - 3} more day(s)" if len(occ) > 3 else "")
+            out.append({"text": f"{label}{extra} on {e['count']} occasion(s). {shown}.", "cites": [e["id"]]})
+        else:
+            out.append({"text": f"{label}{extra} on {e['count']} occasion(s): {', '.join(e['days'])}.", "cites": [e["id"]]})
     r = stats["routine"]
     if r["night_events"]["n"]:
         out.append({"text": f"Night-time activity averaged {_fmt(r['night_events']['mean'])} events per night"
@@ -601,7 +639,7 @@ class ReportAgent:
         sources = tr["sources"]
         guidance = {"section": "guidance", "ids": list(sources), "texts": {i: s["text"] for i, s in sources.items()}}
         return validate_report(out, {"facts": view, "last_7_days": tr["last7"]}, required, [f["id"] for f in facts["flags"]] + list(sources),
-                               ["changes"] if required else [], guidance, expected_status=facts["status"])
+                               ["changes"] if required else [], guidance, expected_status=facts["status"], flags=facts["flags"])
 
     def _attempt(self, facts: dict, view: dict):
         """-> function(ctx) for LLMBudget.run: tool loop + validate; on a validator failure ONE retry request (no tools); then GenerationFailed (template).
@@ -670,11 +708,13 @@ class ReportAgent:
             from echos.team import bus
             from echos.team.investigator import load_case_file
             case = load_case_file(self.eng, pid, facts["day"])
+            if case and case.get("status") == "NORMAL":
+                case = None                      # a near-miss WATCH file is not part of the report
             bus.done(self.eng, [m["id"] for m in bus.poll(self.eng, "report", ["case_file_ready"]) if m["patient_id"] == pid and m["day"] == facts["day"]])
         except Exception:  # noqa: BLE001 - the report never depends on it
             case = None
         text = TPL.get_template("daily.md.j2").render(
-            case=case, pid=facts["patient_id"], day=facts["day"], status=facts["status"], label=LABEL[facts["status"]], alerts=daily_alerts(facts),
+            situation=daily_situation(facts, daily_alerts(facts)), background=daily_background(facts), case=case, pid=facts["patient_id"], day=facts["day"], status=facts["status"], label=LABEL[facts["status"]], alerts=daily_alerts(facts),
             changes=items.get("changes", []), monitor=items.get("monitor", [])[:3], guidance=items.get("guidance", []) if mode == "llm" else [],
             refs=refs, data_note=daily_data_note(facts), mode=mode)
         path = self.root / self.rc["daily_dir"] / f"{facts['patient_id']}_{facts['day']}.md"

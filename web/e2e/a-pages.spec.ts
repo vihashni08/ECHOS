@@ -132,7 +132,7 @@ test("keyboard: demo guide drawer traps focus, closes with Escape and returns fo
 
 test("Agent activity page: every part has a card, the latest activity lists real records and filters by agent", async ({ page }) => {
   await page.goto("/agents", { waitUntil: "networkidle" })
-  await expect(page.getByTestId("agent-cards").locator("li")).toHaveCount(10)
+  await expect(page.getByTestId("agent-cards").locator("li")).toHaveCount(11)
   await expect(page.getByTestId("feed").getByTestId("activity-row").first()).toBeVisible()
   await page.getByTestId("agent-card-fall").click()
   const agents = await page.getByTestId("feed").getByTestId("activity-row").evaluateAll((els) => els.map((e) => e.getAttribute("data-agent")))
