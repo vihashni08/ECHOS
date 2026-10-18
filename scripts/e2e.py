@@ -1,5 +1,5 @@
 """End-to-end systems replay: N TIHM patients over their full period, injected held-out SisFall falls, the whole pipeline (workers ->
-LangGraph -> template reports, DryRun mail, no LLM / PubMed / SMTP). Writes reports/metrics/e2e.json (incl. per-day reasons) and keeps the
+pipeline -> template reports, DryRun mail, no LLM / PubMed / SMTP). Writes reports/metrics/e2e.json (incl. per-day reasons) and keeps the
 run's DB in data/e2e_replay/ (git-ignored) for scripts/gate_eval.py and scripts/fall_eval.py.
 
 Usage: PYTHONPATH=. python scripts/e2e.py [n_patients]   (~5 min for 20 patients: run it in the background)

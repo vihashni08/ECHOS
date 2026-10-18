@@ -37,7 +37,7 @@ from echos.alerts.mailer import FakeMailer  # noqa: E402
 from echos.config import ROOT  # noqa: E402
 from echos.data import sisfall as sf  # noqa: E402
 from echos.orchestrator import state as S  # noqa: E402
-from echos.orchestrator.graph import build_graph, run_orchestrator  # noqa: E402
+from echos.orchestrator.pipeline import build_pipeline, run_orchestrator  # noqa: E402
 from echos.orchestrator.supervisor import Supervisor  # noqa: E402
 from echos.reports import agent as A  # noqa: E402
 from echos.reports.fake_llm import FakeLLM  # noqa: E402
@@ -176,7 +176,7 @@ def run_case(name: str, fall_pick: dict, model) -> dict:
     sup = Supervisor(db, **sup_kw)
     sups = [sup]
     disp = AlertDispatcher(eng, mailer, to=TO)
-    graph, conn = build_graph(eng, work / "cp.sqlite", report_llm=llm, dispatcher=disp, report_root=work / "files", weekly_pdf=False)
+    graph = build_pipeline(eng, report_llm=llm, dispatcher=disp, report_root=work / "files", weekly_pdf=False)
     timing: dict = {}
     injections: list = []
     api = {"proc": None}
@@ -363,7 +363,6 @@ def run_case(name: str, fall_pick: dict, model) -> dict:
             s.stop_all()
         if api["proc"] and api["proc"].poll() is None:
             api["proc"].kill()
-        conn.close()
         disp.close(2)
         for p in extra_patches:
             p.stop()

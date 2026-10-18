@@ -14,7 +14,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import sqlite3
 import threading
 import time
 from pathlib import Path
@@ -177,32 +176,30 @@ class SimController:
 class Runtime:
     """Workers (supervisor) + orchestrator thread + controller thread, for demos."""
     def __init__(self, db=None, n_patients: int = 4, max_days: int = 28, report_llm="auto", weekly_pdf=None, report_root=None):
-        from echos.orchestrator.graph import build_graph
+        from echos.orchestrator.pipeline import build_pipeline
         from echos.orchestrator.supervisor import Supervisor
         from echos.sim.replay import train_replay_fall_model
         self.db = db
         self.eng = S.get_engine(db)
-        # a run on a specific database keeps its OWN langgraph checkpoint file next to it (never the shared default one)
-        self.cp = Path(db).with_suffix(".cp.sqlite") if db else ROOT / load_config()["checkpoint_db_path"]
         self.report_llm, self.weekly_pdf, self.report_root = report_llm, weekly_pdf, report_root
-        self._build_graph = build_graph
+        self._build_pipeline = build_pipeline
         self.sup = Supervisor(db, fall_model=train_replay_fall_model())
         self.ctl = SimController(self.eng, n_patients=n_patients, max_days=max_days, on_reset=self._on_reset)
         self.stop_orch = threading.Event()
         self.orch = None
         self.coord = None
-        self.graph = self.conn = None
+        self.pipeline = None
 
     def _start_orch(self):
-        from echos.orchestrator.graph import run_orchestrator
+        from echos.orchestrator.pipeline import run_orchestrator
         self.stop_orch = threading.Event()
-        self.graph, self.conn = self._build_graph(self.eng, self.cp, report_llm=self.report_llm, weekly_pdf=self.weekly_pdf, report_root=self.report_root)
+        self.pipeline = self._build_pipeline(self.eng, report_llm=self.report_llm, weekly_pdf=self.weekly_pdf, report_root=self.report_root)
         from echos.team.coordinator import CareCoordinator
         if self.coord is not None:
             self.coord.stop()
-        self.coord = CareCoordinator(self.eng, self.graph.dispatcher)    # Care Coordinator agent: alert lifecycle, escalation, tasks
+        self.coord = CareCoordinator(self.eng, self.pipeline.dispatcher)    # Care Coordinator agent: alert lifecycle, escalation, tasks
         self.coord.start()
-        self.orch = threading.Thread(target=run_orchestrator, args=(self.eng, self.graph), kwargs={"stop": self.stop_orch, "poll_s": 0.2}, daemon=True)
+        self.orch = threading.Thread(target=run_orchestrator, args=(self.eng, self.pipeline), kwargs={"stop": self.stop_orch, "poll_s": 0.2}, daemon=True)
         self.orch.start()
 
     def _on_reset(self, phase: str):
@@ -210,16 +207,6 @@ class Runtime:
             self.stop_orch.set()
             if self.orch:
                 self.orch.join(30)
-            if self.conn:
-                self.conn.close()
-            try:
-                c = sqlite3.connect(self.cp)
-                for t in ("checkpoints", "writes"):
-                    c.execute(f"DELETE FROM {t}")
-                c.commit()
-                c.close()
-            except sqlite3.Error:
-                pass
         else:
             for a in self.sup.agents:      # workers resume from the (now cleared) checkpoints: restart so their in-memory cursors reset
                 self.sup.restart(a, "sim_reset", S.now())

@@ -1,21 +1,20 @@
-"""LangGraph orchestrator = the Triage agent: load_day -> run_agents -> triage -> [immediate_alert] -> investigate (Case Investigator) -> daily_report -> [weekly_report].
+"""Replay orchestrator = the Triage agent as a plain sequential pipeline:
+load_day -> run_agents -> triage -> [immediate_alert] -> investigate (Case Investigator) -> daily_report -> [weekly_report].
 
-Checkpointed per (patient, day) thread with langgraph-checkpoint-sqlite's SqliteSaver. Side-effecting nodes are
-idempotent (alerts have a unique key), so a crash and resume can never produce a duplicate alert.
+The first three steps are cheap and deterministic: they are recomputed on every run. The side-effecting steps are idempotent (alerts have a unique key) and their
+progress per (patient, day) is kept in the `agent_checkpoint` table (agent_id `case:<patient>:<day>`), so after a crash a resume continues with the first step that
+did not finish and can never produce a duplicate alert. (This replaced a LangGraph graph with a SQLite checkpoint file.)
 """
 from __future__ import annotations
 
 import json
-import sqlite3
 import time
-from typing import Any, Callable, Optional, TypedDict
+from typing import Callable, Optional, TypedDict
 
 import pandas as pd
-from langgraph.checkpoint.sqlite import SqliteSaver
-from langgraph.graph import END, START, StateGraph
 from sqlalchemy import select
 
-from echos.config import ROOT, load_config
+from echos.config import load_config
 from echos.orchestrator import state as S
 from echos.alerts.dispatcher import AlertDispatcher
 from echos.alerts.mailer import make_mailer
@@ -35,8 +34,45 @@ class CaseState(TypedDict, total=False):
     weekly: bool
 
 
-def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]] = None, inline_agents=None,
-                report_llm="auto", report_root=None, gate=None, dispatcher=None, weekly_pdf=None):
+SIDE_STEPS = ("immediate_alert", "investigate", "daily_report", "weekly_report")
+FINISHED = -1
+
+
+class Pipeline:
+    """One patient-day at a time. `dispatcher`: the AlertDispatcher (tests / shutdown: pipeline.dispatcher.flush())."""
+
+    def __init__(self, eng, steps: dict, dispatcher):
+        self.eng, self.steps, self.dispatcher = eng, steps, dispatcher
+
+    def _progress(self, key: str) -> int:
+        with self.eng.begin() as c:
+            v = c.execute(select(S.agent_checkpoint.c.last_event_id).where(S.agent_checkpoint.c.agent_id == key)).scalar()
+        return 0 if v is None else int(v)
+
+    def _save(self, key: str, n: int) -> None:
+        with self.eng.begin() as c:
+            S.upsert(c, S.agent_checkpoint, ["agent_id"], agent_id=key, last_event_id=n, ts=S.now())
+
+    def run(self, patient_id: str, day: str) -> bool:
+        """Run (or resume) one patient-day. Returns False if it was already finished."""
+        key = f"case:{patient_id}:{day}"
+        done = self._progress(key)
+        if done == FINISHED:
+            return False
+        st: CaseState = {"patient_id": patient_id, "day": day}
+        for name in ("load_day", "run_agents", "triage"):
+            st.update(self.steps[name](st))
+        todo = [n for n in SIDE_STEPS if (n != "immediate_alert" or st["decision"]["status"] == "URGENT") and (n != "weekly_report" or st.get("weekly"))]
+        for i, name in enumerate(todo):
+            if i >= done:
+                st.update(self.steps[name](st))
+                self._save(key, i + 1)
+        self._save(key, FINISHED)
+        return True
+
+
+def build_pipeline(eng, fault: Optional[Callable[[str], None]] = None, inline_agents=None,
+                   report_llm="auto", report_root=None, gate=None, dispatcher=None, weekly_pdf=None) -> Pipeline:
     """fault(node_name) may raise to simulate a crash. inline_agents: {agent_id: fn(event_row)->dict} used only
     when an agent's stored output is missing (tests / no-process mode). report_llm: "auto" = Gemini if configured
     (llm.model + key), None/False = template mode. gate: NORMAL days get a template daily report (no LLM, no retrieval);
@@ -57,11 +93,6 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
     weekly_on = bool(wc.get("enabled", True)) if weekly_pdf is None else bool(weekly_pdf)
     weekly_llm = bool(wc.get("llm_narrative_in_simulation", False))
     gate_on = bool(load_config().get("report_gate", {}).get("enabled", True)) if gate is None else bool(gate)
-    cp = checkpoint_path or ROOT / load_config()["checkpoint_db_path"]
-    cp = str(cp)
-    conn = sqlite3.connect(cp, check_same_thread=False)
-    saver = SqliteSaver(conn)
-
     def load_day(st: CaseState) -> dict:
         with eng.begin() as c:
             evs = c.execute(select(S.event_log).where((S.event_log.c.patient_id == st["patient_id"]) &
@@ -119,9 +150,6 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
         record_plan(eng, st["patient_id"], st["day"], plan)
         return {"decision": decision, "plan": plan.model_dump(mode="json")}
 
-    def route(st: CaseState) -> str:
-        return "immediate_alert" if st["decision"]["status"] == "URGENT" else "investigate"
-
     def investigate(st: CaseState) -> dict:
         """Case Investigator agent: plans a few checks and writes the case file (never changes the status; a failure never stops the case)."""
         from echos.team.investigator import run_investigation
@@ -156,24 +184,9 @@ def build_graph(eng, checkpoint_path=None, fault: Optional[Callable[[str], None]
                                             root=reporter.root), ctx=f"weekly_pdf {pid} {day}")
         return {}
 
-    def after(st: CaseState) -> str:
-        return "weekly_report" if st.get("weekly") else END
-
-    g = StateGraph(CaseState)
-    for name, fn in [("load_day", load_day), ("run_agents", run_agents), ("triage", triage_node),
-                     ("immediate_alert", immediate_alert), ("investigate", investigate), ("daily_report", daily_report), ("weekly_report", weekly_report)]:
-        g.add_node(name, fn)
-    g.add_edge(START, "load_day")
-    g.add_edge("load_day", "run_agents")
-    g.add_edge("run_agents", "triage")
-    g.add_conditional_edges("triage", route, {"immediate_alert": "immediate_alert", "investigate": "investigate"})
-    g.add_edge("immediate_alert", "investigate")
-    g.add_edge("investigate", "daily_report")
-    g.add_conditional_edges("daily_report", after, {"weekly_report": "weekly_report", END: END})
-    g.add_edge("weekly_report", END)
-    compiled = g.compile(checkpointer=saver)
-    compiled.dispatcher = dispatcher   # tests / shutdown: compiled.dispatcher.flush()
-    return compiled, conn
+    steps = {"load_day": load_day, "run_agents": run_agents, "triage": triage_node, "immediate_alert": immediate_alert, "investigate": investigate,
+             "daily_report": daily_report, "weekly_report": weekly_report}
+    return Pipeline(eng, steps, dispatcher)
 
 
 def agent_down(eng, agent: str) -> bool:
@@ -204,17 +217,12 @@ def day_ready(eng, patient_id: str, day: str, optional=frozenset()) -> bool:
                if k in kinds and a not in optional)
 
 
-def process_case(graph, patient_id: str, day: str) -> bool:
+def process_case(pipeline: Pipeline, patient_id: str, day: str) -> bool:
     """Run (or resume) one patient-day. Returns False if it was already finished."""
-    cfg = {"configurable": {"thread_id": f"{patient_id}:{day}"}}
-    snap = graph.get_state(cfg)
-    if snap.values and not snap.next:
-        return False
-    graph.invoke(None if snap.next else {"patient_id": patient_id, "day": day}, cfg)
-    return True
+    return pipeline.run(patient_id, day)
 
 
-def run_orchestrator(eng, graph, stop=None, poll_s=0.2, until_done=None, timeout=None) -> int:
+def run_orchestrator(eng, pipeline, stop=None, poll_s=0.2, until_done=None, timeout=None) -> int:
     """Process every ready patient-day in chronological order until no unprocessed days remain."""
     t0, n, finished = time.time(), 0, set()
     while not (stop and stop.is_set()):
@@ -228,7 +236,7 @@ def run_orchestrator(eng, graph, stop=None, poll_s=0.2, until_done=None, timeout
             if (p, d) in finished:
                 continue
             if day_ready(eng, p, d, q_opt):
-                n += process_case(graph, p, d)
+                n += process_case(pipeline, p, d)
                 finished.add((p, d))
                 progressed = True
             else:

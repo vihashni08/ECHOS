@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FAKE_KEY = "AIzaSyA" + "x" * 32
 ENTRY_POINTS = [
     "echos.reports.llm.make_llm", "echos.reports.llm.GeminiLLM", "echos.reports.llm_budget.make_budget", "echos.knowledge.pubmed.PubMedClient (default http)",
-    "echos.alerts.mailer.make_mailer", "echos.alerts.mailer.SMTPMailer.send", "echos.orchestrator.graph.build_graph(report_llm='auto')",
+    "echos.alerts.mailer.make_mailer", "echos.alerts.mailer.SMTPMailer.send", "echos.orchestrator.pipeline.build_pipeline(report_llm='auto')",
     "echos.sim.controller (--no-llm / --no-pubmed)", "echos.api.app (ECHOS_REPORT_LLM / ECHOS_DRY_RUN via run_api.sh)",
     "scripts/run_api.sh (--dry --no-llm --no-pubmed)", "web/playwright.config.ts (run_api.sh --dry --no-llm)",
     "scripts/run_demo.py, e2e.py, fault_injection.py, kill_test.py, alert_latency.py (force_offline)",
@@ -56,11 +56,11 @@ def test_switches_off_create_no_client(armed, monkeypatch, tmp_path):
     assert armed == []
 
 
-def test_build_graph_auto_makes_no_llm(armed, monkeypatch, tmp_path):
+def test_build_pipeline_auto_makes_no_llm(armed, monkeypatch, tmp_path):
     monkeypatch.setenv("ECHOS_REPORT_LLM", "off")
     from echos.orchestrator import state as S
-    from echos.orchestrator.graph import build_graph
-    build_graph(S.get_engine(tmp_path / "t.db"), report_llm="auto", checkpoint_path=tmp_path / "cp.sqlite", report_root=tmp_path)
+    from echos.orchestrator.pipeline import build_pipeline
+    build_pipeline(S.get_engine(tmp_path / "t.db"), report_llm="auto", report_root=tmp_path)
     assert armed == []
 
 

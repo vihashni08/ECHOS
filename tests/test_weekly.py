@@ -248,54 +248,51 @@ def test_missing_clinician_address_is_a_visible_failure(world, tmp_path):
 def _sunday_graph(tmp_path, mailer, llm=None):
     from tests.test_orchestrator import R, health, qual
     from tests.test_safety import _seed_case
-    from echos.orchestrator.graph import build_graph
+    from echos.orchestrator.pipeline import build_pipeline
     eng = S.get_engine(tmp_path / "g.db")
     _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.0)})    # a Sunday
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=llm, report_root=tmp_path, gate=True, dispatcher=disp(eng, mailer))
-    return eng, g, conn
+    g = build_pipeline(eng, report_llm=llm, report_root=tmp_path, gate=True, dispatcher=disp(eng, mailer))
+    return eng, g
 
 
 def test_weekly_node_builds_pdf_and_queues_email_in_background(tmp_path):
-    from echos.orchestrator.graph import process_case
+    from echos.orchestrator.pipeline import process_case
     from echos.reports.agent import drain_all
     m = FakeMailer()
-    eng, g, conn = _sunday_graph(tmp_path, m)
+    eng, g = _sunday_graph(tmp_path, m)
     assert process_case(g, "p1", "2019-05-05") is True
     drain_all(60)
     assert g.dispatcher.flush(10)
-    conn.close()
     assert [s["to"] for s in m.sent] == [TO["clinician"]] and m.sent[0]["subject"].startswith("[ECHOS Weekly] p1 - 2019-04-29 to 2019-05-05")
     assert list((tmp_path / "data/reports/weekly").glob("p1_2019-W18.pdf"))
 
 
 def test_a_failed_pdf_build_does_not_break_the_day(tmp_path, monkeypatch):
-    from echos.orchestrator.graph import process_case
+    from echos.orchestrator.pipeline import process_case
     from echos.reports.agent import drain_all
 
     def boom(*a, **k):
         raise RuntimeError("pdf exploded")
     monkeypatch.setattr(WP, "build_pdf", boom)
     m = FakeMailer()
-    eng, g, conn = _sunday_graph(tmp_path, m)
+    eng, g = _sunday_graph(tmp_path, m)
     assert process_case(g, "p1", "2019-05-05") is True
     drain_all(60)
     g.dispatcher.flush(5)
     with eng.begin() as c:
         st = c.execute(select(S.case_state.c.status)).scalar()
-    conn.close()
     assert st == "NORMAL" and not m.sent and not outbox(eng)
 
 
 def test_simulation_uses_the_template_narrative_unless_configured(tmp_path, monkeypatch):
-    from echos.orchestrator.graph import process_case
+    from echos.orchestrator.pipeline import process_case
     from echos.reports.agent import drain_all
     seen = []
     real = WN.make_narrative
     monkeypatch.setattr(WN, "make_narrative", lambda *a, **k: seen.append(k.get("use_llm")) or real(*a, **k))
-    eng, g, conn = _sunday_graph(tmp_path, FakeMailer(), llm=FakeLLM([{"error": {"code": 400}}]))
+    eng, g = _sunday_graph(tmp_path, FakeMailer(), llm=FakeLLM([{"error": {"code": 400}}]))
     process_case(g, "p1", "2019-05-05")
     drain_all(60)
-    conn.close()
     assert seen == [False]      # weekly.llm_narrative_in_simulation is false by default
 
 
@@ -354,7 +351,7 @@ def test_routine_baseline_needs_7_earlier_days(world):
 # ------------------------------------------------------------------ real orchestrator weekly path attaches the retriever
 def test_orchestrator_weekly_pdf_lists_local_and_pubmed_sources(tmp_path, monkeypatch):
     from echos.knowledge.pubmed import PubMedClient
-    from echos.orchestrator.graph import process_case
+    from echos.orchestrator.pipeline import process_case
     from echos.reports import agent as ra
     from echos.reports.agent import drain_all
     from tests.test_report_llm import FakeNCBI
@@ -364,14 +361,13 @@ def test_orchestrator_weekly_pdf_lists_local_and_pubmed_sources(tmp_path, monkey
     monkeypatch.setattr(ra, "_default_pubmed", lambda: PubMedClient(http_get=ncbi, cache_path=tmp_path / "pm.sqlite"))   # mocked PubMed
     from tests.test_orchestrator import R, health, qual
     from tests.test_safety import _seed_case
-    from echos.orchestrator.graph import build_graph
+    from echos.orchestrator.pipeline import build_pipeline
     eng = S.get_engine(tmp_path / "g.db")
     _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.97, post_fall_inactive=True)})   # URGENT Sunday
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=None, report_root=tmp_path, gate=True, dispatcher=disp(eng, FakeMailer()))
+    g = build_pipeline(eng, report_llm=None, report_root=tmp_path, gate=True, dispatcher=disp(eng, FakeMailer()))
     assert process_case(g, "p1", "2019-05-05")
     drain_all(60)
     g.dispatcher.flush(10)
-    conn.close()
     t = text_of(next((tmp_path / "data/reports/weekly").glob("p1_*.pdf")))
     assert "[KB-7]" in t and "Possible falls: 1" in t
     assert "[PM-12345678]" not in t                      # the retrieved PubMed article is about blood pressure: it does not match the falls finding, so it is dropped

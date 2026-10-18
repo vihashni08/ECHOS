@@ -29,7 +29,7 @@ Open the printed web address. In *Demo tools* press **Start** (emulator) or **Pl
 | Health Monitoring agent: vitals sub-model | XGBoost on blood pressure / heart rate against the person's own past-only baseline; direction-aware findings (BP high / low, heart rate high / low, temperature, weight) | TIHM Physiology + Labels |
 | Health Monitoring agent: behaviour sub-model | Agitation classifier (only `agitation_prob` can trigger Monitor); routine drift / CUSUM as explanation only | TIHM Activity |
 | Fall agent | Random forest on 2.5 s accelerometer windows + post-fall inactivity | SisFall only (TIHM has no falls) |
-| Orchestrator | LangGraph, SQLite checkpoints, deterministic triage and safety rules | agent outputs |
+| Orchestrator | sequential pipeline with per-step SQLite progress, deterministic triage and safety rules | agent outputs |
 | Alert dispatcher | Fixed-template e-mail to caregiver and clinician, retrying outbox, no LLM | structured data only |
 | Report agent | Daily (tool loop, per-finding gated retrieval, validator, template fallback) and weekly PDF | agent outputs in SQLite |
 
@@ -42,7 +42,7 @@ flowchart LR
     DQ --> AO[(agent_output)]
     HM --> AO
     FALL --> AO
-    AO --> ORCH["LangGraph orchestrator (checkpointed)<br/>deterministic triage: Normal / Changed-monitor / Urgent<br/>safety rules: DATA_GAP never Normal, critical vitals, fall"]
+    AO --> ORCH["Orchestrator pipeline (resumable)<br/>deterministic triage: Normal / Changed-monitor / Urgent<br/>safety rules: DATA_GAP never Normal, critical vitals, fall"]
     ORCH -->|immediate_alert node, BEFORE any report work| OB[(outbox)]
     OB --> DISP["Alert dispatcher<br/>retrying outbox, worker threads,<br/>2 h sweeper, dedup, fixed template, no LLM"]
     DISP --> MAIL["Caregiver + clinician e-mail<br/>(dry run by default)"]

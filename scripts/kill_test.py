@@ -21,7 +21,7 @@ from sqlalchemy import func, select, text  # noqa: E402
 
 from echos.offline import force_offline  # noqa: E402
 from echos.orchestrator import state as S  # noqa: E402
-from echos.orchestrator.graph import build_graph, run_orchestrator  # noqa: E402
+from echos.orchestrator.pipeline import build_pipeline, run_orchestrator  # noqa: E402
 from echos.orchestrator.supervisor import Supervisor  # noqa: E402
 from echos.sim.replay import build_events, replay, train_replay_fall_model  # noqa: E402
 
@@ -38,7 +38,7 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
     sup.start_all()
     t = threading.Thread(target=sup.run, daemon=True)
     t.start()
-    graph, conn = build_graph(eng, work / "cp.sqlite", report_llm=report_llm, gate=gate)
+    graph = build_pipeline(eng, report_llm=report_llm, gate=gate)
     rep_done = threading.Event()
     summary = {}
 
@@ -106,7 +106,6 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
         n_unchecked_out = c.execute(text("select count(*) from agent_output o where o.agent_id in ('health_monitoring') and not exists "
                                          "(select 1 from agent_output q where q.event_id=o.event_id and q.agent_id='quality')")).scalar()
         alert_lat = [r.time for r in c.execute(select(S.alerts.c.time))]
-    conn.close()
     if kill_agent and passthru:
         timing["passthrough_after_s"] = passthru - t_kill
     timing["agents12_outputs_without_quality"] = n_unchecked_out

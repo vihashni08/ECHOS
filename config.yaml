@@ -38,7 +38,6 @@ agent3:
   n_folds: 5
   operating: {threshold: 0.8, require_inactivity: true}   # chosen by scripts/fall_audit.py (reports/metrics/fall_audit.json)
 db_path: data/echos.db
-checkpoint_db_path: data/langgraph_checkpoints.sqlite
 runtime:
   heartbeat_s: 5
   checkpoint_s: 60

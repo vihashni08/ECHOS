@@ -193,7 +193,7 @@ def test_weekly_mail_keeps_three_attempts(eng, tmp_path):
 
 # ---------------------------------------------------------------- real threads: the fall path is never blocked while retrying
 def test_producer_and_orchestrator_are_not_blocked_while_mail_is_retrying(tmp_path):
-    from echos.orchestrator.graph import build_graph, process_case
+    from echos.orchestrator.pipeline import build_pipeline, process_case
     from tests.test_orchestrator import R, health, qual
     from tests.test_safety import _seed_case
     eng = S.get_engine(tmp_path / "t.db")
@@ -204,7 +204,7 @@ def test_producer_and_orchestrator_are_not_blocked_while_mail_is_retrying(tmp_pa
         assert d.dispatch(fall(i))
     assert time.time() - t0 < 1.0                                                                 # five alerts queued while every send fails
     _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.97, post_fall_inactive=True)})
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=None, report_root=tmp_path, gate=True, dispatcher=d, weekly_pdf=False)
+    g = build_pipeline(eng, report_llm=None, report_root=tmp_path, gate=True, dispatcher=d, weekly_pdf=False)
     t1 = time.time()
     assert process_case(g, "p1", "2019-05-05")
     assert time.time() - t1 < 15
@@ -213,4 +213,3 @@ def test_producer_and_orchestrator_are_not_blocked_while_mail_is_retrying(tmp_pa
         assert c.execute(select(S.alerts.c.alert_id)).fetchall()
     assert {x.status for x in rows(eng)} <= {"PENDING", "RETRYING"}                              # still retrying, never reported as sent
     d.close(0.1)
-    conn.close()

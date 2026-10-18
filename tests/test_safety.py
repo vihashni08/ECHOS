@@ -11,7 +11,7 @@ from echos.config import load_config
 from echos.data.guard import assert_real_source
 from echos.orchestrator import state as S
 from echos.reports.fake_llm import FakeLLM
-from echos.orchestrator.graph import build_graph, process_case
+from echos.orchestrator.pipeline import build_pipeline, process_case
 from echos.orchestrator.triage import triage
 from tests.test_orchestrator import R, beh, health, qual, res, vit
 
@@ -95,14 +95,13 @@ def test_hostile_llm_cannot_change_status(tmp_path, monkeypatch):
     eng = S.get_engine(tmp_path / "t.db")
     _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.97, post_fall_inactive=True)})
     llm = hostile_llm()
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=llm, report_root=tmp_path, gate=True, weekly_pdf=False)
+    g = build_pipeline(eng, report_llm=llm, report_root=tmp_path, gate=True, weekly_pdf=False)
     process_case(g, "p1", "2019-05-05")
     from echos.reports.agent import drain_all
     drain_all(30)
     with eng.begin() as c:
         st = c.execute(select(S.case_state)).first()
         n_alerts = len(c.execute(select(S.alerts)).fetchall())
-    conn.close()
     text = next((tmp_path / load_config()["reports"]["daily_dir"]).glob("*.md")).read_text().lower()
     assert llm.calls >= 1                         # URGENT day: the gate lets the LLM run ...
     assert st.status == "URGENT" and n_alerts == 1       # ... and it still cannot change status or alerts
@@ -120,7 +119,7 @@ def _gate_run(tmp_path, gate, pats, days):
                                 result=S.j(m.predict(p, d).model_dump(mode="json")), done_ts=1.0)
 
     llm = FakeLLM([{"error": {"code": 400, "status": "INVALID_ARGUMENT"}}])   # not retried: exactly one request per report that reaches the LLM
-    g, conn = build_graph(eng, tmp_path / f"cp{int(gate)}.sqlite", report_llm=llm, report_root=tmp_path / f"r{int(gate)}", gate=gate, weekly_pdf=False)
+    g = build_pipeline(eng, report_llm=llm, report_root=tmp_path / f"r{int(gate)}", gate=gate, weekly_pdf=False)
     for p in pats:
         for d in days[p]:
             process_case(g, p, d)
@@ -129,7 +128,6 @@ def _gate_run(tmp_path, gate, pats, days):
     with eng.begin() as c:
         cases = [(r.patient_id, r.day, r.status, r.reasons, r.data_gap) for r in c.execute(select(S.case_state).order_by(S.case_state.c.patient_id, S.case_state.c.day))]
         alerts = sorted((r.alert_id, r.type) for r in c.execute(select(S.alerts)))
-    conn.close()
     return cases, alerts, llm.calls
 
 

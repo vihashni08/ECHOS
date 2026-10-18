@@ -204,7 +204,7 @@ def test_cors_only_for_the_local_ui(api):
 @pytest.fixture
 def live(tmp_path, monkeypatch):
     from tests.test_orchestrator import R, health, qual
-    from echos.orchestrator.graph import build_graph, run_orchestrator
+    from echos.orchestrator.pipeline import build_pipeline, run_orchestrator
     eng = S.get_engine(tmp_path / "live.db")
     adl = {"file": "x", "win_start": 0, "subject": "SA03", "activity": "D01"}
     events = []
@@ -213,7 +213,7 @@ def live(tmp_path, monkeypatch):
                    {"patient_id": "p1", "day": d, "ts": f"{d}T23:59:59", "kind": "day", "payload": {}, "_fall": False}]
     ctl = SimController(eng, events=events)
     disp_ = AlertDispatcher(eng, DryRunMailer(), to=TO, backoff_s=[0.01])
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=None, report_root=tmp_path, gate=True, dispatcher=disp_, weekly_pdf=False)
+    g = build_pipeline(eng, report_llm=None, report_root=tmp_path, gate=True, dispatcher=disp_, weekly_pdf=False)
     stop = threading.Event()
 
     def agents():                       # emulates the three worker processes
@@ -253,7 +253,6 @@ def live(tmp_path, monkeypatch):
     ctl.stop.set()
     disp_.close(2)
     time.sleep(0.2)
-    conn.close()
 
 
 @pytest.mark.skipif(sisfall_fall() is None, reason="SisFall recordings not on this machine")

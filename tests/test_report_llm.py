@@ -154,18 +154,17 @@ def test_normal_day_makes_zero_llm_and_zero_retrieval_calls(env):
 def test_orchestrator_gate_normal_days_never_reach_the_llm(tmp_path, monkeypatch):
     from tests.test_orchestrator import R, health, qual
     from tests.test_safety import _seed_case
-    from echos.orchestrator.graph import build_graph, process_case
+    from echos.orchestrator.pipeline import build_pipeline, process_case
     from echos.reports.agent import drain_all
     monkeypatch.setattr(A.ReportAgent, "weekly", lambda *a, **k: None)   # 2019-05-05 is a Sunday; this test is about the DAILY report
     eng = S.get_engine(tmp_path / "g.db")
     _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.0)})
     llm = FakeLLM([{"error": {"code": 400}}])
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=llm, report_root=tmp_path, gate=True, weekly_pdf=False)
+    g = build_pipeline(eng, report_llm=llm, report_root=tmp_path, gate=True, weekly_pdf=False)
     process_case(g, "p1", "2019-05-05")
     drain_all(20)
     with eng.begin() as c:
         st = c.execute(S.case_state.select()).first().status
-    conn.close()
     assert st == "NORMAL" and llm.calls == 0
 
 

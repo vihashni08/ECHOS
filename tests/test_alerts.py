@@ -12,7 +12,7 @@ from echos.alerts.mailer import DryRunMailer, FakeMailer, SMTPMailer, make_maile
 from echos.orchestrator import alerts as OA
 from echos.reports.fake_llm import FakeLLM
 from echos.orchestrator import state as S
-from echos.orchestrator.graph import build_graph, process_case
+from echos.orchestrator.pipeline import build_pipeline, process_case
 from tests.test_orchestrator import R, _seed, health, qual
 from scripts.alert_latency import measure
 
@@ -189,14 +189,13 @@ def test_alerts_still_go_out_when_llm_rag_pubmed_are_down(tmp_path, monkeypatch)
     eng = S.get_engine(tmp_path / "t.db")
     _seed(eng)
     m = FakeMailer()
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=FakeLLM([{"error": {"code": 503, "status": "UNAVAILABLE"}}]), dispatcher=disp(eng, m), weekly_pdf=False)
+    g = build_pipeline(eng, report_llm=FakeLLM([{"error": {"code": 503, "status": "UNAVAILABLE"}}]), dispatcher=disp(eng, m), weekly_pdf=False)
     assert process_case(g, "p1", "2019-05-05") is True
     assert g.dispatcher.flush(5)
     assert sorted(x["to"] for x in m.sent) == sorted(TO.values())
     assert {r.status for r in rows(eng)} == {"SENT"} and len(rows(eng, S.alerts)) == 1
     with eng.begin() as c:
         assert c.execute(select(S.case_state.c.status)).scalar() == "URGENT"
-    conn.close()
 
 
 def test_orchestrator_alert_is_queued_before_report(tmp_path):
@@ -208,14 +207,13 @@ def test_orchestrator_alert_is_queued_before_report(tmp_path):
         if node == "daily_report_never":
             pass
     d = disp(eng)
-    g, conn = build_graph(eng, tmp_path / "cp.sqlite", report_llm=None, dispatcher=d, weekly_pdf=False)
+    g = build_pipeline(eng, report_llm=None, dispatcher=d, weekly_pdf=False)
     orig = OA.queue_alerts
     process_case(g, "p1", "2019-05-05")
     with eng.begin() as c:
         a = c.execute(select(S.alerts)).first()
         rep = c.execute(select(S.reports.c.created_ts)).first()
     assert a.alert_id.startswith("p1|2019-05-05|fall|") and (rep is None or a.time <= rep.created_ts)
-    conn.close()
 
 
 # ---------------------------------------------------------------- vitals / room-sensor context with timestamps and ages

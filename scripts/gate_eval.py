@@ -25,7 +25,7 @@ from echos.alerts.dispatcher import AlertDispatcher  # noqa: E402
 from echos.alerts.mailer import FakeMailer  # noqa: E402
 from echos.config import ROOT  # noqa: E402
 from echos.orchestrator import state as S  # noqa: E402
-from echos.orchestrator.graph import build_graph, run_orchestrator  # noqa: E402
+from echos.orchestrator.pipeline import build_pipeline, run_orchestrator  # noqa: E402
 from echos.reports import agent as A  # noqa: E402
 from echos.reports.fake_llm import FakeLLM  # noqa: E402
 from echos.reports.retrieval import GatedRetriever  # noqa: E402
@@ -75,11 +75,10 @@ def run_policy(gate: bool, tmp: Path) -> dict:
     disp = AlertDispatcher(eng, mailer, to=TO)
     with mock.patch.object(GatedRetriever, "retrieve", counting), mock.patch.object(A, "_default_pubmed", lambda: pm), \
             mock.patch.object(A, "_safe_retrieve", lambda ft, d=None, k=None: []):
-        graph, conn = build_graph(eng, work / "cp.sqlite", report_llm=fake, gate=gate, weekly_pdf=False, dispatcher=disp, report_root=work / "files")
+        graph = build_pipeline(eng, report_llm=fake, gate=gate, weekly_pdf=False, dispatcher=disp, report_root=work / "files")
         n = run_orchestrator(eng, graph, until_done=lambda: True, timeout=500)
         disp.flush(60)
         A.drain_all(500)
-        conn.close()
     with eng.begin() as cn:
         cases = {(r.patient_id, r.day): (r.status, r.reasons, bool(r.data_gap)) for r in cn.execute(select(S.case_state))}
         alerts = sorted(r.alert_id for r in cn.execute(select(S.alerts)))
