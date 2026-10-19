@@ -78,3 +78,8 @@ Purpose: watch the sensors and vitals of one older person and tell caregiver + c
 - API key is in the environment variable ECHOS_LLM_API_KEY (loaded from .env with python-dotenv). NEVER print, log, commit, or open .env contents.
 - Model name lives in config.yaml (`llm.model`); I will set it. LLM must be optional: template mode works with no key.
 - The LLM never decides emergencies; rules do.
+
+## Where things live (layout)
+- scripts/: dataprep/ (tables, EDA, archive), evaluation/ (e2e, fault, kill, routing, fall evals), tuning/ (thresholds, calibration, triage proofs), docgen/ (generated docs, OpenAPI, rating kit), realservices/ (real LLM / PubMed / SMTP; need --yes), demo/ (run_demo, device client, monitor driver); shell scripts (run_api.sh, start.sh, ...) stay at scripts/. Run with `PYTHONPATH=. python scripts/<group>/<name>.py`.
+- echos/reports/: llm/ (llm, llm_budget, fake_llm, alias), daily/ (agent, facts, specifics, vitals_why, schema, validator), weekly/ (data, narrative, pdf, report); evidence.py, retrieval.py and templates/ are shared.
+- echos/api/: app.py (app factory, middleware, handlers), deps.py, routers/ (patients, reports, alerts, session, live, team, simulation, agents, system), services / models / *_services.
