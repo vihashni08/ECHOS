@@ -18,13 +18,8 @@ export type Outbox = Schemas["OutboxOut"]
 export type AlertRow = Schemas["AlertOut"]
 export type Vitals = Schemas["VitalsOut"]
 export type Routine = Schemas["RoutineOut"]
-export type SimState = Schemas["SimStateOut"]
 export type AgentHealth = Schemas["AgentHealth"]
-export type LiveStatus = Schemas["LiveStatusOut"]
 export type Component = Schemas["ComponentOut"]
-export type CaseFile = Schemas["CaseFileOut"]
-export type CareTask = Schemas["CareTaskOut"]
-export type AgentMessage = Schemas["AgentMessageOut"]
 
 export class ApiError extends Error {
   status: number

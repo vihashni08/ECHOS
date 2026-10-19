@@ -7,7 +7,6 @@ export const usePatients = () => useQuery({ queryKey: ["patients"], queryFn: () 
 export const useSimState = () => useQuery({ queryKey: ["sim"], queryFn: () => call(client.GET("/api/sim/state")), ...poll(3000) })
 export const useConfig = () => useQuery({ queryKey: ["config"], queryFn: () => call(client.GET("/api/system/config")), staleTime: 60000, retry: 1 })
 export const useAgents = () => useQuery({ queryKey: ["agents"], queryFn: () => call(client.GET("/api/agents/health")), ...poll(2000) })
-export const useAlerts = (limit = 30) => useQuery({ queryKey: ["alerts", limit], queryFn: () => call(client.GET("/api/alerts", { params: { query: { limit } } })), retry: 1 })
 export const useFalls = () => useQuery({ queryKey: ["falls"], queryFn: () => call(client.GET("/api/falls", { params: { query: { limit: 200 } } })), ...poll(5000) })
 export const useFall = (id: number | undefined, poll_ = false) =>
   useQuery({ queryKey: ["fall", id], enabled: id !== undefined, retry: false, refetchInterval: poll_ ? 1500 : false,

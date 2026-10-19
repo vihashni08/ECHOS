@@ -1,0 +1,15 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { Users } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTeamPlan } from "@/lib/queries";
+import { fmtDay } from "@/lib/format";
+import { cn } from "@/lib/utils";
+const NAME = { triage: "Triage", investigator: "Case Investigator", coordinator: "Care Coordinator", report: "Report agent" };
+const ROLE = { owner: "leads", watch: "short watch file (near miss)", passive: "listens only", template: "fixed template", llm_eligible: "wording may use the LLM" };
+/** "Who worked on this day": the Team Planner's choice of agents for the day, with a reason for each (rules, not a model). */
+export default function TeamPlanPanel({ pid, day }) {
+    const p = useTeamPlan(pid, day);
+    if (!p.data)
+        return null;
+    return (_jsxs(Card, { "data-testid": "team-plan", children: [_jsxs(CardHeader, { className: "flex flex-row flex-wrap items-center justify-between gap-2", children: [_jsxs(CardTitle, { className: "flex items-center gap-2", children: [_jsx(Users, { className: "size-5", "aria-hidden": "true" }), "Who worked on this day \u00B7 ", _jsx("span", { className: "num", children: fmtDay(p.data.day) })] }), _jsxs("span", { className: "rounded-full border px-2.5 py-0.5 text-xs font-semibold", "data-testid": "team-size", children: [p.data.team_size, " of ", p.data.agents.length, " agents"] })] }), _jsxs(CardContent, { className: "flex flex-col gap-3 text-sm", children: [_jsx("ul", { className: "space-y-2", children: p.data.agents.map((a) => (_jsxs("li", { className: cn("flex gap-2", !a.active && "text-muted-foreground"), "data-testid": `plan-${a.id}`, children: [_jsx("span", { className: cn("mt-0.5 inline-block w-14 shrink-0 text-xs font-semibold", a.active ? "text-normal-fg" : ""), children: a.active ? "Used" : "Not needed" }), _jsxs("div", { children: [_jsxs("div", { className: "font-medium", children: [NAME[a.id] ?? a.id, a.active && ROLE[a.role] ? _jsxs("span", { className: "font-normal text-muted-foreground", children: [" \u00B7 ", ROLE[a.role]] }) : null, a.need != null && a.threshold != null ? _jsxs("span", { className: "num ml-2 text-xs font-normal text-muted-foreground", title: "nearest-threshold ratio r (highest detector score over its own alert threshold) against the near-miss cutoff", children: ["r ", a.need.toFixed(2), " ", a.need > a.threshold ? ">" : "≤", " ", a.threshold.toFixed(2)] }) : null] }), _jsx("div", { children: a.reason })] })] }, a.id))) }), p.data.closest && _jsxs("p", { className: "text-xs text-muted-foreground", "data-testid": "team-closest", children: ["Closest to an alert: ", p.data.closest, "."] }), _jsxs("p", { className: "text-xs text-muted-foreground", children: [p.data.max_llm_requests === 0 ? "The report for this day uses a template: no LLM request." : `The report may use at most ${p.data.max_llm_requests} LLM requests.`, " Chosen from the day's status and how close a detector came to its own alert threshold; it never changes a status or delays an alert."] })] })] }));
+}

@@ -1,6 +1,5 @@
 export const fmtTime = (iso?: string | null) => (iso ? iso.replace("T", " ").slice(0, 16) : "n/a")
 export const fmtDay = (iso?: string | null) => (iso ? iso.slice(0, 10) : "n/a")
-export const ageHuman = (s?: number | null) => (s == null ? "n/a" : s < 90 ? `${Math.round(s)} s` : `${Math.round(s / 60)} min`)
 export const channelLabel = (c?: string | null) => (c === "dryrun" ? "Dry run (nothing emailed)" : c === "smtp" ? "Email (SMTP)" : c ?? "n/a")
 export const typeLabel = (t?: string | null) => (t === "fall" ? "Fall alert" : t === "critical_vitals" ? "Critical vitals" : t ?? "none")
 export function isoWeek(day: string): string {
