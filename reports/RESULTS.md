@@ -27,7 +27,7 @@ SHAP top features: sys 0.72, dia 0.62, hr 0.38, dia_base 0.33, hr_base 0.18
 | Recall @ 1.0 alerts/pt-wk | 0.582 (0.424-0.736) | 0.80 false alerts/pt-wk |
 | Recall @ 2.0 alerts/pt-wk | 0.836 (0.700-0.942) | 1.71 false alerts/pt-wk |
 
-Ablation (out-of-fold, from scripts/audit_agent2.py): per-patient z-scores only: pooled ROC-AUC 0.658, PR-AUC 0.088; drift score only: pooled ROC-AUC 0.453 (chance = 0.5).
+Ablation (out-of-fold, from scripts/evaluation/audit_agent2.py): per-patient z-scores only: pooled ROC-AUC 0.658, PR-AUC 0.088; drift score only: pooled ROC-AUC 0.453 (chance = 0.5).
 
 **Behaviour sub-model headline (within-patient, 27 patients with both classes; median across patients):** ROC-AUC 0.818 (IQR 0.655-0.976), PR-AUC 0.449 (IQR 0.146-0.584) (median per-patient prevalence 0.040). Pooled numbers above mix between-patient differences in activity level with within-patient signal.
 
@@ -84,7 +84,7 @@ DATA_GAP causes, all statuses (a day can have several)
 | sensor gap | 56 |
 | vitals gap > 7 days | 2 |
 
-### Fault injection, OBSOLETE v1 table (3 patients x 15 days; clean run 181.6 s; pipeline before the Data Quality agent, v1 fall model, real-Gemini rows; superseded by the section written by scripts/fault_injection.py further down)
+### Fault injection, OBSOLETE v1 table (3 patients x 15 days; clean run 181.6 s; pipeline before the Data Quality agent, v1 fall model, real-Gemini rows; superseded by the section written by scripts/evaluation/fault_injection.py further down)
 
 Source: `reports/metrics/fault_injection_pre_agent0.json` (commit 62669da, before the Data Quality agent was added; not re-run since). `fault_injection.json` is overwritten by later runs and is not what this table shows.
 
@@ -102,12 +102,12 @@ Budgets: vitals <= 1 alert per patient-week; behaviour Monitor days <= 10% of pa
 
 |  | Previous run (raw scale) | Current |
 |---|---|---|
-| vitals_prob | 0.443 | 0.278 |
-| agitation_prob | 0.592 | 0.129 |
+| vitals_prob | 0.278 | 0.278 |
+| agitation_prob | 0.129 | 0.129 |
 | Vitals alerts / patient-week | 1.00 | 1.00 |
-| Vitals recall (BP/pulse/water labels) | 0.724 | 0.721 |
+| Vitals recall (BP/pulse/water labels) | 0.721 | 0.721 |
 | Behaviour Monitor days, share of patient-days | 9.9% | 9.9% |
-| Agitation recall of behaviour Monitor | 0.527 | 0.509 |
+| Agitation recall of behaviour Monitor | 0.509 | 0.509 |
 
 ## Data Quality agent
 
@@ -397,7 +397,7 @@ The avoided share is the Normal share of days in this cohort (66.7%); it depends
 <!-- gate_eval:end -->
 
 <!-- fault_injection:start -->
-## Fault injection with fakes (written by scripts/fault_injection.py)
+## Fault injection with fakes (written by scripts/evaluation/fault_injection.py)
 
 3 patients x 10 days (99 events), real supervisor + 3 worker processes + orchestrator + simulation controller, FakeMailer, FakeLLM, no network. A fall recording from a held-out SisFall subject is injected through the controller (same path as the API) at 40% of the stream, in every run; the fault is fired at the same event index. Each case is compared with the clean run (case 'clean').
 
