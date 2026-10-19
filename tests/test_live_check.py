@@ -1,11 +1,11 @@
-"""scripts/live_llm_check.py logic with FAKE clients (no network, no key use): check order, request cap, WARN / FAIL rules."""
+"""scripts/realservices/live_llm_check.py logic with FAKE clients (no network, no key use): check order, request cap, WARN / FAIL rules."""
 import sys
 
 import pytest
 
 from echos.reports import llm as L
 from tests.test_weekly import world  # noqa: F401  (fixture)
-from scripts import live_llm_check as LC
+from scripts.realservices import live_llm_check as LC
 
 
 def make_fake(behaviour):
@@ -80,9 +80,9 @@ def test_primary_failure_stops_the_run_after_one_request(run, err):
     assert rc == 1 and len(log) == 1 and "FAIL" in out and "WARN" not in out
 
 
-# ---------------------------------------------------------------- scripts/live_report_check.py (fakes only: no network, no key use)
+# ---------------------------------------------------------------- scripts/realservices/live_report_check.py (fakes only: no network, no key use)
 def test_live_report_check_refuses_without_yes_and_when_offline(monkeypatch, capsys):
-    from scripts import live_report_check as LR
+    from scripts.realservices import live_report_check as LR
     assert LR.main([]) == 2 and "Re-run with --yes" in capsys.readouterr().out
     monkeypatch.setenv("ECHOS_REPORT_LLM", "off")
     assert LR.main(["--yes"]) == 2
@@ -92,7 +92,7 @@ def test_live_report_check_refuses_without_yes_and_when_offline(monkeypatch, cap
 
 
 def test_live_report_check_caps_and_stops_at_first_primary_failure():
-    from scripts import live_report_check as LR
+    from scripts.realservices import live_report_check as LR
 
     class C:
         model = "m"
@@ -127,7 +127,7 @@ def test_live_report_check_caps_and_stops_at_first_primary_failure():
 
 
 def test_live_report_check_pubmed_cap():
-    from scripts import live_report_check as LR
+    from scripts.realservices import live_report_check as LR
     run, sent = LR.Run(max_pubmed=2), []
     get = LR.capped_pubmed_get(run, lambda u, p, t: sent.append(u) or b"<x/>")
     get("u", {}, 1), get("u", {}, 1)
@@ -141,7 +141,7 @@ def test_live_report_check_end_to_end_with_fake_clients(world, tmp_path, monkeyp
     from echos.knowledge.pubmed import PubMedClient
     from echos.reports.fake_llm import FakeLLM
     from echos.reports.llm_budget import Backend, Cache, LLMBudget
-    from scripts import live_report_check as LR
+    from scripts.realservices import live_report_check as LR
     eng, _, kw = world
     monkeypatch.setattr(LR, "pick_items", lambda db: {})        # nothing to pick -> every row 'not run', no model call at all
     run = LR.Run()
@@ -158,7 +158,7 @@ def test_live_report_check_end_to_end_with_fake_clients(world, tmp_path, monkeyp
 
 
 def test_live_report_check_picks_a_monitor_day_an_urgent_fall_day_and_a_week(world):    # noqa: F811
-    from scripts import live_report_check as LR
+    from scripts.realservices import live_report_check as LR
     eng, tmp, _ = world
     p = LR.pick_items(tmp / "w.db")
     assert p["monitor"][1] == "2019-05-07" and p["urgent"][1] == "2019-05-09" and p["urgent"][2]["falls"] and p["week"] == ("pw", "2019-W19")
@@ -167,13 +167,13 @@ def test_live_report_check_picks_a_monitor_day_an_urgent_fall_day_and_a_week(wor
 # ---------------------------------------------------------------- per-item cap, --only, failure report (fakes only)
 def _fake_budget(run, fake):
     from echos.reports.llm_budget import Backend, Cache, LLMBudget
-    from scripts import live_report_check as LR
+    from scripts.realservices import live_report_check as LR
     return LLMBudget([Backend("fake", LR.CappedClient(fake, run, True))], Cache(":memory:"))
 
 
 def test_live_report_check_per_item_cap_is_labelled_as_script_cap_not_google():
     from echos.reports.fake_llm import FakeLLM
-    from scripts import live_report_check as LR
+    from scripts.realservices import live_report_check as LR
     run = LR.Run(max_per_item=2)
     run.start_item("monitor")
     c = LR.CappedClient(FakeLLM([{"text": "x"}]), run, True)
@@ -195,7 +195,7 @@ def test_live_report_check_only_monitor_reports_failed_rule_and_saves_raw_output
     import json
     from echos.knowledge.pubmed import PubMedClient
     from echos.reports.fake_llm import FakeLLM
-    from scripts import live_report_check as LR
+    from scripts.realservices import live_report_check as LR
     bad = {"text": json.dumps({"status": "MONITOR", "changes": [{"text": "Systolic pressure was 171 against usual 130.", "cites": ["F1"]}],
                                "monitor": [{"text": "Repeat the reading.", "cites": ["F1"]}, {"text": "Rest.", "cites": []}], "guidance": []})}
     run, fake = LR.Run(), FakeLLM([bad])
@@ -216,7 +216,7 @@ def test_live_report_check_weekly_uses_the_budget_manager_not_the_template(world
     from echos.knowledge.pubmed import PubMedClient
     from echos.reports import evidence as EV, weekly_data as WD
     from echos.reports.fake_llm import FakeLLM
-    from scripts import live_report_check as LR
+    from scripts.realservices import live_report_check as LR
     from tests.test_weekly import data
     d = data(world)
     monkeypatch.setattr(WD, "build_weekly_data", lambda *a, **k: d)

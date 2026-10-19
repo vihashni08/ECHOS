@@ -2,7 +2,7 @@
 import json
 
 
-from scripts.device_client import DeviceClient
+from scripts.demo.device_client import DeviceClient
 
 
 def ev(i):

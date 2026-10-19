@@ -1,7 +1,7 @@
-"""Live-path fault scenarios (scripts/live_fault_check.py): fakes only, offline. Needs built data and models (skipped in a fresh clone)."""
+"""Live-path fault scenarios (scripts/evaluation/live_fault_check.py): fakes only, offline. Needs built data and models (skipped in a fresh clone)."""
 import pytest
 
-from scripts import live_fault_check as F
+from scripts.evaluation import live_fault_check as F
 
 
 def test_duplicate_and_late_events_change_nothing():

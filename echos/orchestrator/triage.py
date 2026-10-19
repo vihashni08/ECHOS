@@ -1,11 +1,11 @@
 """Rule-based triage. Pure function, no I/O, no model: thresholds come from config.yaml (`triage:`).
 
-Threshold choice (from validation metrics, see scripts/choose_thresholds.py and reports/metrics/triage_thresholds.json):
+Threshold choice (from validation metrics, see scripts/tuning/choose_thresholds.py and reports/metrics/triage_thresholds.json):
 - Inputs: quality (Agent 0), health (HealthResult: vitals + behaviour sub-models), fall.
-- MONITOR thresholds come from scripts/choose_monitor_thresholds.py (out-of-fold alert budget):
+- MONITOR thresholds come from scripts/tuning/choose_monitor_thresholds.py (out-of-fold alert budget):
   vitals_prob <= 1 vitals alert per patient-week; agitation_prob alone keeps behaviour Monitor days <= 10% of patient-days; drift is report evidence only.
 - drift_level(): max per-feature CUSUM; used for report evidence (drift_evidence_cusum), never as a trigger.
-- fall_prob (+ post_fall_inactive) and fall_prob_high come from scripts/fall_audit.py (reports/metrics/fall_audit.json: threshold curve
+- fall_prob (+ post_fall_inactive) and fall_prob_high come from scripts/evaluation/fall_audit.py (reports/metrics/fall_audit.json: threshold curve
   with and without inactivity confirmation on unbiased v2 windows). fall_prob_high null = no URGENT without inactivity: a flagged
   fall without it is only MONITOR. SisFall ADL trials are short and vigorous, so false alarms per hour overstate daily life.
 - critical vitals: absolute clinical limits, independent of any model.

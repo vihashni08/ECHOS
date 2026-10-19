@@ -61,7 +61,7 @@ def llm_rewriter(budget, d: dict, sources: list):
 
 def latest_established_week(eng, patient_id: str, pdy=None, phys=None, demo=None) -> Optional[str]:
     """The most recent ISO week of this patient's processed days in which the vitals baselines (systolic / diastolic) are established
-    (falls back to the most recent week). Used by the demo defaults and scripts/send_test_weekly.py."""
+    (falls back to the most recent week). Used by the demo defaults and scripts/realservices/send_test_weekly.py."""
     from sqlalchemy import select
     with eng.begin() as c:
         days = [r[0] for r in c.execute(select(S.case_state.c.day).where(S.case_state.c.patient_id == patient_id))]

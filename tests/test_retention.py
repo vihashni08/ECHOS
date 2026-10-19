@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 
 from echos.live import retention as R
 from echos.orchestrator import state as S
-from scripts import archive_events as CLI
+from scripts.dataprep import archive_events as CLI
 
 from tests.test_live import build, run_emulator, eng as live_eng  # noqa: F401  (fixture reused for the integration test)
 from echos.live.emulator import Emulator

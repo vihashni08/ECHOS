@@ -14,7 +14,7 @@ from echos.reports.fake_llm import FakeLLM
 from echos.orchestrator import state as S
 from echos.orchestrator.pipeline import build_pipeline, process_case
 from tests.test_orchestrator import R, _seed, health, qual
-from scripts.alert_latency import measure
+from scripts.evaluation.alert_latency import measure
 
 TO = {"caregiver": "care@example.test", "clinician": "doc@example.test"}
 FAST = [0.01, 0.02, 0.04]

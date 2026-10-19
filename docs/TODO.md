@@ -22,6 +22,6 @@ Today the code that turns a detector output into a finding is written three time
 - [ ] Playwright test for the "Who worked on this day" card.
 
 ## 4. Needs you
-- [ ] `scripts/live_llm_check.py --yes` once (real Gemini, <= 6 requests) to see whether the stricter prompt (`daily-v6`) is followed and how often the validator falls back to the template.
+- [ ] `scripts/realservices/live_llm_check.py --yes` once (real Gemini, <= 6 requests) to see whether the stricter prompt (`daily-v6`) is followed and how often the validator falls back to the template.
 - [ ] Replay a few days on the dev copy so the new case files, report wording and plans exist in the UI.
 - [ ] Your uncommitted `reports/metrics/agent2.json` no longer has `within_patient_audit`, so `check_docs_numbers.py` and `test_docs_numbers` fail; restore or regenerate it before committing.

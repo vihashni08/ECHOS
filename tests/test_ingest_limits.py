@@ -114,7 +114,7 @@ def test_guard_unit_defaults():
 
 
 def test_reference_client_against_the_real_api_handles_429_and_413(tmp_path):
-    from scripts.device_client import DeviceClient
+    from scripts.demo.device_client import DeviceClient
     c, clk = make(tmp_path, max_events_per_window=20, max_batch_events=8, window_s=60)
 
     def transport(url, body, headers):

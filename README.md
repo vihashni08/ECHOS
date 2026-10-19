@@ -63,7 +63,7 @@ flowchart LR
 
 ## Research gaps and what we measured
 
-Written by `scripts/make_research_gaps.py` from `reports/metrics/*.json`.
+Written by `scripts/docgen/make_research_gaps.py` from `reports/metrics/*.json`.
 
 <!-- research_gaps:start -->
 | Gap | Mechanism | Measured evidence (95% CI) | Caveat |
@@ -104,7 +104,7 @@ scripts/rebuild_models.sh
 # 4. ingest the guideline index (the first run downloads the all-MiniLM-L6-v2 embedding model once; after that it is local)
 PYTHONPATH=. python -m echos.knowledge.ingest
 # 5. demo database: replay -> agents -> orchestrator -> reports into data/echos.db (template mode, dry-run mail, ~3 min)
-PYTHONPATH=. python scripts/run_demo.py 4 28
+PYTHONPATH=. python scripts/demo/run_demo.py 4 28
 ```
 
 One command (API + watchdog + runtime + web app, dry-run mail, no LLM, no PubMed; prints only URLs; Ctrl-C stops everything): `scripts/start.sh --live` or `scripts/start.sh --replay` (add `--auth`, `--fresh`; `--llm` / `--pubmed` only if you want those real services). Logs in `data/logs/`.
@@ -123,26 +123,26 @@ scripts/run_api.sh --dry --no-llm --demo --db data/echos_ui_dev.db
 # 7. tests (each Python test file in its own process; tests never use the real LLM, PubMed or SMTP)
 for f in tests/test_*.py; do python -m pytest "$f" -q; done
 cd web && npx playwright test && npx playwright test -c playwright.live.config.ts && node contrast.mjs && npx tsc -b && npm run build
-python scripts/check_docs_numbers.py
+python scripts/docgen/check_docs_numbers.py
 ```
 
 Tests that need the data or the built tables are reported as **skipped** (with the reason) in a clone that does not have them yet.
 
 ### Evaluations (optional; all forced offline by `echos/offline.py`)
 ```bash
-PYTHONPATH=. python scripts/e2e.py 20              # 20 patients, full period -> reports/metrics/e2e.json
-PYTHONPATH=. python scripts/fault_injection.py     # fakes only: kill workers / supervisor, LLM, PubMed, SMTP, API faults
-PYTHONPATH=. python scripts/fall_eval.py           # per-fall-type sensitivity, injected falls, inactivity effect
-PYTHONPATH=. python scripts/ablation.py            # fixed rules / vitals only / full system, out-of-fold, patient bootstrap CIs
-PYTHONPATH=. python scripts/gate_eval.py           # report gate: LLM / retrieval calls avoided, triage identical on/off
-PYTHONPATH=. python scripts/monitor_driver.py      # MONITOR share driver + threshold proposal (not applied)
-PYTHONPATH=. python scripts/threshold_holdout.py   # do the MONITOR thresholds generalise to held-out patients? (offline)
-PYTHONPATH=. python scripts/live_parity.py         # scoring from raw events == scoring from the pre-built table (offline)
-PYTHONPATH=. python scripts/evaluate.py            # merge metrics into reports/results_table.md/.csv
-PYTHONPATH=. python scripts/make_research_gaps.py  # regenerate the research-gaps table above
+PYTHONPATH=. python scripts/evaluation/e2e.py 20              # 20 patients, full period -> reports/metrics/e2e.json
+PYTHONPATH=. python scripts/evaluation/fault_injection.py     # fakes only: kill workers / supervisor, LLM, PubMed, SMTP, API faults
+PYTHONPATH=. python scripts/evaluation/fall_eval.py           # per-fall-type sensitivity, injected falls, inactivity effect
+PYTHONPATH=. python scripts/evaluation/ablation.py            # fixed rules / vitals only / full system, out-of-fold, patient bootstrap CIs
+PYTHONPATH=. python scripts/evaluation/gate_eval.py           # report gate: LLM / retrieval calls avoided, triage identical on/off
+PYTHONPATH=. python scripts/demo/monitor_driver.py      # MONITOR share driver + threshold proposal (not applied)
+PYTHONPATH=. python scripts/evaluation/threshold_holdout.py   # do the MONITOR thresholds generalise to held-out patients? (offline)
+PYTHONPATH=. python scripts/evaluation/live_parity.py         # scoring from raw events == scoring from the pre-built table (offline)
+PYTHONPATH=. python scripts/evaluation/evaluate.py            # merge metrics into reports/results_table.md/.csv
+PYTHONPATH=. python scripts/docgen/make_research_gaps.py  # regenerate the research-gaps table above
 ```
-Rating study kit (reader-rated clarity, usefulness and safe wording; nothing is sent anywhere): `PYTHONPATH=. python scripts/make_rating_sheet.py` builds 10 shuffled items from the demo database into `reports/rating/` (git-ignored); raters save filled copies of `rating_sheet.csv` in `reports/rating/filled/`; `PYTHONPATH=. python scripts/analyse_ratings.py` prints per-item and overall means, SDs and rater agreement.
-Real-service scripts (`scripts/list_models.py`, `scripts/live_llm_check.py`, `scripts/live_report_check.py`, `scripts/send_test_*.py`) refuse to run without `--yes` and are never used by tests or demos.
+Rating study kit (reader-rated clarity, usefulness and safe wording; nothing is sent anywhere): `PYTHONPATH=. python scripts/docgen/make_rating_sheet.py` builds 10 shuffled items from the demo database into `reports/rating/` (git-ignored); raters save filled copies of `rating_sheet.csv` in `reports/rating/filled/`; `PYTHONPATH=. python scripts/docgen/analyse_ratings.py` prints per-item and overall means, SDs and rater agreement.
+Real-service scripts (`scripts/realservices/list_models.py`, `scripts/realservices/live_llm_check.py`, `scripts/realservices/live_report_check.py`, `scripts/send_test_*.py`) refuse to run without `--yes` and are never used by tests or demos.
 
 ## Report agent: LLM, RAG, privacy
 

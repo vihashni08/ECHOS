@@ -1,4 +1,4 @@
-from scripts.check_docs_numbers import check
+from scripts.docgen.check_docs_numbers import check
 
 
 def test_docs_numbers_match_metrics():

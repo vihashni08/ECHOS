@@ -10,7 +10,7 @@ Stage 1 (echos/orchestrator/triage.py) classifies the status with if-then rules.
                             URGENT always makes the Coordinator the owner of the alert: no cutoff can change that.
   CUTOFF theta              chosen by a CALL BUDGET, label-free: the smallest value for which false calls (watch files on Normal days) stay <= B per patient-week,
                             i.e. the (1 - B * patient_weeks / n_normal) quantile of r on the replayed Normal days (config `planner.theta`,
-                            scripts/choose_routing_threshold.py, echos/team/routing_budget.py). theta is in plain units: a fraction of the detector's own alert threshold.
+                            scripts/tuning/choose_routing_threshold.py, echos/team/routing_budget.py). theta is in plain units: a fraction of the detector's own alert threshold.
 
 r is a routing score, NOT a clinical probability. The plan never changes the triage status, never delays or suppresses an alert, and the detectors are not
 part of it (sensing is always on). No model is trained: there are no labels for "the right agents". The plan is recorded on the bus (sender `planner`, topic

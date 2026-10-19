@@ -11,7 +11,7 @@ At most investigator.max_steps tool calls per case.
 Evidence level (not a probability): STRONG = an absolute rule fired (critical vitals / confirmed fall) or >= 2 independent sources agree;
 MODERATE = one model flag with persistence or a repeat; LIMITED = a single model flag, or the data has caveats that weaken it.
 Of the computed checks only one may move the level, and only upward (LIMITED -> MODERATE): the person's own earlier deviation days carried a
-recorded event. It is the one signal that separated event days from non-event days in scripts/investigator_eval.py (CI barely above zero). Trend,
+recorded event. It is the one signal that separated event days from non-event days in scripts/evaluation/investigator_eval.py (CI barely above zero). Trend,
 routine agreement and an event-free history did NOT separate them there, so they are listed as context and never change the level."""
 from __future__ import annotations
 
@@ -224,7 +224,7 @@ class Investigator:
             level = "LIMITED"
         if caveats and level == "STRONG" and not absolute:
             level = "MODERATE"
-        # Only the signal that separated event days from non-event days in scripts/investigator_eval.py (the person's own earlier deviation days that
+        # Only the signal that separated event days from non-event days in scripts/evaluation/investigator_eval.py (the person's own earlier deviation days that
         # carried an event) may move the level. Trend, routine agreement and "never had an event" did NOT separate them there: they are shown as
         # context for the reader and never change the level.
         supports, weakens, context = [], [], []
@@ -277,7 +277,7 @@ class Investigator:
             nxt.append(f"This is day {hist['streak_before_today'] + 1} in a row of changes: consider a clinician review.")
         file = {"patient_id": patient_id, "day": day, "status": status, "headline": headline, "evidence_level": level,
                 "reasons": decision.get("reasons") or [], "detectors": det, "history": hist, "agreement": agree, "caveats": caveats,
-                "specifics": sp["vitals"] + sp["routine"], "trend": trend, "personal_history": hist_p, "corroboration": corr, "supports": supports, "context": context, "context_note": "trend, routine agreement and event-free history are context only: they did not separate event days in scripts/investigator_eval.py",
+                "specifics": sp["vitals"] + sp["routine"], "trend": trend, "personal_history": hist_p, "corroboration": corr, "supports": supports, "context": context, "context_note": "trend, routine agreement and event-free history are context only: they did not separate event days in scripts/evaluation/investigator_eval.py",
                 "next_checks": nxt, "trace": trace, "disclaimer": "Decision support, not a diagnosis."}
         with self.eng.begin() as c:
             S.upsert(c, S.case_file, ["patient_id", "day"], patient_id=patient_id, day=day, file=json.dumps(file), created_ts=S.now())

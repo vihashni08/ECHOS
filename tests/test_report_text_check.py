@@ -1,7 +1,7 @@
 """The automated report-text proxy check must be able to FAIL: it is tested on good text and on deliberately bad text."""
 import json
 
-from scripts import report_text_check as T
+from scripts.evaluation import report_text_check as T
 
 GOOD = """# Daily report for p1 - 2019-04-02
 

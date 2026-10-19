@@ -1,6 +1,6 @@
 # Ingestion: connecting a real device or hub
 
-`POST /api/ingest/events` is the only way data enters live mode. The emulator uses the same contract (`echos/live/schemas.py`). No real device exists yet: this page is what a device maker needs, and `scripts/device_client.py` is a working reference client.
+`POST /api/ingest/events` is the only way data enters live mode. The emulator uses the same contract (`echos/live/schemas.py`). No real device exists yet: this page is what a device maker needs, and `scripts/demo/device_client.py` is a working reference client.
 
 ## Event format
 
@@ -58,10 +58,10 @@ An event is identified by `(patient_id, device_id, kind, ts, room or device_type
 
 ## Reference client
 
-`scripts/device_client.py` (standard library only): every event is first appended to an offline buffer file (JSON lines), then sent in batches; the buffer shrinks only after a 200. Backoff 1, 2, 4 ... 60 s on network errors and 5xx, waits `Retry-After` on 429, halves the batch on 413 or 422 to find a bad event (moved to `<buffer>.rejected`), stops on 403 without discarding anything. The token is read from `ECHOS_INGEST_TOKEN` and never printed.
+`scripts/demo/device_client.py` (standard library only): every event is first appended to an offline buffer file (JSON lines), then sent in batches; the buffer shrinks only after a 200. Backoff 1, 2, 4 ... 60 s on network errors and 5xx, waits `Retry-After` on 429, halves the batch on 413 or 422 to find a bad event (moved to `<buffer>.rejected`), stops on 403 without discarding anything. The token is read from `ECHOS_INGEST_TOKEN` and never printed.
 
 ```bash
-ECHOS_INGEST_TOKEN=... .venv/bin/python scripts/device_client.py --base-url http://127.0.0.1:8000 --buffer buffer.jsonl --file events.jsonl
+ECHOS_INGEST_TOKEN=... .venv/bin/python scripts/demo/device_client.py --base-url http://127.0.0.1:8000 --buffer buffer.jsonl --file events.jsonl
 ```
 
 Tested with a fake transport and against the API's test client (`tests/test_device_client.py`, `tests/test_ingest_limits.py`); **not** tested against a real device, a real network or a TLS proxy.

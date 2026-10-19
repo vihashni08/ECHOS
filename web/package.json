@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
-    "gen:api": "cd .. && .venv/bin/python scripts/export_openapi.py && cd web && openapi-typescript openapi.json -o src/lib/api-schema.d.ts",
+    "gen:api": "cd .. && .venv/bin/python scripts/docgen/export_openapi.py && cd web && openapi-typescript openapi.json -o src/lib/api-schema.d.ts",
     "test:e2e": "playwright test",
     "screenshots": "node ../scripts/ui_screenshots.mjs",
     "test:e2e:live": "playwright test -c playwright.live.config.ts",

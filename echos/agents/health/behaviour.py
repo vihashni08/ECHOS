@@ -26,7 +26,7 @@ SRC = {"kitchen": "n_kitchen", "fridge": "n_fridge_door"}
 FEATS = list(DIRECTION)
 Z_CLIP = 4.0
 MODEL_PATH = ROOT / "models" / "behaviour.joblib"
-CALIBRATED_PATH = ROOT / "models" / "behaviour_calibrated.joblib"   # written by scripts/calibrate.py (old model kept)
+CALIBRATED_PATH = ROOT / "models" / "behaviour_calibrated.joblib"   # written by scripts/tuning/calibrate.py (old model kept)
 METRICS_PATH = ROOT / "reports" / "metrics" / "agent2.json"
 CLF_FEATURES = ([f"{f}_z" for f in FEATS] + [f"{f}_cusum" for f in FEATS] + FEATS
                 + ["drift_score", "n_drifted", "total_events_delta", "night_events_delta"])

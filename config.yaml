@@ -36,7 +36,7 @@ agent3:
   model_file: fall_v2.joblib   # v2 (unbiased windowing) model; fall.joblib = v1, kept
   jitter_s: 0.5            # v2 windowing: fall AND ADL peak windows are shifted by U(-jitter, +jitter) s around their own max sample
   n_folds: 5
-  operating: {threshold: 0.8, require_inactivity: true}   # chosen by scripts/fall_audit.py (reports/metrics/fall_audit.json)
+  operating: {threshold: 0.8, require_inactivity: true}   # chosen by scripts/evaluation/fall_audit.py (reports/metrics/fall_audit.json)
 db_path: data/echos.db
 runtime:
   heartbeat_s: 5
@@ -52,22 +52,22 @@ replay:
   falls_per_patient: 3
   adl_windows_per_day: 2
 health:   # Health Monitoring agent (vitals + behaviour sub-models)
-  use_calibrated: true   # models/*_calibrated.joblib (scripts/calibrate.py); thresholds below are on the calibrated scale
+  use_calibrated: true   # models/*_calibrated.joblib (scripts/tuning/calibrate.py); thresholds below are on the calibrated scale
   persistence: {z: 2.0, last_n: 3, need: 2}   # evidence only: 2 of last 3 readings beyond |z| >= 2 of the personal baseline
 triage:
   # chosen from reports/metrics/{agent1,agent2,triage_thresholds}.json (see docs in orchestrator/triage.py)
-  vitals_prob: 0.278       # calibrated OOF score: <= 1 alert / patient-week (scripts/choose_monitor_thresholds.py)
+  vitals_prob: 0.278       # calibrated OOF score: <= 1 alert / patient-week (scripts/tuning/choose_monitor_thresholds.py)
   agitation_prob: 0.129    # calibrated OOF score: the ONLY behaviour Monitor trigger; Monitor days <= 10% of patient-days
   drift_evidence_cusum: 10.4  # max per-feature CUSUM: report evidence only (routine_change fact), NOT a triage trigger
-  fall_prob_high: null   # URGENT on probability alone; null = inactivity confirmation required (scripts/fall_audit.py)
-  fall_prob: 0.8   # URGENT with post-fall inactivity (MONITOR without, if fall_prob_high is null); scripts/fall_audit.py
+  fall_prob_high: null   # URGENT on probability alone; null = inactivity confirmation required (scripts/evaluation/fall_audit.py)
+  fall_prob: 0.8   # URGENT with post-fall inactivity (MONITOR without, if fall_prob_high is null); scripts/evaluation/fall_audit.py
   critical_vitals: {sys_high: 180, sys_low: 85, dia_high: 120, hr_high: 130, hr_low: 40}
   max_vitals_gap_days: 7   # readings exist on ~62% of days; >7 days silent -> data_gap
 planner:   # Triage stage 2 (echos/team/planner.py): which agents a case needs. r = max_k p_k / tau_k (detector score over its own alert threshold); equations in docs/TEAM_DESIGN.md
   # a fired rule -> Investigator + Coordinator; no rule but r > theta (near miss) -> Investigator writes a short watch file. theta = call budget: false calls on Normal days <= budget_per_patient_week.
-  theta: 0.8594   # = watch a day when a detector is above 86% of its own alert threshold; from reports/metrics/routing_thresholds.json (scripts/choose_routing_threshold.py)
+  theta: 0.8594   # = watch a day when a detector is above 86% of its own alert threshold; from reports/metrics/routing_thresholds.json (scripts/tuning/choose_routing_threshold.py)
   budget_per_patient_week: 0.25
-  source: scripts/choose_routing_threshold.py
+  source: scripts/tuning/choose_routing_threshold.py
 llm:
   model: gemini-3.5-flash-lite
   fallback_model: gemini-3.8-flash         # Gemini model name, set by the user; null -> template mode (no LLM calls)

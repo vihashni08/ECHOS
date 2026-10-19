@@ -203,8 +203,8 @@ def test_components_doc_is_generated_from_the_registry():
     import sys
     root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(root))
-    from scripts.make_components_doc import render
-    assert (root / "docs" / "COMPONENTS.md").read_text() == render(), "run: PYTHONPATH=. python scripts/make_components_doc.py"
+    from scripts.docgen.make_components_doc import render
+    assert (root / "docs" / "COMPONENTS.md").read_text() == render(), "run: PYTHONPATH=. python scripts/docgen/make_components_doc.py"
 
 
 def test_report_agent_uses_the_case_file_and_consumes_its_message(eng, tmp_path):

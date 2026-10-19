@@ -1,4 +1,4 @@
-"""Call-budget choice of the Triage stage-2 cutoff theta (label-free). Pure functions, used by scripts/choose_routing_threshold.py and the tests.
+"""Call-budget choice of the Triage stage-2 cutoff theta (label-free). Pure functions, used by scripts/tuning/choose_routing_threshold.py and the tests.
 
 A "false call" is a watch call on a day where NO rule fired (status NORMAL): the nearest-threshold ratio r exceeded theta anyway.
 theta is the smallest value such that false calls per patient-week <= B, i.e. the (1 - B*pw/n_normal) quantile of r on Normal days (strict '>' gate, so ties

@@ -24,11 +24,11 @@ built from the Data Quality agent's output (sensor gap, days without vitals, ign
 completeness, quality_checked. The worker emits it inside the standard `AgentResult.evidence` (agent = `quality`).
 
 ## Retention of raw live events (optional)
-Live / emulator databases keep every ingested raw event in `event_log`. `scripts/archive_events.py` (`echos/live/retention.py`) moves old raw events into a compressed JSON-lines file (`data/archive/event_log_*.jsonl.gz`, git-ignored) and deletes them from the database. It is a **dry run unless `--yes` is given** (`--dry-run` is also accepted); nothing is scheduled automatically.
+Live / emulator databases keep every ingested raw event in `event_log`. `scripts/dataprep/archive_events.py` (`echos/live/retention.py`) moves old raw events into a compressed JSON-lines file (`data/archive/event_log_*.jsonl.gz`, git-ignored) and deletes them from the database. It is a **dry run unless `--yes` is given** (`--dry-run` is also accepted); nothing is scheduled automatically.
 
 ```bash
-PYTHONPATH=. .venv/bin/python scripts/archive_events.py --db data/echos_live_dev.db --older-than-days 30            # counts only
-PYTHONPATH=. .venv/bin/python scripts/archive_events.py --db data/echos_live_dev.db --older-than-days 30 --yes      # archive + delete
+PYTHONPATH=. .venv/bin/python scripts/dataprep/archive_events.py --db data/echos_live_dev.db --older-than-days 30            # counts only
+PYTHONPATH=. .venv/bin/python scripts/dataprep/archive_events.py --db data/echos_live_dev.db --older-than-days 30 --yes      # archive + delete
 ```
 
 - **Kept in the database:** `live_day` (the closed patient-day rows every detector and chart reads), `case_state`, `case_file`, `alerts`, `alert_state`, `reports`, `outbox`, `agent_output`, and by default all `vitals` events (vital charts and personal baselines read them; `--include-vitals` archives them too).

@@ -5,8 +5,8 @@ import math
 import pytest
 
 from echos.orchestrator import state as S
-from scripts import analyse_ratings as AR
-from scripts import make_rating_sheet as MR
+from scripts.docgen import analyse_ratings as AR
+from scripts.docgen import make_rating_sheet as MR
 from tests.test_weekly import data, world  # noqa: F401  (world is a fixture)
 
 

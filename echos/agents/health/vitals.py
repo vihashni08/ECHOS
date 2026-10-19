@@ -28,7 +28,7 @@ FEATURES = (
     + ["sys", "dia", "hr", "pulse_pressure", "pp_dev", "days_since_last", "n_prior"]
 )
 MODEL_PATH = ROOT / "models" / "physiological.joblib"
-CALIBRATED_PATH = ROOT / "models" / "physiological_calibrated.joblib"   # written by scripts/calibrate.py (old model kept)
+CALIBRATED_PATH = ROOT / "models" / "physiological_calibrated.joblib"   # written by scripts/tuning/calibrate.py (old model kept)
 METRICS_PATH = ROOT / "reports" / "metrics" / "agent1.json"
 MIN_SCALE = {"sys": 3.0, "dia": 2.0, "hr": 2.0}  # floor on robust scale (units) to avoid z blow-ups
 

@@ -1,5 +1,5 @@
 """Computation behind the Case Investigator's tools. Pure functions on a patient's PAST data (day < today; no labels from today or later), so the
-agent and scripts/investigator_eval.py use the same code. Nothing here is a learned model: robust z-scores against the person's own past, a short
+agent and scripts/evaluation/investigator_eval.py use the same code. Nothing here is a learned model: robust z-scores against the person's own past, a short
 trend check and a lookup of the person's own earlier deviations. Not a diagnosis and not a probability."""
 from __future__ import annotations
 
