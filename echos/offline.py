@@ -10,11 +10,3 @@ def force_offline() -> None:
 
 def llm_off() -> bool:
     return os.environ.get("ECHOS_REPORT_LLM") == "off"
-
-
-def pubmed_off() -> bool:
-    return os.environ.get("ECHOS_PUBMED") == "off"
-
-
-def mail_dry() -> bool:
-    return os.environ.get("ECHOS_DRY_RUN") == "1"

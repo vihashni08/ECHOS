@@ -137,19 +137,6 @@ def completeness(sensor_gap: bool, has_vitals: bool, n_invalid: int) -> float:
     return round(w["activity"] * (not sensor_gap) + w["vitals"] * bool(has_vitals) + w["validity"] * (n_invalid == 0), 3)
 
 
-def to_results(pdy: pd.DataFrame) -> list:
-    """DataQualityResult per patient-day of a patient_day table that carries Agent 0 columns."""
-    out = []
-    for r in pdy.itertuples():
-        inv = json.loads(r.invalid_json) if isinstance(r.invalid_json, str) and r.invalid_json else []
-        out.append(DataQualityResult(patient_id=r.patient_id, day=pd.Timestamp(r.day).date(), has_vitals=bool(r.has_reading),
-                                     invalid_values=inv, sensor_gap=bool(r.sensor_gap),
-                                     sensor_gap_reason=r.sensor_gap_reason if isinstance(r.sensor_gap_reason, str) else None,
-                                     days_since_last_reading=int(r.days_since_last_reading),
-                                     completeness=float(r.completeness)))
-    return out
-
-
 # ---------------------------------------------------------------- runtime (Agent 0 worker)
 _cache: dict = {}
 

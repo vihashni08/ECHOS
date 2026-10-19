@@ -92,9 +92,3 @@ def routine_actions(features: Optional[list], routine: dict) -> list[str]:
     if not out:
         out.append("Watch for restlessness or distress, especially in the evening and at night, and note what seems to trigger it.")
     return out[:2]
-
-
-def numbers_of(lines: list) -> set:
-    """Every number written in the given sentences (as rounded floats): what an LLM sentence about the finding is expected to quote at least one of."""
-    import re
-    return {round(float(m), 1) for s in lines for m in re.findall(r"(?<![\w.])\d+(?:\.\d+)?", s)}

@@ -198,10 +198,6 @@ def agent_down(eng, agent: str) -> bool:
     return hb is None or time.time() - hb[0] > 3 * load_config()["runtime"]["heartbeat_s"] + 10
 
 
-def quality_down(eng) -> bool:
-    return agent_down(eng, "quality")
-
-
 def day_ready(eng, patient_id: str, day: str, optional=frozenset()) -> bool:
     """All events of the day exist (the 'day' event is emitted last) and every agent has output for each.
     optional: agents that are down, whose output is not required (a bool is accepted for the old quality flag)."""

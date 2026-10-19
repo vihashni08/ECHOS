@@ -59,25 +59,6 @@ def llm_rewriter(budget, d: dict, sources: list):
     return rewrite
 
 
-def gather_sources(d: dict, retriever, status: str) -> tuple[list, list]:
-    """Local + PubMed sources for the finding types of the week; ([], note) when the week has no Monitor/Urgent day."""
-    if not d["any_monitor_or_urgent"] or retriever is None:
-        return [], ["retrieval skipped: no Monitor or Urgent day" if not d["any_monitor_or_urgent"] else "no retriever"]
-    out, seen, notes = [], set(), []
-    for ft in d["finding_types"]:
-        try:
-            r = retriever.retrieve(status, ft, {})
-        except Exception as ex:   # noqa: BLE001 - references are optional
-            notes.append(f"{ft}: retrieval failed ({type(ex).__name__})")
-            continue
-        notes += [f"{ft}: {e}" for e in r["events"]]
-        for s in r["sources"]:
-            if s["id"] not in seen and len(out) < MAX_SOURCES:
-                seen.add(s["id"])
-                out.append(s)
-    return out, notes
-
-
 def latest_established_week(eng, patient_id: str, pdy=None, phys=None, demo=None) -> Optional[str]:
     """The most recent ISO week of this patient's processed days in which the vitals baselines (systolic / diastolic) are established
     (falls back to the most recent week). Used by the demo defaults and scripts/send_test_weekly.py."""

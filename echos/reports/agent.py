@@ -223,10 +223,6 @@ def daily_background(facts: dict) -> list:
     return out
 
 
-def daily_payload(facts: dict) -> dict:
-    return {"patient_id": facts["patient_id"], "day": facts["day"], "status": LABEL[facts["status"]], "facts": facts}
-
-
 def daily_template_items(facts: dict) -> dict:
     ch, mon = _flag_items(facts)
     if not ch:
