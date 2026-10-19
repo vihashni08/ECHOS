@@ -17,7 +17,6 @@ from pathlib import Path
 
 import jinja2
 import pandas as pd
-from sqlalchemy import select
 
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
@@ -35,7 +34,7 @@ def _safe_retrieve(*a, **k) -> list:
         logging.getLogger("echos.llm.fallback").warning("RAG unavailable (%s): report without guidance", type(ex).__name__)
         return []
 from echos.reports.llm import LLMAPIError
-from echos.reports.llm_budget import Backend, Cache, GenerationFailed, LLMBudget, make_budget, make_key
+from echos.reports.llm_budget import Backend, Cache, GenerationFailed, LLMBudget, make_key
 from echos.reports.retrieval import GatedRetriever
 from echos.reports.weekly_data import fmt_prob
 from echos.reports import schema as SCHEMA

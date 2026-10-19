@@ -13,7 +13,7 @@ from echos.orchestrator import state as S
 from echos.reports.fake_llm import FakeLLM
 from echos.orchestrator.pipeline import build_pipeline, process_case
 from echos.orchestrator.triage import triage
-from tests.test_orchestrator import R, beh, health, qual, res, vit
+from tests.test_orchestrator import R, beh, health, qual, vit
 
 CFG = load_config()["triage"]
 CV = CFG["critical_vitals"]

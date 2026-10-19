@@ -8,7 +8,6 @@ import sys
 import warnings
 
 import numpy as np
-import pandas as pd
 import xgboost as xgb
 from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
 from sklearn.impute import SimpleImputer

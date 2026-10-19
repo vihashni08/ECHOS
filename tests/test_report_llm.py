@@ -12,7 +12,7 @@ from echos.reports.fake_llm import FakeLLM
 from echos.reports.llm_budget import Backend, Cache, LLMBudget, SlidingLimiter, make_key
 from echos.reports.retrieval import GatedRetriever
 from echos.reports.validator import validate_report
-from tests.test_reports import facts, good
+from tests.test_reports import facts
 
 LAST7 = {"calls": [{"name": "get_last_7_days", "args": {}}]}
 KB = {"id": "KB-7", "text": "Check blood pressure again later and review medicines.", "title": "Hypertension in adults", "source": "NICE NG136 (2019)",

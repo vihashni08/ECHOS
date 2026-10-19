@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from echos.config import ROOT, load_config
+from echos.config import ROOT
 
 SISFALL_DIR = ROOT / "data" / "sisfall" / "SisFall_dataset"
 G_PER_COUNT = 32.0 / 2 ** 13

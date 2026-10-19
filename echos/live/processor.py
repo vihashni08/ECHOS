@@ -28,7 +28,6 @@ from echos.orchestrator import state as S
 from echos.orchestrator.alerts import queue_alerts
 from echos.orchestrator.triage import triage as run_triage
 from echos.schemas import AgentResult, BehaviourPart, DataQualityResult, HealthResult, VitalsPart
-from echos.team import bus
 from echos.team.investigator import Investigator, run_investigation
 from echos.team.planner import plan_team, record_plan
 

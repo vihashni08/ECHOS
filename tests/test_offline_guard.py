@@ -1,7 +1,4 @@
 """Entry-point audit: with the off-switches set, no Gemini / PubMed / SMTP client is created, even with a real-looking key in the environment."""
-import re
-import smtplib
-import sys
 from pathlib import Path
 
 import pytest

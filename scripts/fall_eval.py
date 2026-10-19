@@ -11,11 +11,9 @@ from __future__ import annotations
 import json
 import re
 import warnings
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import select
 
 warnings.filterwarnings("ignore")
 from echos.offline import force_offline  # noqa: E402

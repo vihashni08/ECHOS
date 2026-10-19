@@ -5,7 +5,6 @@ import subprocess
 import sys
 import threading
 import time
-from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,7 +17,6 @@ from echos.api import services as V
 from echos.api.app import create_app
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
-from echos.reports import weekly_report as WR
 from echos.sim.controller import SimController
 from tests.test_weekly import NOPM, PID, WEEK, disp, world  # noqa: F401  (fixture reuse)
 

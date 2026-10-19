@@ -5,7 +5,6 @@ import json
 
 import joblib
 import numpy as np
-import pandas as pd
 from sklearn.metrics import brier_score_loss
 
 from echos.agents.health import behaviour as b

@@ -6,9 +6,7 @@ A failure on the primary stops the run (FAIL). On the FALLBACK a 429 / 503 / tim
 Usage: PYTHONPATH=. python scripts/live_llm_check.py --yes [--skip-list-check] [--max-requests 4]"""
 import os
 import sys
-import tempfile
 import time
-from pathlib import Path
 
 from echos.config import ROOT, load_config
 

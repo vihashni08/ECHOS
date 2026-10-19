@@ -4,7 +4,6 @@ from echos.knowledge import relevance
 from echos.knowledge import retrieve as RT
 from echos.reports import evidence as EV
 from echos.reports import vitals_why as VW
-from echos.reports import weekly_data as WD
 from echos.reports import weekly_pdf as WP
 from echos.reports.retrieval import GatedRetriever
 from tests.test_weekly import PID, WEEK, data, text_of, world  # noqa: F401  (world is a fixture)

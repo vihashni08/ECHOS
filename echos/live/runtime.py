@@ -6,9 +6,7 @@ import argparse
 import os
 import threading
 import time
-from pathlib import Path
 
-from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 
 

@@ -5,7 +5,6 @@ evidence only. Fallback (`fallback_predict`): fixed vitals thresholds from confi
 """
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 
 from echos.agents.health import behaviour as beh_model

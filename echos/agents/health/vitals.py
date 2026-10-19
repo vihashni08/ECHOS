@@ -5,7 +5,7 @@ All baseline features are computed from PAST reading-days only (shift / closed='
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 
 import joblib

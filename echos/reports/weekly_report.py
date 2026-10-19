@@ -8,7 +8,6 @@ import pathlib
 from html import escape
 from typing import Optional
 
-import pandas as pd
 
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S

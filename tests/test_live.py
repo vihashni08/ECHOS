@@ -14,7 +14,7 @@ from echos.config import load_config
 from echos.live import store as LS
 from echos.live.emulator import Emulator
 from echos.live.processor import LiveProcessor
-from echos.live.schemas import IngestBatch, IngestEvent
+from echos.live.schemas import IngestEvent
 from echos.orchestrator import state as S
 from echos.reports.agent import ReportAgent
 

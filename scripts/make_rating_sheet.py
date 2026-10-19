@@ -5,7 +5,6 @@ private/key.csv (item -> source; raters must not see it). Template-mode reports 
 Usage: PYTHONPATH=. python scripts/make_rating_sheet.py [--db data/echos.db] [--seed 42] [--out reports/rating]"""
 import argparse
 import csv
-import json
 import random
 import re
 import sqlite3

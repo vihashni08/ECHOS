@@ -1,7 +1,6 @@
 """Reference device client: batching, retry with backoff, Retry-After, offline buffer, bad events. Fake transport; no network."""
 import json
 
-import pytest
 
 from scripts.device_client import DeviceClient
 

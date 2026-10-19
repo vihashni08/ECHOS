@@ -1,4 +1,3 @@
-import pandas as pd
 import pytest
 
 from echos.data import loaders

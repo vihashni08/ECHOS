@@ -16,13 +16,11 @@ import json
 import logging
 import threading
 import time
-from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 from sqlalchemy import delete, func, select
 
-from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 
 log = logging.getLogger("echos.sim")

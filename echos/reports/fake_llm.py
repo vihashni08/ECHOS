@@ -13,7 +13,6 @@ Both interfaces exist: `step` (daily report, function calling) and `generate` (w
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from echos.config import ROOT
 from echos.reports.llm import LLMAPIError, LLMTimeout, Step

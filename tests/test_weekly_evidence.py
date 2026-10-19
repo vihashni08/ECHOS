@@ -2,8 +2,6 @@
 import json
 
 import pandas as pd
-import pytest
-from pypdf import PdfReader
 from sqlalchemy import select
 
 from echos.orchestrator import state as S

@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 
 from echos.agents import fall
 from echos.data import sisfall as sf

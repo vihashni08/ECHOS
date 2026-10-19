@@ -13,7 +13,7 @@ from collections import OrderedDict
 import numpy as np
 from sqlalchemy import and_, select
 
-from echos.config import ROOT, load_config
+from echos.config import load_config
 from echos.orchestrator import state as S
 
 
