@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 
 from echos.config import ROOT
-from echos.reports.llm import LLMAPIError, LLMTimeout, Step
+from echos.reports.llm.llm import LLMAPIError, LLMTimeout, Step
 
 
 class FakeLLM:

@@ -10,7 +10,7 @@ from echos.alerts import payload as P
 from echos.alerts.dispatcher import AlertDispatcher
 from echos.alerts.mailer import DryRunMailer, FakeMailer, SMTPMailer, make_mailer
 from echos.orchestrator import alerts as OA
-from echos.reports.fake_llm import FakeLLM
+from echos.reports.llm.fake_llm import FakeLLM
 from echos.orchestrator import state as S
 from echos.orchestrator.pipeline import build_pipeline, process_case
 from tests.test_orchestrator import R, _seed, health, qual
@@ -184,7 +184,7 @@ class RaisingLLM:
 
 
 def test_alerts_still_go_out_when_llm_rag_pubmed_are_down(tmp_path, monkeypatch):
-    import echos.reports.agent as RA
+    import echos.reports.daily.agent as RA
     monkeypatch.setattr(RA, "retrieve", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("RAG down")))
     eng = S.get_engine(tmp_path / "t.db")
     _seed(eng)
@@ -229,7 +229,7 @@ def _fake_data(monkeypatch, phys, act):
     mk = lambda rows, cols: {"p1": pd.DataFrame(rows, columns=cols).assign(date=lambda d: pd.to_datetime(d.date)).sort_values("date")}  # noqa: E731
     P._CACHE["phys"] = mk(phys, ["device_type", "value", "date"])
     P._CACHE["act"] = mk(act, ["location_name", "date"])
-    monkeypatch.setattr("echos.reports.facts.build_day_facts", lambda *a, **k: {"vitals": {"sys": {"baseline": 140.0}, "dia": {"baseline": 82.0},
+    monkeypatch.setattr("echos.reports.daily.facts.build_day_facts", lambda *a, **k: {"vitals": {"sys": {"baseline": 140.0}, "dia": {"baseline": 82.0},
                                                                                        "hr": {"baseline": 70.0}, "temp": {"baseline": None}}})
     yield
     P._CACHE.pop("phys", None), P._CACHE.pop("act", None)

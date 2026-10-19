@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from echos.config import ROOT, load_config
-from echos.reports.llm import LLMAPIError, Step
+from echos.reports.llm.llm import LLMAPIError, Step
 
 log = logging.getLogger("echos.llm.budget")
 RATE_MARGIN = 0.20          # stay this far below each model's requests-per-minute limit
@@ -265,7 +265,7 @@ def make_budget(cfg: Optional[dict] = None, cache_path=None) -> Optional[LLMBudg
         load_dotenv(ROOT / ".env")
     except ImportError:
         pass
-    from echos.reports.llm import ENV_KEY, GeminiLLM
+    from echos.reports.llm.llm import ENV_KEY, GeminiLLM
     key = os.environ.get(ENV_KEY)
     if not key:
         return None

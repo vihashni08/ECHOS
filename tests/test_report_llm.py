@@ -7,11 +7,11 @@ import pytest
 
 from echos.knowledge import pubmed as PM
 from echos.orchestrator import state as S
-from echos.reports import agent as A
-from echos.reports.fake_llm import FakeLLM
-from echos.reports.llm_budget import Backend, Cache, LLMBudget, SlidingLimiter, make_key
+from echos.reports.daily import agent as A
+from echos.reports.llm.fake_llm import FakeLLM
+from echos.reports.llm.llm_budget import Backend, Cache, LLMBudget, SlidingLimiter, make_key
 from echos.reports.retrieval import GatedRetriever
-from echos.reports.validator import validate_report
+from echos.reports.daily.validator import validate_report
 from tests.test_reports import facts
 
 LAST7 = {"calls": [{"name": "get_last_7_days", "args": {}}]}
@@ -155,7 +155,7 @@ def test_orchestrator_gate_normal_days_never_reach_the_llm(tmp_path, monkeypatch
     from tests.test_orchestrator import R, health, qual
     from tests.test_safety import _seed_case
     from echos.orchestrator.pipeline import build_pipeline, process_case
-    from echos.reports.agent import drain_all
+    from echos.reports.daily.agent import drain_all
     monkeypatch.setattr(A.ReportAgent, "weekly", lambda *a, **k: None)   # 2019-05-05 is a Sunday; this test is about the DAILY report
     eng = S.get_engine(tmp_path / "g.db")
     _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.0)})
@@ -394,8 +394,8 @@ def test_outbound_calls_to_gemini_and_ncbi_are_blocked():
 
 
 def test_no_llm_switch_blocks_every_real_client_even_with_a_key(monkeypatch):
-    from echos.reports.llm import make_llm
-    from echos.reports.llm_budget import make_budget
+    from echos.reports.llm.llm import make_llm
+    from echos.reports.llm.llm_budget import make_budget
     monkeypatch.setenv("ECHOS_LLM_API_KEY", "dummy-key-not-real")
     monkeypatch.setenv("ECHOS_REPORT_LLM", "off")                 # what scripts/run_api.sh --no-llm sets
     assert make_budget() is None and make_llm() is None

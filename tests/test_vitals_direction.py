@@ -3,8 +3,8 @@ from echos.knowledge import pubmed as PM
 from echos.knowledge import relevance
 from echos.knowledge import retrieve as RT
 from echos.reports import evidence as EV
-from echos.reports import vitals_why as VW
-from echos.reports import weekly_pdf as WP
+from echos.reports.daily import vitals_why as VW
+from echos.reports.weekly import weekly_pdf as WP
 from echos.reports.retrieval import GatedRetriever
 from tests.test_weekly import PID, WEEK, data, text_of, world  # noqa: F401  (world is a fixture)
 from tests.test_weekly_evidence import WEEK_D, norm, src
@@ -108,7 +108,7 @@ def test_daily_flag_has_direction_and_why(tmp_path):
     import pandas as pd
 
     from echos.orchestrator import state as S
-    from echos.reports import facts as F
+    from echos.reports.daily import facts as F
     eng = S.get_engine(tmp_path / "d.db")
     pdy = pd.DataFrame([{"patient_id": "p", "day": pd.Timestamp("2019-05-05"), "has_activity": True, "has_reading": True, "sys": 118, "dia": 58, "hr": 70, "temp": None,
                          "weight": None, "night_events": 1, "night_bathroom": 0, "total_events": 5}])

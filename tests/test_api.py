@@ -179,7 +179,7 @@ def test_system_metrics_equal_the_json_files(api):
 
 
 def test_llm_budget_reads_the_call_log(api):
-    from echos.reports.llm_budget import Cache
+    from echos.reports.llm.llm_budget import Cache
     c, ctx = api
     cache = Cache(ctx.root / "data/llm_cache.sqlite")
     lc = ctx.cfg["llm"]
@@ -327,7 +327,7 @@ def test_api_process_never_imports_torch_or_xgboost(tmp_path):
             "c = TestClient(create_app(V.Ctx(eng=eng, allow_kill=False)))\n"
             "for u in ('/api/patients','/api/falls','/api/alerts','/api/outbox','/api/agents/health','/api/sim/state','/api/system/quality','/api/system/metrics','/api/system/llm-budget'):\n"
             "    assert c.get(u).status_code == 200, u\n"
-            "import echos.reports.weekly_report, echos.reports.agent\n"
+            "import echos.reports.weekly.weekly_report, echos.reports.daily.agent\n"
             "bad = [m for m in ('torch','xgboost','sentence_transformers','shap','lightgbm','tensorflow') if m in sys.modules]\n"
             "print('BAD', bad)\n")
     r = subprocess.run([sys.executable, "-W", "ignore", "-c", code], capture_output=True, text=True, cwd=ROOT, env={**os.environ, "PYTHONPATH": str(ROOT)}, timeout=170)

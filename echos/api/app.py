@@ -146,10 +146,10 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         ctx = ctx_of(request)
         V.require_patient(ctx, pid)
         wk, _, _ = V.week_end_of(week, ctx, pid)
-        from echos.reports import weekly_report as WR
+        from echos.reports.weekly import weekly_report as WR
         kw = {"budget": None, "retriever": None, "root": ctx.report_root, **{k: v for k, v in {"pdy": ctx.pdy, "phys": ctx.phys, "demo": ctx.demo}.items() if v is not None}, **ctx.weekly_kwargs}
         if kw.get("retriever") is None:
-            from echos.reports.agent import ReportAgent
+            from echos.reports.daily.agent import ReportAgent
             kw["retriever"] = ReportAgent(ctx.eng, None, root=ctx.report_root).retriever
         WR.make_weekly(ctx.eng, pid, wk, None, send=False, **kw)
         return V.weekly_report(ctx, pid, wk)
@@ -167,7 +167,7 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
         wk, _, _ = V.week_end_of(week, ctx, pid)
         from echos.alerts.dispatcher import AlertDispatcher
         from echos.alerts.mailer import make_mailer
-        from echos.reports import weekly_report as WR
+        from echos.reports.weekly import weekly_report as WR
         with ctx.lock:
             if ctx.dispatcher is None:
                 ctx.dispatcher = AlertDispatcher(ctx.eng, make_mailer(ctx.cfg))

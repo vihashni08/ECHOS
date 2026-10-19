@@ -208,7 +208,7 @@ def test_components_doc_is_generated_from_the_registry():
 
 
 def test_report_agent_uses_the_case_file_and_consumes_its_message(eng, tmp_path):
-    from echos.reports.agent import ReportAgent
+    from echos.reports.daily.agent import ReportAgent
     from tests.test_reports import facts
     f = facts()
     Investigator(eng).investigate(f["patient_id"], f["day"], {"status": "MONITOR", "reasons": ["vitals alert p=0.50"], "urgent_types": []},

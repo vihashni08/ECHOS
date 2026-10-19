@@ -6,7 +6,7 @@ import sys
 
 from echos.alerts.mailer import SMTPMailer, recipients
 from echos.orchestrator import state as S
-from echos.reports import weekly_report as WR
+from echos.reports.weekly import weekly_report as WR
 
 
 def main(args: list[str]) -> int:
@@ -53,7 +53,7 @@ def main(args: list[str]) -> int:
 
 
 def _retriever(eng):
-    from echos.reports.agent import ReportAgent
+    from echos.reports.daily.agent import ReportAgent
     return ReportAgent(eng, None).retriever
 
 

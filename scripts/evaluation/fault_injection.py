@@ -39,8 +39,8 @@ from echos.data import sisfall as sf  # noqa: E402
 from echos.orchestrator import state as S  # noqa: E402
 from echos.orchestrator.pipeline import build_pipeline, run_orchestrator  # noqa: E402
 from echos.orchestrator.supervisor import Supervisor  # noqa: E402
-from echos.reports import agent as A  # noqa: E402
-from echos.reports.fake_llm import FakeLLM  # noqa: E402
+from echos.reports.daily import agent as A  # noqa: E402
+from echos.reports.llm.fake_llm import FakeLLM  # noqa: E402
 from echos.sim.controller import SimController  # noqa: E402
 from echos.sim.replay import train_replay_fall_model  # noqa: E402
 from scripts.evaluation.fault_report import CASES, OBSOLETE_HEADING, OLD_HEADING, LABEL, SMTP_OUTAGE_S, SUP_RESTART_DELAY_S, split_cases, table  # noqa: E402,F401

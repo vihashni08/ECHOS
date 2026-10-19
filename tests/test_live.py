@@ -16,7 +16,7 @@ from echos.live.emulator import Emulator
 from echos.live.processor import LiveProcessor
 from echos.live.schemas import IngestEvent
 from echos.orchestrator import state as S
-from echos.reports.agent import ReportAgent
+from echos.reports.daily.agent import ReportAgent
 
 TO = {"caregiver": "care@example.test", "clinician": "doc@example.test", "escalation": "boss@example.test"}
 

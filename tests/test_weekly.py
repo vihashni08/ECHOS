@@ -11,12 +11,12 @@ from sqlalchemy import select
 from echos.alerts.dispatcher import AlertDispatcher
 from echos.alerts.mailer import DryRunMailer, FakeMailer
 from echos.orchestrator import state as S
-from echos.reports import weekly_data as WD
-from echos.reports import weekly_narrative as WN
-from echos.reports import weekly_pdf as WP
-from echos.reports import weekly_report as WR
-from echos.reports.fake_llm import FakeLLM
-from echos.reports.llm_budget import Backend, Cache, LLMBudget
+from echos.reports.weekly import weekly_data as WD
+from echos.reports.weekly import weekly_narrative as WN
+from echos.reports.weekly import weekly_pdf as WP
+from echos.reports.weekly import weekly_report as WR
+from echos.reports.llm.fake_llm import FakeLLM
+from echos.reports.llm.llm_budget import Backend, Cache, LLMBudget
 from echos.reports.retrieval import GatedRetriever
 
 PID, WEEK = "pw", "2019-W19"      # Mon 2019-05-06 .. Sun 2019-05-12
@@ -257,7 +257,7 @@ def _sunday_graph(tmp_path, mailer, llm=None):
 
 def test_weekly_node_builds_pdf_and_queues_email_in_background(tmp_path):
     from echos.orchestrator.pipeline import process_case
-    from echos.reports.agent import drain_all
+    from echos.reports.daily.agent import drain_all
     m = FakeMailer()
     eng, g = _sunday_graph(tmp_path, m)
     assert process_case(g, "p1", "2019-05-05") is True
@@ -269,7 +269,7 @@ def test_weekly_node_builds_pdf_and_queues_email_in_background(tmp_path):
 
 def test_a_failed_pdf_build_does_not_break_the_day(tmp_path, monkeypatch):
     from echos.orchestrator.pipeline import process_case
-    from echos.reports.agent import drain_all
+    from echos.reports.daily.agent import drain_all
 
     def boom(*a, **k):
         raise RuntimeError("pdf exploded")
@@ -286,7 +286,7 @@ def test_a_failed_pdf_build_does_not_break_the_day(tmp_path, monkeypatch):
 
 def test_simulation_uses_the_template_narrative_unless_configured(tmp_path, monkeypatch):
     from echos.orchestrator.pipeline import process_case
-    from echos.reports.agent import drain_all
+    from echos.reports.daily.agent import drain_all
     seen = []
     real = WN.make_narrative
     monkeypatch.setattr(WN, "make_narrative", lambda *a, **k: seen.append(k.get("use_llm")) or real(*a, **k))
@@ -352,8 +352,8 @@ def test_routine_baseline_needs_7_earlier_days(world):
 def test_orchestrator_weekly_pdf_lists_local_and_pubmed_sources(tmp_path, monkeypatch):
     from echos.knowledge.pubmed import PubMedClient
     from echos.orchestrator.pipeline import process_case
-    from echos.reports import agent as ra
-    from echos.reports.agent import drain_all
+    from echos.reports.daily import agent as ra
+    from echos.reports.daily.agent import drain_all
     from tests.test_report_llm import FakeNCBI
     KBF = KB | {"title": "Falls in older people", "text": "Assess the circumstances of a fall in an older adult.", "score": 0.7}
     monkeypatch.setattr(ra, "retrieve", lambda ft, d=None, k=None: [KBF | {"finding_type": ft}])           # mocked local index

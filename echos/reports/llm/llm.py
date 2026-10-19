@@ -154,7 +154,7 @@ class GeminiLLM:
                                                                                    parameters_json_schema=t["parameters"]) for t in tools])],
                 automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True))
         else:
-            from echos.reports.schema import json_schema     # structured output: the same DailyReport model the prompt and the validator use
+            from echos.reports.daily.schema import json_schema     # structured output: the same DailyReport model the prompt and the validator use
             cfg = types.GenerateContentConfig(system_instruction=system, temperature=self.temperature, response_mime_type="application/json",
                                               response_json_schema=schema or json_schema())
 

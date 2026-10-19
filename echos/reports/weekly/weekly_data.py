@@ -14,8 +14,8 @@ from sqlalchemy import select
 
 from echos.config import load_config
 from echos.orchestrator import state as S
-from echos.reports import facts as F
-from echos.reports import vitals_why as VW
+from echos.reports.daily import facts as F
+from echos.reports.daily import vitals_why as VW
 
 VARS = {"sys": ("Systolic BP", "mmHg"), "dia": ("Diastolic BP", "mmHg"), "hr": ("Heart rate", "bpm"), "temp": ("Temperature", "C"),
         "weight": ("Weight", "kg")}

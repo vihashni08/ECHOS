@@ -14,8 +14,8 @@ from sqlalchemy import select
 from echos.config import load_config
 from echos.orchestrator import state as S
 from echos.orchestrator.triage import drift_level
-from echos.reports import specifics as SP
-from echos.reports import vitals_why as VW
+from echos.reports.daily import specifics as SP
+from echos.reports.daily import vitals_why as VW
 
 VITAL_VARS = ["sys", "dia", "hr", "temp", "weight"]
 ROUTINE_VARS = ["total_events", "night_events", "night_bathroom"]

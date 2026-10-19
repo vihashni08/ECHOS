@@ -3,10 +3,10 @@ import json
 import pytest
 
 from echos.orchestrator import state as S
-from echos.reports import agent as A
-from echos.reports.fake_llm import FakeLLM
-from echos.reports.llm import make_llm
-from echos.reports.validator import validate_report
+from echos.reports.daily import agent as A
+from echos.reports.llm.fake_llm import FakeLLM
+from echos.reports.llm.llm import make_llm
+from echos.reports.daily.validator import validate_report
 
 
 def facts(day="2019-05-01", status="MONITOR", sys_now=162.0, with_flag=True):
@@ -109,7 +109,7 @@ def test_deferred_llm_never_blocks_the_caller(agent_env):
 
 def test_rate_limiter_spaces_requests():
     import time
-    from echos.reports.llm import RateLimiter
+    from echos.reports.llm.llm import RateLimiter
     rl, t0 = RateLimiter(600), time.monotonic()  # 0.1 s gap
     for _ in range(4):
         rl.wait()
@@ -118,7 +118,7 @@ def test_rate_limiter_spaces_requests():
 
 def test_watchdog_enforces_short_timeout():
     import time
-    from echos.reports.llm import GeminiLLM, LLMTimeout
+    from echos.reports.llm.llm import GeminiLLM, LLMTimeout
     g = GeminiLLM.__new__(GeminiLLM)  # no network: a hung call
     g.timeout_s = 0.3
     t0 = time.time()
@@ -128,7 +128,7 @@ def test_watchdog_enforces_short_timeout():
 
 
 def test_api_error_carries_http_code_and_status():
-    from echos.reports import llm as L
+    from echos.reports.llm import llm as L
 
     class E(Exception):
         code, status, message, details = 429, "RESOURCE_EXHAUSTED", "quota exceeded, retry in 3s", None

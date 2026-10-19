@@ -49,7 +49,7 @@ def main() -> int:
         Capped.cap = int(argv[argv.index("--max-requests") + 1])
     from dotenv import load_dotenv
     load_dotenv(ROOT / ".env")
-    from echos.reports.llm import ENV_KEY, GeminiLLM
+    from echos.reports.llm.llm import ENV_KEY, GeminiLLM
     if not os.environ.get(ENV_KEY):
         print("No ECHOS_LLM_API_KEY in the environment / .env: nothing to check.")
         return 1

@@ -7,10 +7,10 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from echos.reports.alias import pseudonymise
-from echos.reports.llm_budget import GenerationFailed, LLMBudget, make_key
-from echos.reports.validator import validate_report
-from echos.reports.weekly_data import narrative_payload
+from echos.reports.llm.alias import pseudonymise
+from echos.reports.llm.llm_budget import GenerationFailed, LLMBudget, make_key
+from echos.reports.daily.validator import validate_report
+from echos.reports.weekly.weekly_data import narrative_payload
 
 PROMPT_VERSION = "weekly-v2"
 SCHEMA = {"type": "object", "required": ["key_findings", "guidance"], "properties": {

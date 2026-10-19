@@ -20,9 +20,9 @@ import pandas as pd
 
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
-from echos.reports import facts as F
-from echos.reports.alias import ALIAS, pseudonymise, pseudonymise_back  # noqa: F401
-from echos.reports.vitals_why import VITALS_TYPES
+from echos.reports.daily import facts as F
+from echos.reports.llm.alias import ALIAS, pseudonymise, pseudonymise_back  # noqa: F401
+from echos.reports.daily.vitals_why import VITALS_TYPES
 from echos.knowledge.retrieve import retrieve
 
 
@@ -33,16 +33,16 @@ def _safe_retrieve(*a, **k) -> list:
     except Exception as ex:  # noqa: BLE001
         logging.getLogger("echos.llm.fallback").warning("RAG unavailable (%s): report without guidance", type(ex).__name__)
         return []
-from echos.reports.llm import LLMAPIError
-from echos.reports.llm_budget import Backend, Cache, GenerationFailed, LLMBudget, make_key
+from echos.reports.llm.llm import LLMAPIError
+from echos.reports.llm.llm_budget import Backend, Cache, GenerationFailed, LLMBudget, make_key
 from echos.reports.retrieval import GatedRetriever
-from echos.reports.weekly_data import fmt_prob
-from echos.reports import schema as SCHEMA
-from echos.reports.validator import validate_report
+from echos.reports.weekly.weekly_data import fmt_prob
+from echos.reports.daily import schema as SCHEMA
+from echos.reports.daily.validator import validate_report
 
-TPL = jinja2.Environment(loader=jinja2.FileSystemLoader(str(Path(__file__).parent / "templates")), autoescape=False,
+TPL = jinja2.Environment(loader=jinja2.FileSystemLoader(str(Path(__file__).parent.parent / "templates")), autoescape=False,
                          trim_blocks=True, lstrip_blocks=True)
-HTML_TPL = jinja2.Environment(loader=jinja2.FileSystemLoader(str(Path(__file__).parent / "templates")), autoescape=True,
+HTML_TPL = jinja2.Environment(loader=jinja2.FileSystemLoader(str(Path(__file__).parent.parent / "templates")), autoescape=True,
                               trim_blocks=True, lstrip_blocks=True)
 LABEL = {"NORMAL": "Normal", "MONITOR": "Changes noticed", "URGENT": "Needs attention"}
 VITAL_NAME = {"sys": "Systolic blood pressure", "dia": "Diastolic blood pressure", "hr": "Heart rate",

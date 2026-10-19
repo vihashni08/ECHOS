@@ -21,7 +21,7 @@ from echos.config import ROOT  # noqa: E402
 from echos.live.emulator import Emulator  # noqa: E402
 from echos.live.processor import LiveProcessor  # noqa: E402
 from echos.orchestrator import state as S  # noqa: E402
-from echos.reports.agent import ReportAgent  # noqa: E402
+from echos.reports.daily.agent import ReportAgent  # noqa: E402
 
 
 def main():

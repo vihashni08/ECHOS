@@ -2,9 +2,9 @@
 import pytest
 
 from echos.orchestrator import state as S
-from echos.reports import specifics as SP
-from echos.reports.agent import daily_template_items
-from echos.reports.validator import validate_report
+from echos.reports.daily import specifics as SP
+from echos.reports.daily.agent import daily_template_items
+from echos.reports.daily.validator import validate_report
 from echos.team.investigator import Investigator
 
 V = {"sys": 168.0, "dia": 96.0, "hr": 82.0}

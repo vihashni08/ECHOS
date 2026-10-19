@@ -22,7 +22,7 @@ from reportlab.lib.units import mm  # noqa: E402
 from reportlab.pdfgen import canvas as rl_canvas  # noqa: E402
 from reportlab.platypus import Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle  # noqa: E402
 
-from echos.reports.weekly_data import ROUTINE, VARS  # noqa: E402
+from echos.reports.weekly.weekly_data import ROUTINE, VARS  # noqa: E402
 
 LETTER = {"NORMAL": "N", "MONITOR": "M", "URGENT": "U", None: "-"}
 INK, MUTED, LINE = colors.HexColor("#1f2937"), colors.HexColor("#6b7280"), colors.HexColor("#d1d5db")

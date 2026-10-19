@@ -26,8 +26,8 @@ from echos.alerts.mailer import FakeMailer  # noqa: E402
 from echos.config import ROOT  # noqa: E402
 from echos.orchestrator import state as S  # noqa: E402
 from echos.orchestrator.pipeline import build_pipeline, run_orchestrator  # noqa: E402
-from echos.reports import agent as A  # noqa: E402
-from echos.reports.fake_llm import FakeLLM  # noqa: E402
+from echos.reports.daily import agent as A  # noqa: E402
+from echos.reports.llm.fake_llm import FakeLLM  # noqa: E402
 from echos.reports.retrieval import GatedRetriever  # noqa: E402
 
 SRC = ROOT / "data/e2e_replay/echos.db"

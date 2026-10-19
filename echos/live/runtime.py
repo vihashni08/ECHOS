@@ -16,9 +16,9 @@ class LiveRuntime:
         from echos.alerts.mailer import make_mailer
         from echos.live.emulator import Emulator
         from echos.live.processor import LiveProcessor
-        from echos.reports.agent import ReportAgent
-        from echos.reports.llm import make_llm
-        from echos.reports.llm_budget import make_budget
+        from echos.reports.daily.agent import ReportAgent
+        from echos.reports.llm.llm import make_llm
+        from echos.reports.llm.llm_budget import make_budget
         from echos.sim.replay import train_replay_fall_model
         from echos.team.coordinator import CareCoordinator
         self.eng = S.get_engine(db)

@@ -71,10 +71,10 @@ class Investigator:
 
     @staticmethod
     def specifics(results: dict, det: dict) -> dict:
-        """The numbers behind the flags, as plain sentences: per vital its value, the person's own usual and the difference (echos/reports/specifics.py), and
+        """The numbers behind the flags, as plain sentences: per vital its value, the person's own usual and the difference (echos/reports/daily/specifics.py), and
         the routine measures furthest from usual. Returns {"vitals": [...], "routine": [...], "types": [...], "values": {...}}."""
-        from echos.reports import specifics as SP
-        from echos.reports import vitals_why as VW
+        from echos.reports.daily import specifics as SP
+        from echos.reports.daily import vitals_why as VW
         cv = _vit(results).get("current_vs_baseline") or {}
         values = {k: x["current"] for k, x in cv.items() if x.get("current") is not None}
         bases = {k: x.get("baseline") for k, x in cv.items()}
@@ -126,7 +126,7 @@ class Investigator:
     @staticmethod
     def _history_table():
         try:
-            from echos.reports.facts import patient_days
+            from echos.reports.daily.facts import patient_days
             return patient_days()
         except Exception:   # noqa: BLE001 - no built data: the checks say "not available"
             return None
@@ -264,7 +264,7 @@ class Investigator:
         if "fall" in det["urgent_types"]:
             nxt.append("Contact the person now and confirm they are safe.")
         if "critical_vitals" in det["urgent_types"] or "vitals" in det["flagged"]:
-            from echos.reports import specifics as SP
+            from echos.reports.daily import specifics as SP
             nxt.extend(SP.vital_actions(sp["types"], sp["values"], critical="critical_vitals" in det["urgent_types"]) or ["Ask for a repeat measurement and share it with the clinician."])
             nxt.append("Share the readings with the clinician.")
         if "behaviour" in det["flagged"]:

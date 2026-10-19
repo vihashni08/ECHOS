@@ -268,7 +268,7 @@ def vitals_lines(eng, pid: str, day: str, event_time: str, decision: dict, resul
         return [], "No vitals on file before this event."
     g = g[g.date <= t]
     try:
-        from echos.reports.facts import build_day_facts
+        from echos.reports.daily.facts import build_day_facts
         base = build_day_facts(eng, pid, day, decision or {}, results or {})["vitals"]
     except Exception:  # noqa: BLE001 - baselines are optional
         base = {}

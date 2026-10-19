@@ -22,7 +22,7 @@ def main() -> int:
         return 2
     from dotenv import load_dotenv
     load_dotenv(ROOT / ".env")
-    from echos.reports.llm import ENV_KEY
+    from echos.reports.llm.llm import ENV_KEY
     if not os.environ.get(ENV_KEY):
         print("No ECHOS_LLM_API_KEY in the environment / .env.")
         return 1

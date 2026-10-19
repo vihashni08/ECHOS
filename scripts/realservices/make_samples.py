@@ -12,8 +12,8 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 from echos.config import ROOT  # noqa: E402
 from echos.orchestrator import state as S  # noqa: E402
-from echos.reports import agent as A  # noqa: E402
-from echos.reports.llm import make_llm  # noqa: E402
+from echos.reports.daily import agent as A  # noqa: E402
+from echos.reports.llm.llm import make_llm  # noqa: E402
 
 DAILY = [("c55f8", "2019-04-02"), ("c55f8", "2019-04-06"), ("ec812", "2019-04-02"), ("c55f8", "2019-04-04"),
          ("ec812", "2019-04-19"), ("c5785", "2019-05-07"), ("201d8", "2019-05-04"), ("c5785", "2019-05-02")]

@@ -14,8 +14,8 @@ from sqlalchemy import func, select
 from echos.config import ROOT, load_config
 from echos.data.age import band_label
 from echos.orchestrator import state as S
-from echos.reports import facts as F
-from echos.reports import weekly_data as WD
+from echos.reports.daily import facts as F
+from echos.reports.weekly import weekly_data as WD
 
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 STATUS_TEXT = {"NORMAL": "Normal", "MONITOR": "Changes noticed", "URGENT": "Needs attention"}
@@ -199,7 +199,7 @@ def summary(ctx: Ctx, pid: str, day: Optional[str]) -> dict:
     facts = facts_of(ctx, pid, day)
     note, alerts = None, []
     if facts:
-        from echos.reports import agent as A
+        from echos.reports.daily import agent as A
         note, alerts = A.daily_data_note(facts), A.daily_alerts(facts)
     return {"patient_id": pid, "day": day, "status": cs.status, "status_text": STATUS_TEXT.get(cs.status, cs.status), "reasons": plain_reasons(facts),
             "alerts": alerts, "data_note": note}

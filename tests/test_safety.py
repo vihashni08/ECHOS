@@ -10,7 +10,7 @@ from sqlalchemy import select
 from echos.config import load_config
 from echos.data.guard import assert_real_source
 from echos.orchestrator import state as S
-from echos.reports.fake_llm import FakeLLM
+from echos.reports.llm.fake_llm import FakeLLM
 from echos.orchestrator.pipeline import build_pipeline, process_case
 from echos.orchestrator.triage import triage
 from tests.test_orchestrator import R, beh, health, qual, vit
@@ -90,14 +90,14 @@ def _seed_case(eng, day, agent_results):
 
 
 def test_hostile_llm_cannot_change_status(tmp_path, monkeypatch):
-    import echos.reports.agent as ra
+    import echos.reports.daily.agent as ra
     monkeypatch.setattr(ra, "retrieve", lambda *a, **k: [])   # no embedding model (torch + xgboost in one process can segfault)
     eng = S.get_engine(tmp_path / "t.db")
     _seed_case(eng, "2019-05-05", {"quality": qual(), "health_monitoring": health(), "fall": R(0.97, post_fall_inactive=True)})
     llm = hostile_llm()
     g = build_pipeline(eng, report_llm=llm, report_root=tmp_path, gate=True, weekly_pdf=False)
     process_case(g, "p1", "2019-05-05")
-    from echos.reports.agent import drain_all
+    from echos.reports.daily.agent import drain_all
     drain_all(30)
     with eng.begin() as c:
         st = c.execute(select(S.case_state)).first()
@@ -123,7 +123,7 @@ def _gate_run(tmp_path, gate, pats, days):
     for p in pats:
         for d in days[p]:
             process_case(g, p, d)
-    from echos.reports.agent import drain_all
+    from echos.reports.daily.agent import drain_all
     drain_all(60)
     with eng.begin() as c:
         cases = [(r.patient_id, r.day, r.status, r.reasons, r.data_gap) for r in c.execute(select(S.case_state).order_by(S.case_state.c.patient_id, S.case_state.c.day))]
@@ -137,7 +137,7 @@ def test_gate_on_off_triage_identical(tmp_path, monkeypatch):
     pdy = load_patient_day()
     pats = pick_patients(pdy, 3)
     days = {p: [d.strftime("%Y-%m-%d") for d in sorted(pdy[pdy.patient_id == p].day)[30:50]] for p in pats}
-    import echos.reports.agent as ra
+    import echos.reports.daily.agent as ra
     rag_calls = []
     monkeypatch.setattr(ra.ReportAgent, "weekly", lambda *a, **k: None)   # the gate is about DAILY reports; weekly uses RAG
     monkeypatch.setattr(ra, "retrieve", lambda *a, **k: rag_calls.append(1) or [])

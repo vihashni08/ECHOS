@@ -12,9 +12,9 @@ from typing import Optional
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 from echos.reports import evidence as EV
-from echos.reports import weekly_data as WD
-from echos.reports import weekly_narrative as WN
-from echos.reports import weekly_pdf as WP
+from echos.reports.weekly import weekly_data as WD
+from echos.reports.weekly import weekly_narrative as WN
+from echos.reports.weekly import weekly_pdf as WP
 
 log = logging.getLogger("echos.weekly")
 MAX_SOURCES = 6
@@ -40,7 +40,7 @@ def llm_rewriter(budget, d: dict, sources: list):
     evidence.validate_considerations in evidence.reword, so a bad rewrite is discarded."""
     import json as _json
 
-    from echos.reports.llm_budget import GenerationFailed, make_key
+    from echos.reports.llm.llm_budget import GenerationFailed, make_key
 
     def rewrite(bullets: list) -> list:
         ids = {s["id"] for s in sources}
@@ -109,8 +109,8 @@ def send_weekly_now(patient_id: str, week, force: bool = False, eng=None, dispat
     again (queued_alert_id None); with force=True a new copy is sent. The LLM narrative is used when a budget exists (use_llm and a configured key)."""
     from echos.alerts.dispatcher import AlertDispatcher
     from echos.alerts.mailer import make_mailer
-    from echos.reports.agent import ReportAgent
-    from echos.reports.llm_budget import make_budget
+    from echos.reports.daily.agent import ReportAgent
+    from echos.reports.llm.llm_budget import make_budget
     eng = eng or S.get_engine()
     dispatcher = dispatcher or AlertDispatcher(eng, make_mailer())
     budget = make_budget() if budget == "auto" else budget

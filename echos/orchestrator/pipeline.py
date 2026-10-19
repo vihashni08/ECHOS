@@ -78,10 +78,10 @@ def build_pipeline(eng, fault: Optional[Callable[[str], None]] = None, inline_ag
     (llm.model + key), None/False = template mode. gate: NORMAL days get a template daily report (no LLM, no retrieval);
     None = config `report_gate.enabled`. The gate only touches the report node, never triage or alerts.
     dispatcher: AlertDispatcher (default: config alerts.send_real false -> DryRunMailer; true -> SMTP). Sending runs in its own thread."""
-    from echos.reports.agent import ReportAgent
-    from echos.reports.facts import build_day_facts
-    from echos.reports.llm import make_llm
-    from echos.reports.llm_budget import make_budget
+    from echos.reports.daily.agent import ReportAgent
+    from echos.reports.daily.facts import build_day_facts
+    from echos.reports.llm.llm import make_llm
+    from echos.reports.llm.llm_budget import make_budget
     auto = report_llm == "auto"   # real Gemini if configured: daily report through the budget manager (cache -> primary -> fallback -> template)
     reporter = ReportAgent(eng, make_llm() if auto else (report_llm or None), root=report_root, budget=make_budget() if auto else None)
     fault = fault or (lambda node: None)
@@ -177,7 +177,7 @@ def build_pipeline(eng, fault: Optional[Callable[[str], None]] = None, inline_ag
         case, triage or alerts. Any failure is logged and the day goes on."""
         if not weekly_on:
             return {}
-        from echos.reports.weekly_report import make_weekly
+        from echos.reports.weekly.weekly_report import make_weekly
         pid, day = st["patient_id"], st["day"]
         use_llm = bool(weekly_llm and reporter.budget is not None)
         reporter._defer(lambda: make_weekly(eng, pid, day, dispatcher, budget=reporter.budget, retriever=reporter.retriever, use_llm=use_llm,

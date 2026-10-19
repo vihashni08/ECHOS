@@ -67,7 +67,7 @@ def test_rating_dir_is_git_ignored():
 
 
 def test_weekly_text_has_one_line_per_alert_and_no_stamps(world, tmp_path):  # noqa: F811
-    from echos.reports import weekly_pdf as WP
+    from echos.reports.weekly import weekly_pdf as WP
     d = data(world)
     r = WP.build_pdf(d, "Key findings text.", [], tmp_path / "w.pdf")
     t = MR.weekly_text(r["path"])

@@ -45,7 +45,7 @@ DESIGNS = [
      {"alert path independent of slow work": "yes", "decider is not the writer": "yes", "a slow part cannot stop a fast part": "yes",
       "timers (ack / escalation) kept apart from per-day work": "yes"}),
 ]
-# why not 6: the validator is plain code that must run in the same call as the writer (a failed check triggers ONE retry, echos/reports/agent.py); the escalation
+# why not 6: the validator is plain code that must run in the same call as the writer (a failed check triggers ONE retry, echos/reports/daily/agent.py); the escalation
 # step needs the Coordinator's own alert state (alert_state table), so splitting it only adds a hand-over and a second place where the state can go out of step.
 
 

@@ -20,8 +20,8 @@ from typing import Callable, Optional
 
 from echos.config import load_config
 from echos.knowledge import relevance
-from echos.reports import vitals_why as VW
-from echos.reports.validator import BANNED, CITE_TOKEN, NUM
+from echos.reports.daily import vitals_why as VW
+from echos.reports.daily.validator import BANNED, CITE_TOKEN, NUM
 
 log = logging.getLogger("echos.evidence")
 

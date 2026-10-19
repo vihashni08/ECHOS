@@ -1,7 +1,7 @@
 """Validator calibration: natural phrasings that must PASS and wrong / unsafe ones that must FAIL. No model, no network."""
 import pytest
 
-from echos.reports.validator import validate_report
+from echos.reports.daily.validator import validate_report
 
 PAYLOAD = {"facts": {"day": "2019-05-15", "vitals": {"sys": {"value": 143.4, "baseline": 128.0, "delta": 9.3, "pct": 0.104}, "hr": {"value": 71, "baseline": 66.25}},
                      "routine": {"night_events": {"value": 24, "baseline": 12}}, "flags": [{"id": "F1"}]}}

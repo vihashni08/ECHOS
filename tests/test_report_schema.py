@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from echos.reports import schema as SC
-from echos.reports.fake_llm import FakeLLM
+from echos.reports.daily import schema as SC
+from echos.reports.llm.fake_llm import FakeLLM
 from echos.reports.retrieval import GatedRetriever
 from tests.test_report_llm import KB, LAST7, answer, env, make  # noqa: F401
 from tests.test_reports import facts

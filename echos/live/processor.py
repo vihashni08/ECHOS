@@ -55,7 +55,7 @@ class LiveProcessor:
         self.cfg = load_config()
         self.lc = self.cfg.get("live", {})
         if parquet is None:
-            from echos.reports import facts as F
+            from echos.reports.daily import facts as F
             parquet = F.patient_days()
         self.parquet = parquet
         self.fall_model = fall_model
@@ -239,7 +239,7 @@ class LiveProcessor:
         return dec
 
     def _report(self, pid: str, day: str, dec: dict, results: dict, closed: bool):
-        from echos.reports.facts import build_day_facts
+        from echos.reports.daily.facts import build_day_facts
         try:
             pdy = LS.live_pdy(self.eng, self.parquet)
             facts = build_day_facts(self.eng, pid, day, dec, results, pdy=pdy)
@@ -262,7 +262,7 @@ class LiveProcessor:
     def _weekly(self, pid: str, day: str):
         """Weekly PDF in the report background worker (never blocks triage or alerts). Reads live day rows and live vitals, so a real source works too."""
         from echos.data.loaders import load_physiology
-        from echos.reports.weekly_report import make_weekly
+        from echos.reports.weekly.weekly_report import make_weekly
 
         def job():
             pdy = LS.live_pdy(self.eng, self.parquet)

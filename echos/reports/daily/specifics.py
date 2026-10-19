@@ -1,12 +1,12 @@
 """Specific, number-bearing wording for one finding: WHICH vital (or routine measure), its value, the person's own usual, the difference and its direction.
 Pure functions of stored values / baselines / z-scores (no model score, no I/O). Used by the case file (echos/team/investigator.py), the daily template
-(echos/reports/agent.py) and, as `evidence.specifics`, by the Gemini prompt: the validator then requires an LLM sentence to quote at least one of these values.
+(echos/reports/daily/agent.py) and, as `evidence.specifics`, by the Gemini prompt: the validator then requires an LLM sentence to quote at least one of these values.
 Every number printed here is derived from the inputs by subtraction / rounding, so it is also written into the facts the validator accepts numbers from."""
 from __future__ import annotations
 
 from typing import Optional
 
-from echos.reports import vitals_why as VW
+from echos.reports.daily import vitals_why as VW
 
 NAME = {"sys": "Systolic blood pressure", "dia": "Diastolic blood pressure", "hr": "Heart rate", "temp": "Body temperature", "weight": "Body weight"}
 SHORT = {"sys": "systolic", "dia": "diastolic", "hr": "heart rate", "temp": "temperature", "weight": "weight"}

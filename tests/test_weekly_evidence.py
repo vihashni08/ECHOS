@@ -6,10 +6,10 @@ from sqlalchemy import select
 
 from echos.orchestrator import state as S
 from echos.reports import evidence as EV
-from echos.reports import facts as F
-from echos.reports import weekly_data as WD
-from echos.reports import weekly_narrative as WN
-from echos.reports import weekly_pdf as WP
+from echos.reports.daily import facts as F
+from echos.reports.weekly import weekly_data as WD
+from echos.reports.weekly import weekly_narrative as WN
+from echos.reports.weekly import weekly_pdf as WP
 from tests.test_weekly import PID, WEEK, data, text_of, world  # noqa: F401  (world is a fixture)
 
 
@@ -207,7 +207,7 @@ def test_considerations_template_and_validator_rejections():
 
 
 def test_weekly_pdf_lists_each_finding_with_its_sources_and_json_mapping(world, tmp_path):
-    from echos.reports import weekly_report as WR
+    from echos.reports.weekly import weekly_report as WR
     from echos.reports.retrieval import GatedRetriever
     eng, _, kw = world
     kb_bp = {"id": "KB-2", "title": "Hypertension in adults", "text": "Home blood pressure monitoring.", "source": "NICE NG136", "page": "5", "finding_type": "blood_pressure", "score": 0.7}

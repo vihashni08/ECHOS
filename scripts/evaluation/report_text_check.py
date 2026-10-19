@@ -17,7 +17,7 @@ from pathlib import Path
 from sqlalchemy import text
 
 from echos.orchestrator import state as S
-from echos.reports.validator import BANNED
+from echos.reports.daily.validator import BANNED
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "reports/metrics/report_text_check.json"

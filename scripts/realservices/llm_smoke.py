@@ -8,8 +8,8 @@ from pathlib import Path
 
 warnings.filterwarnings("ignore")
 from echos.orchestrator import state as S
-from echos.reports import agent as A
-from echos.reports.llm import make_llm
+from echos.reports.daily import agent as A
+from echos.reports.llm.llm import make_llm
 from tests.test_reports import facts
 
 if "--yes" not in sys.argv:

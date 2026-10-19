@@ -89,7 +89,7 @@ def run_pipeline(work: Path, kill_agent: str | None, n_patients=3, max_days=15, 
             timing["restart_to_first_output_s"] = n - r.restarted_ts
     orch.join(timeout=600)
     graph.dispatcher.flush(60)   # outbox rows reach SENT/FAILED before results are read
-    from echos.reports.agent import drain_all
+    from echos.reports.daily.agent import drain_all
     drain_all(600)  # background LLM report upgrades
     sup.stop_all()
     with eng.begin() as c:

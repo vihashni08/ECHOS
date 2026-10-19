@@ -1,7 +1,7 @@
 import pytest
 
 from echos.knowledge import ingest, retrieve as R
-from echos.reports.validator import validate_report
+from echos.reports.daily.validator import validate_report
 
 DOC = ("Older adults who have fallen should be offered a multifactorial falls risk assessment including medication review, "
        "vision, footwear, home hazards and blood pressure. ") * 12

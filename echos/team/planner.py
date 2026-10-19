@@ -26,7 +26,7 @@ from echos.team import bus
 
 AGENT = "planner"
 RULES_VERSION = "3"
-MAX_LLM_REQUESTS = 5      # echos/reports/agent.py: 3 tool steps + 1 final + 1 retry
+MAX_LLM_REQUESTS = 5      # echos/reports/daily/agent.py: 3 tool steps + 1 final + 1 retry
 DEFAULT_THETA = 1.0       # no `planner.theta` in the config: r > 1 would mean a detector is past its own threshold, so nothing is a near miss
 
 

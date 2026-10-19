@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from echos.reports import llm as L
+from echos.reports.llm import llm as L
 from tests.test_weekly import world  # noqa: F401  (fixture)
 from scripts.realservices import live_llm_check as LC
 
@@ -139,8 +139,8 @@ def test_live_report_check_pubmed_cap():
 def test_live_report_check_end_to_end_with_fake_clients(world, tmp_path, monkeypatch, capsys):    # noqa: F811
     """Whole path with a FakeLLM-style client and mocked PubMed: caps respected, table printed, report text hidden unless --show, nothing mailed."""
     from echos.knowledge.pubmed import PubMedClient
-    from echos.reports.fake_llm import FakeLLM
-    from echos.reports.llm_budget import Backend, Cache, LLMBudget
+    from echos.reports.llm.fake_llm import FakeLLM
+    from echos.reports.llm.llm_budget import Backend, Cache, LLMBudget
     from scripts.realservices import live_report_check as LR
     eng, _, kw = world
     monkeypatch.setattr(LR, "pick_items", lambda db: {})        # nothing to pick -> every row 'not run', no model call at all
@@ -166,13 +166,13 @@ def test_live_report_check_picks_a_monitor_day_an_urgent_fall_day_and_a_week(wor
 
 # ---------------------------------------------------------------- per-item cap, --only, failure report (fakes only)
 def _fake_budget(run, fake):
-    from echos.reports.llm_budget import Backend, Cache, LLMBudget
+    from echos.reports.llm.llm_budget import Backend, Cache, LLMBudget
     from scripts.realservices import live_report_check as LR
     return LLMBudget([Backend("fake", LR.CappedClient(fake, run, True))], Cache(":memory:"))
 
 
 def test_live_report_check_per_item_cap_is_labelled_as_script_cap_not_google():
-    from echos.reports.fake_llm import FakeLLM
+    from echos.reports.llm.fake_llm import FakeLLM
     from scripts.realservices import live_report_check as LR
     run = LR.Run(max_per_item=2)
     run.start_item("monitor")
@@ -194,7 +194,7 @@ def test_live_report_check_per_item_cap_is_labelled_as_script_cap_not_google():
 def test_live_report_check_only_monitor_reports_failed_rule_and_saves_raw_output(world, tmp_path, capsys):    # noqa: F811
     import json
     from echos.knowledge.pubmed import PubMedClient
-    from echos.reports.fake_llm import FakeLLM
+    from echos.reports.llm.fake_llm import FakeLLM
     from scripts.realservices import live_report_check as LR
     bad = {"text": json.dumps({"status": "MONITOR", "changes": [{"text": "Systolic pressure was 171 against usual 130.", "cites": ["F1"]}],
                                "monitor": [{"text": "Repeat the reading.", "cites": ["F1"]}, {"text": "Rest.", "cites": []}], "guidance": []})}
@@ -214,8 +214,9 @@ def test_live_report_check_only_monitor_reports_failed_rule_and_saves_raw_output
 def test_live_report_check_weekly_uses_the_budget_manager_not_the_template(world, tmp_path, monkeypatch, capsys):    # noqa: F811
     import json
     from echos.knowledge.pubmed import PubMedClient
-    from echos.reports import evidence as EV, weekly_data as WD
-    from echos.reports.fake_llm import FakeLLM
+    from echos.reports import evidence as EV
+    from echos.reports.weekly import weekly_data as WD
+    from echos.reports.llm.fake_llm import FakeLLM
     from scripts.realservices import live_report_check as LR
     from tests.test_weekly import data
     d = data(world)

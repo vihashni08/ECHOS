@@ -6,7 +6,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 FAKE_KEY = "AIzaSyA" + "x" * 32
 ENTRY_POINTS = [
-    "echos.reports.llm.make_llm", "echos.reports.llm.GeminiLLM", "echos.reports.llm_budget.make_budget", "echos.knowledge.pubmed.PubMedClient (default http)",
+    "echos.reports.llm.llm.make_llm", "echos.reports.llm.llm.GeminiLLM", "echos.reports.llm.llm_budget.make_budget", "echos.knowledge.pubmed.PubMedClient (default http)",
     "echos.alerts.mailer.make_mailer", "echos.alerts.mailer.SMTPMailer.send", "echos.orchestrator.pipeline.build_pipeline(report_llm='auto')",
     "echos.sim.controller (--no-llm / --no-pubmed)", "echos.api.app (ECHOS_REPORT_LLM / ECHOS_DRY_RUN via run_api.sh)",
     "scripts/run_api.sh (--dry --no-llm --no-pubmed)", "web/playwright.config.ts (run_api.sh --dry --no-llm)",
@@ -36,8 +36,8 @@ def test_switches_off_create_no_client(armed, monkeypatch, tmp_path):
     monkeypatch.setenv("ECHOS_DRY_RUN", "1")
     from echos.alerts.mailer import DryRunMailer, SMTPMailer, make_mailer
     from echos.knowledge.pubmed import PubMedClient, PubMedError
-    from echos.reports.llm import GeminiLLM, make_llm
-    from echos.reports.llm_budget import make_budget
+    from echos.reports.llm.llm import GeminiLLM, make_llm
+    from echos.reports.llm.llm_budget import make_budget
     assert make_llm() is None and make_budget() is None
     with pytest.raises(RuntimeError):
         GeminiLLM(FAKE_KEY, "m")

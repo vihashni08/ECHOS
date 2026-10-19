@@ -91,7 +91,7 @@ def capped_pubmed_get(run: Run, real_get):
 
 def pick_items(db: Path) -> dict:
     """-> {'monitor': (patient, day, facts), 'urgent': (patient, day, facts), 'week': (patient, 'YYYY-Www')} from the stored database (read-only)."""
-    from echos.reports import weekly_data as WD
+    from echos.reports.weekly import weekly_data as WD
     con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     rows = con.execute("select c.patient_id, c.day, c.status, c.data_gap, f.facts from case_state c join daily_facts f on f.patient_id=c.patient_id and f.day=c.day "
                        "order by c.day desc, c.patient_id").fetchall()
@@ -139,9 +139,9 @@ def run_check(db: Path, run: Run, budget, pubmed, show: bool = False, only: str 
     """The three generations. `budget` is an LLMBudget whose clients are CappedClient; `pubmed` a PubMedClient with the capped transport."""
     from echos.orchestrator import state as S
     from echos.reports import evidence as EV
-    from echos.reports import weekly_data as WD
-    from echos.reports import weekly_narrative as WN
-    from echos.reports.agent import ReportAgent
+    from echos.reports.weekly import weekly_data as WD
+    from echos.reports.weekly import weekly_narrative as WN
+    from echos.reports.daily.agent import ReportAgent
     tmp = Path(tempfile.mkdtemp(prefix="echos_live_"))
     try:
         shutil.copy(db, tmp / "echos.db")
@@ -241,8 +241,8 @@ def main(argv=None) -> int:
     from dotenv import load_dotenv
     load_dotenv(ROOT / ".env")
     from echos.knowledge import pubmed as PM
-    from echos.reports import llm_budget as LB
-    from echos.reports.llm import ENV_KEY
+    from echos.reports.llm.llm import llm_budget as LB
+    from echos.reports.llm.llm import ENV_KEY
     if not os.environ.get(ENV_KEY):
         print("No ECHOS_LLM_API_KEY in the environment / .env: nothing to check.")
         return 1
