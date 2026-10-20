@@ -6,6 +6,7 @@ evidence (see reports/metrics for the out-of-fold numbers). The fall model used 
 """
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
 
@@ -48,7 +49,13 @@ def build_events(n_patients: int = 5, seed: int | None = None, max_days: int | N
     rc, a3 = cfg["replay"], cfg["agent3"]
     rng = np.random.RandomState(seed)
     pdy = load_patient_day()
-    pats = pick_patients(pdy, n_patients)
+    # demo window (scripts/demo/week_demo.sh): ECHOS_DEMO_PATIENTS="46286", ECHOS_DEMO_START="2019-05-27", ECHOS_DEMO_FALLS=1 (falls per patient)
+    demo_p = [x for x in os.environ.get("ECHOS_DEMO_PATIENTS", "").split(",") if x]
+    if os.environ.get("ECHOS_DEMO_START"):
+        pdy = pdy[pdy.day >= pd.Timestamp(os.environ["ECHOS_DEMO_START"])]
+    if os.environ.get("ECHOS_DEMO_FALLS"):
+        rc = {**rc, "falls_per_patient": int(os.environ["ECHOS_DEMO_FALLS"])}
+    pats = sorted(demo_p) if demo_p else pick_patients(pdy, n_patients)
     files = sf.list_files()
     files = files[files.subject.isin(rc["holdout_subjects"])]
     falls, adls = files[files.is_fall].reset_index(drop=True), files[~files.is_fall].reset_index(drop=True)

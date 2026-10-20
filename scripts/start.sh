@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # One command: API + watchdog + runtime (scripts/run_api.sh) and the web app (Vite), wait until both answer, print the URLs, stop everything on Ctrl-C.
-#   scripts/start.sh [--replay | --live] [--auth] [--fresh] [--llm] [--pubmed] [--check]
+#   scripts/start.sh [--replay | --live | --week-demo] [--auth] [--fresh] [--llm] [--pubmed] [--check]
 #   --replay   (default) TIHM replayed day by day on a COPY of the database (data/echos_ui_dev.db, made from data/echos.db when missing)
 #   --live     live / emulator mode on data/echos_live_dev.db (kept between runs: a restart recovers; add --fresh to start empty)
+#   --week-demo  one person, one week (46286, Mon 2019-05-27 .. Sun 2019-06-02: low-BP critical readings + one injected fall), fresh database data/echos_week_demo.db
+#              every start; press Play in Demo tools: 7 daily reports, the alerts and the weekly PDF (Sunday close) appear. Dummy dry-run addresses, nothing is sent
 #   --auth     authentication on; tokens go to data/auth_tokens.txt (git-ignored); they are NEVER printed
 #   --fresh    live only: delete the live dev database first
 #   --llm      allow the Gemini report agent (needs ECHOS_LLM_API_KEY in .env). Default: OFF (template reports)
@@ -11,11 +13,12 @@
 # Mail is ALWAYS a dry run here (outbox only; the SMTP mailer refuses to start). Ports: API ECHOS_API_PORT (8000), web ECHOS_WEB_PORT (5173). Logs: data/logs/ (API, web).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-MODE=replay; AUTH=(); FRESH=0; LLM=0; PUBMED=0; CHECK=0
+MODE=replay; WEEK=0; AUTH=(); FRESH=0; LLM=0; PUBMED=0; CHECK=0
 for a in "$@"; do
   case "$a" in
     --replay) MODE=replay ;;
     --live) MODE=live ;;
+    --week-demo) MODE=replay; WEEK=1 ;;
     --auth) AUTH=(--auth) ;;
     --fresh) FRESH=1 ;;
     --llm) LLM=1 ;;
@@ -41,6 +44,12 @@ if [ "$MODE" = live ]; then
   DB=data/echos_live_dev.db
   [ "$FRESH" = 1 ] && rm -rf "$DB" "$DB-wal" "$DB-shm" "${DB%.db}.cp.sqlite"* "${DB%.db}_files"
   FLAGS+=(--demo --mode live)
+elif [ "$WEEK" = 1 ]; then
+  DB=data/echos_week_demo.db
+  rm -rf "$DB" "$DB-wal" "$DB-shm" "${DB%.db}.cp.sqlite"* "${DB%.db}_files"
+  export ECHOS_DEMO_PATIENTS=46286 ECHOS_DEMO_START=2019-05-27 ECHOS_DEMO_FALLS=1 ECHOS_OOF=1
+  export ECHOS_CAREGIVER_EMAIL=caregiver@example.org ECHOS_CLINICIAN_EMAIL=clinician@example.org ECHOS_ESCALATION_EMAIL=escalation@example.org   # dry run: never sent
+  FLAGS+=(--demo --patients 1 --days 7)
 else
   DB=data/echos_ui_dev.db
   [ -f "$DB" ] || { [ -f data/echos.db ] || { echo "data/echos.db is missing: build the data first (README, Reproduce)"; exit 1; }; scripts/make_ui_dev_copy.sh >/dev/null; }

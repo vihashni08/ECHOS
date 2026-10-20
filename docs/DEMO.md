@@ -28,6 +28,13 @@ Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`).
 | 4:15 | **Today** -> *Data needs checking* (only shown when a person has gone more than 7 days without a vitals reading; the 4-patient demo data usually has none, then skip this line) | "A day with only data problems is a device to check, not a change in the person; it can never be Normal." |
 | 4:40 | **System** -> limitations | "What we do not claim: clinical validity, forecasting, novelty. Small cohort, simulated falls, no real device." |
 
+## One-week demo (critical alert + fall + daily and weekly reports)
+
+```bash
+scripts/start.sh --week-demo
+```
+Open http://localhost:5173, then **Demo tools -> Play**. One person (46286), Mon 2019-05-27 to Sun 2019-06-02, built fresh each start (`data/echos_week_demo.db`, dry-run mail with dummy addresses, no LLM): an injected fall on day 1, critical low blood pressure readings on 4 days, 7 daily reports and the weekly PDF (written when Sunday closes). Window and patient come from `ECHOS_DEMO_PATIENTS / _START / _FALLS` (echos/sim/replay.py).
+
 ## Replay mode (evaluation)
 
 ```bash
