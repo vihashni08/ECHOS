@@ -36,16 +36,16 @@ Why not six: the validator is plain code that has to run in the same call as the
 
 ## What the Team Planner changes at run time
 
-The planner (`echos/team/planner.py`) was replayed on the 1265 replayed patient-days (20 patients, out-of-fold scores).
+The planner (`echos/team/planner.py`) was replayed on the 1298 replayed patient-days (20 patients, out-of-fold scores).
 
 | Status | Days | Agents on the case |
 |---|---|---|
-| NORMAL | 940 | 2 of 4 |
-| MONITOR | 270 | 4 of 4 |
-| URGENT | 55 | 4 of 4 |
+| NORMAL | 1023 | 2 of 4 |
+| MONITOR | 222 | 4 of 4 |
+| URGENT | 53 | 4 of 4 |
 
-- Mean team size 2.514 of 4. Agent runs: 3180 vs 5060 if all four always ran (1880 avoided, 37.2%).
-- Report LLM request ceiling: 1625 vs 6325 if every day could use the LLM (ceilings, not measured usage).
+- Mean team size 2.424 of 4. Agent runs: 3146 vs 5192 if all four always ran (2046 avoided, 39.4%).
+- Report LLM request ceiling: 1375 vs 6490 if every day could use the LLM (ceilings, not measured usage).
 - Without scores (cutoff not applied) the Investigator runs on exactly the non-Normal days = True; near-miss watch days are counted in the routing section below.
 
 ## The routing algorithm (Triage stage 2)
@@ -77,34 +77,34 @@ The URGENT line does not depend on theta (tested for theta = 0, 1 and 10^9), so 
 theta = min { t : #(Normal days with r > t) <= B * patient_weeks }
 ```
 
-theta is in plain units: theta = 0.8181 means "watch a day when any detector is above 82% of its own alert threshold". Budget grid (1265 patient-days, 20 patients, 940 Normal days; default B = 0.25; `scripts/tuning/choose_routing_threshold.py`, `reports/metrics/routing_thresholds.json`):
+theta is in plain units: theta = 0.8298 means "watch a day when any detector is above 83% of its own alert threshold". Budget grid (1298 patient-days, 20 patients, 1023 Normal days; default B = 0.25; `scripts/tuning/choose_routing_threshold.py`, `reports/metrics/routing_thresholds.json`):
 
 | B (false calls / patient-week) | allowed calls | theta | achieved / patient-week | labelled days among called |
 |---|---|---|---|---|
-| 0.1 | 18 | 0.9003 | 0.1 | 5 of 18 |
-| 0.25 (default) | 45 | 0.8181 | 0.249 | 15 of 45 |
-| 0.5 | 90 | 0.6593 | 0.498 | 27 of 90 |
-| 1.0 | 180 | 0.4887 | 0.996 | 31 of 180 |
+| 0.1 | 18 | 0.9266 | 0.097 | 3 of 18 |
+| 0.25 (default) | 46 | 0.8298 | 0.248 | 12 of 46 |
+| 0.5 | 92 | 0.66 | 0.496 | 25 of 92 |
+| 1.0 | 185 | 0.4792 | 0.998 | 32 of 185 |
 
-Patient bootstrap (1000 resamples of 20 patients, seed from config): theta 95% interval 0.6978 to 0.8574; with about 20 patients treat even this as rough. Cross-check, not the choice: the last column counts days with a clinical event label (Labels.csv, provenance unverified) among the called Normal days; it is a weak sensitivity check and supports no claim that near-miss days are more often clinically relevant.
+Patient bootstrap (1000 resamples of 20 patients, seed from config): theta 95% interval 0.7544 to 0.8663; with about 20 patients treat even this as rough. Cross-check, not the choice: the last column counts days with a clinical event label (Labels.csv, provenance unverified) among the called Normal days; it is a weak sensitivity check and supports no claim that near-miss days are more often clinically relevant.
 
-**Replay evidence** (`scripts/evaluation/routing_eval.py`, 1265 patient-days, stored out-of-fold detector scores):
+**Replay evidence** (`scripts/evaluation/routing_eval.py`, 1298 patient-days, stored out-of-fold detector scores):
 
-- Parity: with the cutoff switched off the routing equals the previous status-based routing on 1265 of 1265 days.
-- With theta = 0.8181 45 Normal days change: they are the near-miss watch days (0.249 per patient-week, the budget). They add the Investigator only ({'investigator': 45}); the Coordinator is called on 0 of them. Each writes a short watch file (no alert, template report, not counted towards a clinician review).
-- On the 940 Normal days r has median 0.209, 90th percentile 0.653, 99th percentile 0.95, maximum 0.994.
-- Safety floor: all 55 Urgent days have the Investigator and the Coordinator as owner for every tested theta = {'0.0': True, '1.0': True, '1000000000.0': True}.
+- Parity: with the cutoff switched off the routing equals the previous status-based routing on 1298 of 1298 days.
+- With theta = 0.8298 46 Normal days change: they are the near-miss watch days (0.248 per patient-week, the budget). They add the Investigator only ({'investigator': 46}); the Coordinator is called on 0 of them. Each writes a short watch file (no alert, template report, not counted towards a clinician review).
+- On the 1023 Normal days r has median 0.193, 90th percentile 0.643, 99th percentile 0.963, maximum 1.0.
+- Safety floor: all 53 Urgent days have the Investigator and the Coordinator as owner for every tested theta = {'0.0': True, '1.0': True, '1000000000.0': True}.
 
 Sensitivity to the cutoff:
 
 | theta | watch days | per patient-week | mean team size |
 |---|---|---|---|
-| 0.5 | 174 | 0.963 | 2.651 |
-| 0.6 | 120 | 0.664 | 2.609 |
-| 0.7 | 74 | 0.409 | 2.572 |
-| 0.8 | 52 | 0.288 | 2.555 |
-| 0.9 | 19 | 0.105 | 2.529 |
-| 1.0 | 0 | 0.0 | 2.514 |
+| 0.5 | 172 | 0.928 | 2.556 |
+| 0.6 | 120 | 0.647 | 2.516 |
+| 0.7 | 83 | 0.448 | 2.488 |
+| 0.8 | 56 | 0.302 | 2.467 |
+| 0.9 | 21 | 0.113 | 2.44 |
+| 1.0 | 0 | 0.0 | 2.424 |
 
 The budget is a stated preference (how many near-miss watch files per patient-week are acceptable), not an estimate of harm. The earlier version used a cost-based Bayes gate whose hand-set loss was not derived; it was removed because it reduced to the same status-based rule.
 

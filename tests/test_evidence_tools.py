@@ -9,7 +9,7 @@ from echos.team.investigator import Investigator
 def table(sys_vals, labels=None, pid="p1", start="2019-04-01"):
     days = pd.date_range(start, periods=len(sys_vals))
     d = pd.DataFrame({"patient_id": pid, "day": days, "sys": [float(x) for x in sys_vals], "dia": 70.0, "hr": 70.0, "has_reading": True,
-                      "has_activity": True, "total_events": 300.0, "bp_alert": 0, "pulse_alert": 0, "water_alert": 0})
+                      "bp_alert": 0, "pulse_alert": 0, "water_alert": 0})
     for i in (labels or []):
         d.loc[i, "bp_alert"] = 1
     return d

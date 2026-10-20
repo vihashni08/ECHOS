@@ -14,24 +14,21 @@ LABELS = {"Blood pressure": "bp_alert", "Pulse": "pulse_alert", "Body water": "w
 UNUSED_LABELS = ("Agitation",)      # present in Labels.csv, not modelled (no behaviour detector)
 
 
-def _activity_features(act: pd.DataFrame) -> pd.DataFrame:
-    """Daily room-sensor event count per patient: the only thing the Data Quality gate needs (sensor-gap rule). Rooms and times are not interpreted."""
-    out = act.groupby(["patient_id", "day"]).size().rename("total_events").reset_index()
-    out["has_activity"] = True
-    return out
+def _calendar(df: pd.DataFrame, keys: list) -> pd.DataFrame:
+    """One row per calendar day from each patient's first to last day with a vitals reading or a label, so a silent stretch is a visible gap
+    (days_since_last_reading) and not a missing row. Days outside that span are not part of the patient's record."""
+    spans = df.groupby("patient_id").day.agg(["min", "max"])
+    cal = pd.concat([pd.DataFrame({"patient_id": p, "day": pd.date_range(r["min"], r["max"])}) for p, r in spans.iterrows()], ignore_index=True)
+    return cal.merge(df, on=keys, how="left")
 
 
 def build_patient_day(return_stats: bool = False):
     """Patient-day table built from Agent 0's cleaned data (docs/DATA_POLICY.md)."""
     cfg = load_config()
-    act, act_stats = dq.clean_activity(loaders.load_activity())
     phys, invalid, phys_stats = dq.clean_physiology(loaders.load_physiology())
-    gaps = dq.sensor_gap_table(act)
     lab = loaders.load_labels()
     demo = loaders.load_demographics()
     keys = ["patient_id", "day"]
-
-    feats = _activity_features(act)
 
     p = phys[phys.device_type.isin(PHYS)].copy()
     p["var"] = p.device_type.map(PHYS)
@@ -46,10 +43,8 @@ def build_patient_day(return_stats: bool = False):
     # Weight / body-temperature labels are too rare to model; kept for completeness
     other = lab[~lab.type.isin(list(LABELS) + list(UNUSED_LABELS))][keys].drop_duplicates().assign(other_label=1)
 
-    df = feats.merge(pd_phys, on=keys, how="outer").merge(pd_lab, on=keys, how="outer") \
-        .merge(other, on=keys, how="outer")
-    df["total_events"] = df["total_events"].fillna(0)
-    df["has_activity"] = df["has_activity"].eq(True)
+    df = pd_phys.merge(pd_lab, on=keys, how="outer").merge(other, on=keys, how="outer")
+    df = _calendar(df, keys)
     df["has_reading"] = df[["sys", "dia", "hr"]].notna().any(axis=1)  # vitals reading that day
     flag_cols = list(LABELS.values()) + ["other_label"]
     df[flag_cols] = df[flag_cols].fillna(0).astype(int)
@@ -57,14 +52,7 @@ def build_patient_day(return_stats: bool = False):
     df = df.sort_values(keys).reset_index(drop=True)
     df["source"] = "tihm"  # training-table provenance (echos/data/guard.py)
 
-    # ---- Agent 0 columns. SENSOR_GAP days keep NaN event counts (not zero) and are not usable activity days.
-    df = df.merge(gaps[["patient_id", "day", "sensor_gap", "sensor_gap_reason"]], on=keys, how="left")
-    no_rec = df["sensor_gap"].isna()  # day outside the patient's activity window (or no activity record at all)
-    df["sensor_gap"] = df["sensor_gap"].fillna(True).astype(bool)
-    df["sensor_gap_reason"] = df["sensor_gap_reason"].where(~no_rec, "no_activity_record")
-    df.loc[df.sensor_gap & df.has_activity, "sensor_gap_reason"] = df.loc[df.sensor_gap & df.has_activity, "sensor_gap_reason"].fillna("low_events")
-    df["has_activity"] = df["has_activity"] & ~df["sensor_gap"]
-    df.loc[~df.has_activity, "total_events"] = float("nan")
+    # ---- Agent 0 columns
     df["days_since_last_reading"] = dq.days_since_reading(df)
     inv = invalid.assign(day=pd.to_datetime(invalid["day"]))
     inv_json = inv.groupby(["patient_id", "day"]).apply(
@@ -74,17 +62,17 @@ def build_patient_day(return_stats: bool = False):
     df = df.merge(inv_json, on=keys, how="left")
     df["invalid_json"] = df["invalid_json"].fillna("")
     df["n_invalid"] = df["invalid_json"].map(lambda x: len(json.loads(x)) if x else 0)
-    df["completeness"] = [dq.completeness(g, v, n) for g, v, n in zip(df.sensor_gap, df.has_reading, df.n_invalid)]
+    df["completeness"] = [dq.completeness(v, n) for v, n in zip(df.has_reading, df.n_invalid)]
     if return_stats:
-        return df, {"physiology": phys_stats, "activity": act_stats}
+        return df, {"physiology": phys_stats}
     return df
 
 
 def save_patient_day() -> pd.DataFrame:
     df, stats = build_patient_day(return_stats=True)
     stats["patient_days"] = int(len(df))
-    stats["sensor_gap_days"] = int(df.sensor_gap.sum())
-    stats["sensor_gap_by_reason"] = df[df.sensor_gap].sensor_gap_reason.value_counts().to_dict()
+    stats["days_without_reading"] = int((~df.has_reading).sum())
+    stats["days_vitals_gap_over_max"] = int((df.days_since_last_reading > load_config()["triage"]["max_vitals_gap_days"]).sum())
     (ROOT / "reports/metrics/data_quality.json").write_text(json.dumps(stats, indent=2, default=str))
     path = ROOT / load_config()["paths"]["processed"]
     path.parent.mkdir(parents=True, exist_ok=True)

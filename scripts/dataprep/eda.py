@@ -1,5 +1,5 @@
 """Read-only EDA / data-quality audit of TIHM. Writes reports/eda/*.png and reports/eda/DATA_QUALITY.md.
-Observation window per patient = first to last day with any Activity or Physiology record.
+Observation window per patient = first to last day with a Physiology or Label record (the room-sensor Activity file is not used).
 Usage: PYTHONPATH=. python3 scripts/dataprep/eda.py"""
 import warnings
 from pathlib import Path
@@ -20,7 +20,7 @@ RANGES = {"Body Temperature": (34, 42), "Skin Temperature": (20, 40), "Systolic 
 VITALS3 = ["Systolic blood pressure", "Diastolic blood pressure", "Heart rate"]
 plt.rcParams.update({"figure.dpi": 110, "axes.spines.top": False, "axes.spines.right": False, "font.size": 9})
 
-act, phy, lab = L.load_activity(), L.load_physiology(), L.load_labels()
+phy, lab = L.load_physiology(), L.load_labels()
 md, head = [], []
 
 
@@ -35,13 +35,11 @@ def to_md(df):
 
 
 # ---------------------------------------------------------------- 1. coverage
-span = pd.concat([act[["patient_id", "day"]], phy[["patient_id", "day"]]]).groupby("patient_id").day.agg(["min", "max"])
+span = pd.concat([lab[["patient_id", "day"]], phy[["patient_id", "day"]]]).groupby("patient_id").day.agg(["min", "max"])
 span["n_days"] = (span["max"] - span["min"]).dt.days + 1
 pids = sorted(span.index)
-days_all = pd.date_range(min(act.day.min(), phy.day.min()), max(act.day.max(), phy.day.max()))
-act_days = act.groupby("patient_id").day.nunique()
-cov = pd.DataFrame({"first_day": span["min"].dt.date, "last_day": span["max"].dt.date, "window_days": span.n_days,
-                    "activity_days": act_days})
+days_all = pd.date_range(min(lab.day.min(), phy.day.min()), max(lab.day.max(), phy.day.max()))
+cov = pd.DataFrame({"first_day": span["min"].dt.date, "last_day": span["max"].dt.date, "window_days": span.n_days})
 for d in list(RANGES) + ["O/E - muscle mass"]:
     cov[d] = phy[phy.device_type == d].groupby("patient_id").day.nunique()
 cov = cov.fillna(0)
@@ -52,31 +50,27 @@ cov["bp_hr_readings_per_patient_week"] = (phy[phy.device_type == "Systolic blood
                                           .reindex(cov.index).fillna(0) / (cov.window_days / 7)).round(2)
 cov.to_csv(OUT / "coverage_per_patient.csv")
 sec("1. Coverage")
-md.append(f"- Patients: {len(pids)} in any file (Activity {act.patient_id.nunique()}, Physiology {phy.patient_id.nunique()}, "
+md.append(f"- Patients: {len(pids)} in any file (Physiology {phy.patient_id.nunique()}, "
           f"Labels {lab.patient_id.nunique()}). Global range {days_all[0].date()} to {days_all[-1].date()}.\n"
           f"- Window per patient: median {int(cov.window_days.median())} days (min {int(cov.window_days.min())}, max {int(cov.window_days.max())}).\n"
-          f"- Activity days per patient: median {int(cov.activity_days.median())}; BP/HR-reading days: median {int(cov.bp_hr_days.median())}; "
+          f"- BP/HR-reading days per patient: median {int(cov.bp_hr_days.median())}; "
           f"median {cov.bp_hr_readings_per_patient_week.median():.2f} BP readings per patient-week.\n"
-          f"- Patients with no Activity: {int((cov.activity_days == 0).sum())}; with no BP/HR reading: {int((cov.bp_hr_days == 0).sum())}.\n\n"
+          f"- Patients with no BP/HR reading: {int((cov.bp_hr_days == 0).sum())}.\n\n"
           "Per-patient table: `coverage_per_patient.csv`. Days with data by device type (median over patients): "
           + ", ".join(f"{d} {int(cov[d].median())}" for d in list(RANGES) + ["O/E - muscle mass"]) + ".")
 idx = {d: i for i, d in enumerate(days_all)}
-HA, HV = np.zeros((len(pids), len(days_all))), np.zeros((len(pids), len(days_all)))
+HV = np.zeros((len(pids), len(days_all)))
 for i, p in enumerate(pids):
-    for d in act[act.patient_id == p].day.unique():
-        HA[i, idx[d]] = 1
     for d in phy[(phy.patient_id == p) & phy.device_type.isin(VITALS3)].day.unique():
         HV[i, idx[d]] = 1
-    HA[i, :][(days_all < span.loc[p, "min"]) | (days_all > span.loc[p, "max"])] = np.nan
     HV[i, :][(days_all < span.loc[p, "min"]) | (days_all > span.loc[p, "max"])] = np.nan
 order = np.argsort(-np.nan_to_num(HV).sum(1))
-fig, ax = plt.subplots(1, 2, figsize=(13, 8), sharey=True)
-for a, H, t in [(ax[0], HA, "has_activity"), (ax[1], HV, "has BP/HR reading")]:
-    a.imshow(H[order], aspect="auto", cmap=matplotlib.colors.ListedColormap(["#e8e8e8", "#2563eb"]), interpolation="nearest")
-    a.set_title(f"{t} (grey = no record, blank = outside window)")
-    a.set_xticks(range(0, len(days_all), 14))
-    a.set_xticklabels([days_all[i].strftime("%m-%d") for i in range(0, len(days_all), 14)], rotation=45)
-ax[0].set_ylabel("patient (sorted by vitals coverage)")
+fig, a = plt.subplots(figsize=(8, 8))
+a.imshow(HV[order], aspect="auto", cmap=matplotlib.colors.ListedColormap(["#e8e8e8", "#2563eb"]), interpolation="nearest")
+a.set_title("has BP/HR reading (grey = no reading, blank = outside window)")
+a.set_xticks(range(0, len(days_all), 14))
+a.set_xticklabels([days_all[i].strftime("%m-%d") for i in range(0, len(days_all), 14)], rotation=45)
+a.set_ylabel("patient (sorted by vitals coverage)")
 plt.tight_layout(); plt.savefig(OUT / "heatmap_coverage.png"); plt.close()
 
 # ---------------------------------------------------------------- 2. missingness + gaps
@@ -105,41 +99,8 @@ ax[0].hist(mis.share_no_reading, bins=20, color="#2563eb"); ax[0].set_title("Sha
 ax[1].hist(mis.longest_gap_days, bins=20, color="#d97706"); ax[1].set_title("Longest gap without a reading (days)")
 plt.tight_layout(); plt.savefig(OUT / "missingness.png"); plt.close()
 
-# ---------------------------------------------------------------- 3. sensor outages
-sec("3. Activity sensor outages")
-cnt = act.groupby(["patient_id", "day"]).size().rename("n").reset_index()
-flags = []
-for p in pids:
-    s = span.loc[p]
-    if p not in act_days.index:
-        continue
-    a = act[act.patient_id == p]
-    cal = pd.date_range(a.day.min(), a.day.max())
-    c = cnt[cnt.patient_id == p].set_index("day").n.reindex(cal).fillna(0)
-    med = c[c > 0].median()
-    flags.append(pd.DataFrame({"patient_id": p, "day": cal, "n": c.values, "zero": c.values == 0, "low": (c.values > 0) & (c.values < 0.05 * med)}))
-fl = pd.concat(flags)
-fl["outage"] = fl.zero | fl.low
-n_pd = len(fl)
-byday = fl.groupby("day").agg(monitored=("patient_id", "size"), outage=("outage", "sum"))
-byday["frac"] = byday.outage / byday.monitored
-sys_days = byday[(byday.frac >= 0.3) & (byday.monitored >= 5)]
-pat_out = fl.groupby("patient_id").outage.sum()
-md.append(f"- Patient-days between a patient's first and last activity day: {n_pd}; zero events: **{int(fl.zero.sum())}** ({fl.zero.mean():.1%}); "
-          f"below 5% of the patient's median: **{int(fl.low.sum())}** ({fl.low.mean():.1%}).\n"
-          f"- Days where >=30% of monitored patients are in outage (system-wide candidates): **{len(sys_days)}**"
-          + (": " + ", ".join(str(d.date()) for d in sys_days.index[:10]) + (" ..." if len(sys_days) > 10 else "") if len(sys_days) else "") + ".\n"
-          f"- Outage patient-days on those system-wide days: {int(sys_days.outage.sum())} of {int(fl.outage.sum())} ({sys_days.outage.sum() / max(fl.outage.sum(), 1):.0%}); "
-          f"the rest ({int(fl.outage.sum() - sys_days.outage.sum())}) are patient-specific.\n"
-          f"- Patients with any outage day: {int((pat_out > 0).sum())} of {len(pat_out)}; most affected: "
-          + ", ".join(f"{p} ({int(v)})" for p, v in pat_out.sort_values(ascending=False).head(5).items()) + ".")
-fig, ax = plt.subplots(figsize=(11, 3.5))
-ax.bar(byday.index, byday.frac, color="#2563eb", width=1.0); ax.axhline(0.3, ls="--", c="#d97706")
-ax.set_title("Share of monitored patients in an Activity outage, by day (dashed = 30% system-wide threshold)")
-plt.tight_layout(); plt.savefig(OUT / "activity_outages.png"); plt.close()
-
-# ---------------------------------------------------------------- 4. value validity
-sec("4. Value validity (Physiology)")
+# ---------------------------------------------------------------- 3. value validity
+sec("3. Value validity (Physiology)")
 vrows = []
 for d, (lo, hi) in RANGES.items():
     v = phy[phy.device_type == d].value
@@ -153,12 +114,12 @@ vrows.append({"device_type": "O/E - muscle mass", "n": len(v), "units": ",".join
 vt = pd.DataFrame(vrows).round(2)
 vt.to_csv(OUT / "value_validity.csv", index=False)
 md.append(to_md(vt.set_index("device_type")))
-dup_p, dup_a, dup_l = phy.duplicated().sum(), act.duplicated().sum(), lab.duplicated().sum()
+dup_p, dup_l = phy.duplicated().sum(), lab.duplicated().sum()
 dup_p_key = phy.duplicated(["patient_id", "date", "device_type"]).sum()
 ooo = {}
-for name, df in [("Physiology", phy), ("Activity", act), ("Labels", lab)]:
+for name, df in [("Physiology", phy), ("Labels", lab)]:
     ooo[name] = int((df.groupby("patient_id").date.diff() < pd.Timedelta(0)).sum())
-md.append(f"\n- Exact duplicate rows: Physiology {dup_p}, Activity {dup_a}, Labels {dup_l}. Physiology rows sharing patient+timestamp+device but differing value: {dup_p_key - dup_p}.\n"
+md.append(f"\n- Exact duplicate rows: Physiology {dup_p}, Labels {dup_l}. Physiology rows sharing patient+timestamp+device but differing value: {dup_p_key - dup_p}.\n"
           f"- Out-of-order timestamps (row earlier than the previous row of the same patient, in file order): "
           + ", ".join(f"{k} {v}" for k, v in ooo.items()) + ".\n"
           f"- Implausible total: {int(vt.implausible.sum())} of {int(vt.n.sum())} readings ({100 * vt.implausible.sum() / vt.n.sum():.2f}%).")
@@ -173,8 +134,8 @@ for a, d in zip(axes.ravel(), list(RANGES) + ["O/E - muscle mass"]):
 plt.suptitle("Value distributions (dashed = plausible range; clipped to 0.1-99.9 pctl for display)")
 plt.tight_layout(); plt.savefig(OUT / "value_distributions.png"); plt.close()
 
-# ---------------------------------------------------------------- 5. labels
-sec("5. Labels")
+# ---------------------------------------------------------------- 4. labels
+sec("4. Labels")
 lt = lab.groupby("type").agg(rows=("day", "size"), patients=("patient_id", "nunique"), label_days=("day", lambda s: 0))
 ld = lab.drop_duplicates(["patient_id", "day", "type"]).groupby("type").size()
 lt["patient_days"] = ld
@@ -199,26 +160,22 @@ lt.rows.plot.barh(ax=ax[0], color="#2563eb"); ax[0].set_title("Label rows by typ
 ax[1].hist(va_p.dropna(), bins=20, color="#2563eb"); ax[1].set_title("Vitals-alert base rate per patient")
 plt.tight_layout(); plt.savefig(OUT / "labels.png"); plt.close()
 
-# ---------------------------------------------------------------- 6. summary
-sec("6. What the cleaning step must handle")
+# ---------------------------------------------------------------- 5. summary
+sec("5. What the cleaning step must handle")
 nbad = int(vt.implausible.sum())
 md.append(f"1. **Sparse vitals:** {tot_no:.0%} of patient-days have no BP/HR reading and {int((mis.longest_gap_days > 7).sum())} patients have a gap > 7 days: "
           "no forward-filling across long gaps; keep `has_reading` and the data-gap rule.\n"
-          f"2. **Activity outages:** {int(fl.zero.sum())} zero-event and {int(fl.low.sum())} abnormally-low-event patient-days inside patients' windows "
-          f"({len(sys_days)} system-wide candidate days): mask these days from baselines instead of treating them as 'no movement'.\n"
-          f"3. **Implausible values:** {nbad} readings outside the given ranges (see table): drop or flag before building baselines; check units first.\n"
-          f"4. **Duplicates / ordering:** {dup_p} exact duplicate Physiology rows, {dup_a} Activity, {dup_l} Labels; {sum(ooo.values())} out-of-order rows: "
+          f"2. **Implausible values:** {nbad} readings outside the given ranges (see table): drop or flag before building baselines; check units first.\n"
+          f"3. **Duplicates / ordering:** {dup_p} exact duplicate Physiology rows, {dup_l} Labels; {sum(ooo.values())} out-of-order rows: "
           "deduplicate and sort by (patient, timestamp) before any shift/rolling feature.\n"
-          f"5. **Labels:** {len(no_lab)} patients with zero labels: keep patient-level splits and report wide CIs; "
-          "label days lacking sensor data cannot be scored.")
-head += [f"patients {len(pids)}; median window {int(cov.window_days.median())} d; median {int(cov.activity_days.median())} activity days, {int(cov.bp_hr_days.median())} BP/HR days",
+          f"4. **Labels:** {len(no_lab)} patients with zero labels: keep patient-level splits and report wide CIs; "
+          "label days without a reading cannot be scored.")
+head += [f"patients {len(pids)}; median window {int(cov.window_days.median())} d; median {int(cov.bp_hr_days.median())} BP/HR days",
          f"no BP/HR reading on {tot_no:.1%} of patient-days; {int((mis.longest_gap_days > 7).sum())} patients have a gap > 7 days (max {int(mis.longest_gap_days.max())})",
-         f"activity outages: {int(fl.zero.sum())} zero-event + {int(fl.low.sum())} low-event patient-days ({fl.outage.mean():.1%}); "
-         f"{len(sys_days)} system-wide days, {int(fl.outage.sum() - sys_days.outage.sum())} patient-specific",
          f"implausible physiology values: {nbad}/{int(vt.n.sum())} ({100 * nbad / vt.n.sum():.2f}%)",
-         f"exact duplicates P/A/L: {dup_p}/{dup_a}/{dup_l}; out-of-order rows P/A/L: {ooo['Physiology']}/{ooo['Activity']}/{ooo['Labels']}",
+         f"exact duplicates P/L: {dup_p}/{dup_l}; out-of-order rows P/L: {ooo['Physiology']}/{ooo['Labels']}",
          f"labels: {len(lab)} rows, {lab.patient_id.nunique()} patients; zero-label patients: {len(no_lab)}",
          f"vitals-alert base rate {rd.vitals_alert.mean():.1%} ({int((va_p > 0).sum())} patients)"]
-(OUT / "DATA_QUALITY.md").write_text("# TIHM data quality\n\nGenerated by `scripts/dataprep/eda.py` (read-only). Figures: heatmap_coverage, missingness, activity_outages, value_distributions, labels.\n"
+(OUT / "DATA_QUALITY.md").write_text("# TIHM data quality\n\nGenerated by `scripts/dataprep/eda.py` (read-only). Figures: heatmap_coverage, missingness, value_distributions, labels.\n"
                                      "\n## Headline\n\n" + "\n".join(f"- {h}" for h in head) + "\n" + "\n".join(md) + "\n")
 print("\n".join(head))

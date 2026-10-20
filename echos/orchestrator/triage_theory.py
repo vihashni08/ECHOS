@@ -46,7 +46,7 @@ def union_rate(rates: Sequence[float]) -> float:
 
 def _results(vit=0.0, fall=0.0, inactive=False, gap=False, critical=False, vit_available=True):
     cur = {"sys": {"current": 200.0 if critical else 120.0}, "dia": {"current": 80.0}, "hr": {"current": 70.0}}
-    return {"quality": {"evidence": {"quality_checked": True, "sensor_gap": gap, "days_since_last_reading": 0}},
+    return {"quality": {"evidence": {"quality_checked": True, "days_since_last_reading": 365 if gap else 0}},
             "health": {"degraded": False, "vitals": {"available": vit_available, "probability": vit, "current_vs_baseline": cur}},
             "fall": {"score": fall, "evidence": {"post_fall_inactive": inactive}}}
 

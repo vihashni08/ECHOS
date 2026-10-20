@@ -16,7 +16,7 @@ def make_db(tmp_path):
     eng = S.get_engine(db)
     (tmp_path / "reports/daily").mkdir(parents=True)
     spec = [("p1", "2019-05-01", "NORMAL", False, "[]"), ("p2", "2019-05-02", "MONITOR", False, '["vitals alert"]'), ("p3", "2019-05-03", "MONITOR", False, '["vitals alert"]'),
-            ("p4", "2019-05-04", "MONITOR", True, '["DATA_GAP: sensor gap"]'), ("p5", "2019-05-05", "URGENT", False, '["possible fall"]'),
+            ("p4", "2019-05-04", "MONITOR", True, '["DATA_GAP: no vitals reading for 9 days"]'), ("p5", "2019-05-05", "URGENT", False, '["possible fall"]'),
             ("p6", "2019-05-06", "URGENT", False, '["possible fall"]')]
     with eng.begin() as c:
         for pid, day, st, gap, rs in spec:

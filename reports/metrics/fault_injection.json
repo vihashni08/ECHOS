@@ -9,39 +9,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 18.7,
+   "wall_s": 18.4,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -51,19 +50,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -79,124 +98,104 @@
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-10": [
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-24": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "no LLM configured": 15
+    "no LLM configured": 15,
+    "gate: NORMAL day (template only)": 15
    },
    "pubmed_failures_recorded": 0,
    "pubmed_http_attempts": 0,
    "llm_requests": 0,
    "injected_alert": {
-    "queued_s": 0.29,
-    "sent_s": 0.29,
+    "queued_s": 3.5,
+    "sent_s": 3.5,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 0.29,
-     "sent_s": 0.29,
+     "queued_s": 3.5,
+     "sent_s": 3.5,
      "status": "SENT"
     },
     {
-     "queued_s": 0.27,
-     "sent_s": 0.27,
+     "queued_s": 1.85,
+     "sent_s": 1.85,
+     "status": "SENT"
+    },
+    {
+     "queued_s": 0.86,
+     "sent_s": 0.86,
      "status": "SENT"
     },
     {
      "queued_s": 0.3,
      "sent_s": 0.3,
      "status": "SENT"
-    },
-    {
-     "queued_s": 0.36,
-     "sent_s": 0.36,
-     "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 0.0,
-    "max": 0.0
+    "median": 0.01,
+    "max": 0.01
    },
    "timing": {
     "trigger_cursor": 39,
@@ -212,39 +211,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 19.1,
+   "wall_s": 18.4,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -254,19 +252,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -282,131 +300,111 @@
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-10": [
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-24": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "no LLM configured": 15
+    "no LLM configured": 15,
+    "gate: NORMAL day (template only)": 15
    },
    "pubmed_failures_recorded": 0,
    "pubmed_http_attempts": 0,
    "llm_requests": 0,
    "injected_alert": {
-    "queued_s": 4.23,
-    "sent_s": 4.23,
+    "queued_s": 4.46,
+    "sent_s": 4.47,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 4.23,
-     "sent_s": 4.23,
+     "queued_s": 4.46,
+     "sent_s": 4.47,
      "status": "SENT"
     },
     {
-     "queued_s": 3.71,
-     "sent_s": 3.71,
+     "queued_s": 3.6,
+     "sent_s": 3.61,
      "status": "SENT"
     },
     {
-     "queued_s": 2.42,
-     "sent_s": 2.42,
+     "queued_s": 3.09,
+     "sent_s": 3.09,
      "status": "SENT"
     },
     {
-     "queued_s": 0.85,
-     "sent_s": 0.85,
+     "queued_s": 2.12,
+     "sent_s": 2.12,
      "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
     "median": 0.0,
-    "max": 0.0
+    "max": 0.01
    },
    "timing": {
     "trigger_cursor": 39,
     "inject_event_id": 40,
-    "detect_s": 2.97,
-    "restart_s": 2.98,
-    "recover_s": 4.08,
+    "detect_s": 3.27,
+    "restart_s": 3.28,
+    "recover_s": 4.35,
     "recovered": true
    }
   },
@@ -419,39 +417,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 19.3,
+   "wall_s": 17.9,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -461,19 +458,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -490,130 +507,110 @@
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
     ],
     "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-24": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-14": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-15": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "no LLM configured": 15
+    "no LLM configured": 15,
+    "gate: NORMAL day (template only)": 15
    },
    "pubmed_failures_recorded": 0,
    "pubmed_http_attempts": 0,
    "llm_requests": 0,
    "injected_alert": {
-    "queued_s": 3.4,
-    "sent_s": 3.4,
+    "queued_s": 3.13,
+    "sent_s": 3.13,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 3.4,
-     "sent_s": 3.4,
+     "queued_s": 3.13,
+     "sent_s": 3.13,
      "status": "SENT"
     },
     {
-     "queued_s": 2.0,
-     "sent_s": 2.0,
+     "queued_s": 1.49,
+     "sent_s": 1.5,
      "status": "SENT"
     },
     {
-     "queued_s": 0.53,
-     "sent_s": 0.53,
+     "queued_s": 0.48,
+     "sent_s": 0.49,
      "status": "SENT"
     },
     {
-     "queued_s": 0.46,
-     "sent_s": 0.46,
+     "queued_s": 0.35,
+     "sent_s": 0.36,
      "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 0.0,
-    "max": 0.0
+    "median": 0.01,
+    "max": 0.01
    },
    "timing": {
     "trigger_cursor": 39,
     "inject_event_id": 40,
-    "detect_s": 2.9,
-    "restart_s": 2.91,
-    "recover_s": 3.23,
+    "detect_s": 2.66,
+    "restart_s": 2.67,
+    "recover_s": 3.01,
     "recovered": true
    }
   },
@@ -626,39 +623,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 18.7,
+   "wall_s": 18.1,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -668,19 +664,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -697,130 +713,110 @@
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
     ],
     "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-24": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "no LLM configured": 15
+    "no LLM configured": 15,
+    "gate: NORMAL day (template only)": 15
    },
    "pubmed_failures_recorded": 0,
    "pubmed_http_attempts": 0,
    "llm_requests": 0,
    "injected_alert": {
-    "queued_s": 5.42,
-    "sent_s": 5.42,
+    "queued_s": 4.44,
+    "sent_s": 4.45,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 5.42,
-     "sent_s": 5.42,
+     "queued_s": 4.44,
+     "sent_s": 4.45,
      "status": "SENT"
     },
     {
-     "queued_s": 4.28,
-     "sent_s": 4.28,
+     "queued_s": 2.96,
+     "sent_s": 2.96,
      "status": "SENT"
     },
     {
-     "queued_s": 2.23,
-     "sent_s": 2.23,
+     "queued_s": 1.97,
+     "sent_s": 1.97,
      "status": "SENT"
     },
     {
-     "queued_s": 0.24,
-     "sent_s": 0.24,
+     "queued_s": 0.72,
+     "sent_s": 0.73,
      "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 0.0,
-    "max": 0.0
+    "median": 0.01,
+    "max": 0.01
    },
    "timing": {
     "trigger_cursor": 39,
     "inject_event_id": 40,
-    "detect_s": 3.09,
-    "restart_s": 3.09,
-    "recover_s": 5.16,
+    "detect_s": 2.47,
+    "restart_s": 2.49,
+    "recover_s": 4.36,
     "recovered": true
    }
   },
@@ -833,39 +829,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 18.6,
+   "wall_s": 18.0,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -875,19 +870,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -904,123 +919,103 @@
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
-    ],
-    "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-10": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-24": [
+    "c55f8|2019-04-10": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-10": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
+    "6b29b|2019-04-20": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-21": [
+     "MONITOR",
+     "[\"vitals alert p=0.42\"]"
+    ],
+    "6b29b|2019-04-22": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-23": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-24": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-25": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.92\"]"
     ],
-    "c5785|2019-05-02": [
+    "6b29b|2019-04-26": [
      "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c5785|2019-05-03": [
-     "NORMAL",
-     "[]"
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "no LLM configured": 15
+    "no LLM configured": 15,
+    "gate: NORMAL day (template only)": 15
    },
    "pubmed_failures_recorded": 0,
    "pubmed_http_attempts": 0,
    "llm_requests": 0,
    "injected_alert": {
-    "queued_s": 0.55,
-    "sent_s": 0.55,
+    "queued_s": 0.46,
+    "sent_s": 0.47,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 0.55,
-     "sent_s": 0.55,
+     "queued_s": 0.46,
+     "sent_s": 0.47,
      "status": "SENT"
     },
     {
-     "queued_s": 0.21,
-     "sent_s": 0.21,
+     "queued_s": 0.3,
+     "sent_s": 0.31,
      "status": "SENT"
     },
     {
-     "queued_s": 0.45,
-     "sent_s": 0.45,
+     "queued_s": 0.27,
+     "sent_s": 0.28,
      "status": "SENT"
     },
     {
-     "queued_s": 0.38,
-     "sent_s": 0.38,
+     "queued_s": 0.43,
+     "sent_s": 0.43,
      "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 0.0,
-    "max": 0.0
+    "median": 0.01,
+    "max": 0.01
    },
    "timing": {
     "trigger_cursor": 39,
@@ -1036,39 +1031,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 24.1,
+   "wall_s": 23.5,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -1078,19 +1072,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -1106,132 +1120,112 @@
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-10": [
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-24": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "no LLM configured": 15
+    "no LLM configured": 15,
+    "gate: NORMAL day (template only)": 15
    },
    "pubmed_failures_recorded": 0,
    "pubmed_http_attempts": 0,
    "llm_requests": 0,
    "injected_alert": {
-    "queued_s": 11.27,
-    "sent_s": 11.27,
+    "queued_s": 11.19,
+    "sent_s": 11.2,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 11.27,
-     "sent_s": 11.27,
+     "queued_s": 11.19,
+     "sent_s": 11.2,
      "status": "SENT"
     },
     {
-     "queued_s": 10.5,
-     "sent_s": 10.5,
+     "queued_s": 10.13,
+     "sent_s": 10.14,
      "status": "SENT"
     },
     {
-     "queued_s": 9.21,
-     "sent_s": 9.21,
+     "queued_s": 9.57,
+     "sent_s": 9.57,
      "status": "SENT"
     },
     {
-     "queued_s": 7.92,
-     "sent_s": 7.92,
+     "queued_s": 8.91,
+     "sent_s": 8.91,
      "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 0.0,
+    "median": 0.01,
     "max": 0.01
    },
    "timing": {
     "trigger_cursor": 39,
     "inject_event_id": 40,
-    "supervisor_restarted_after_s": 10.01,
+    "supervisor_restarted_after_s": 10.02,
     "detect_s": null,
-    "restart_s": 10.03,
-    "recover_s": 11.09,
+    "restart_s": 10.04,
+    "recover_s": 11.14,
     "recovered": true
    }
   },
@@ -1244,39 +1238,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 18.9,
+   "wall_s": 17.8,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -1286,19 +1279,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -1314,124 +1327,104 @@
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-10": [
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-24": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "fake-errors: 503 UNAVAILABLE": 15
+    "fake-errors: 503 UNAVAILABLE": 15,
+    "gate: NORMAL day (template only)": 15
    },
-   "pubmed_failures_recorded": 0,
+   "pubmed_failures_recorded": 15,
    "pubmed_http_attempts": 0,
    "llm_requests": 30,
    "injected_alert": {
-    "queued_s": 0.45,
-    "sent_s": 0.45,
+    "queued_s": 0.36,
+    "sent_s": 0.36,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 0.45,
+     "queued_s": 0.36,
+     "sent_s": 0.36,
+     "status": "SENT"
+    },
+    {
+     "queued_s": 0.43,
+     "sent_s": 0.44,
+     "status": "SENT"
+    },
+    {
+     "queued_s": 0.44,
      "sent_s": 0.45,
      "status": "SENT"
     },
     {
-     "queued_s": 0.28,
-     "sent_s": 0.28,
-     "status": "SENT"
-    },
-    {
-     "queued_s": 0.34,
-     "sent_s": 0.34,
-     "status": "SENT"
-    },
-    {
-     "queued_s": 0.4,
-     "sent_s": 0.4,
+     "queued_s": 0.41,
+     "sent_s": 0.42,
      "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 0.0,
-    "max": 0.0
+    "median": 0.01,
+    "max": 0.01
    },
    "timing": {
     "trigger_cursor": 39,
@@ -1447,39 +1440,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 33.4,
+   "wall_s": 34.9,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -1489,19 +1481,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -1518,123 +1530,103 @@
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
     ],
     "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-24": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "fake-timeout: timeout": 15
+    "fake-timeout: timeout": 15,
+    "gate: NORMAL day (template only)": 15
    },
-   "pubmed_failures_recorded": 0,
+   "pubmed_failures_recorded": 15,
    "pubmed_http_attempts": 0,
    "llm_requests": 15,
    "injected_alert": {
-    "queued_s": 0.42,
-    "sent_s": 0.42,
+    "queued_s": 0.41,
+    "sent_s": 0.41,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 0.42,
-     "sent_s": 0.42,
+     "queued_s": 0.41,
+     "sent_s": 0.41,
      "status": "SENT"
     },
     {
-     "queued_s": 0.39,
-     "sent_s": 0.39,
+     "queued_s": 0.31,
+     "sent_s": 0.31,
+     "status": "SENT"
+    },
+    {
+     "queued_s": 0.38,
+     "sent_s": 0.38,
      "status": "SENT"
     },
     {
      "queued_s": 0.33,
      "sent_s": 0.33,
      "status": "SENT"
-    },
-    {
-     "queued_s": 0.4,
-     "sent_s": 0.4,
-     "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 0.0,
-    "max": 0.0
+    "median": 0.01,
+    "max": 0.01
    },
    "timing": {
     "trigger_cursor": 39,
@@ -1650,39 +1642,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 18.8,
+   "wall_s": 17.5,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -1692,19 +1683,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -1720,124 +1731,104 @@
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-10": [
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-24": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "fake-retrieving: validation_failed": 15
+    "fake-retrieving: validation_failed": 15,
+    "gate: NORMAL day (template only)": 15
    },
-   "pubmed_failures_recorded": 0,
+   "pubmed_failures_recorded": 15,
    "pubmed_http_attempts": 30,
-   "llm_requests": 60,
+   "llm_requests": 45,
    "injected_alert": {
-    "queued_s": 0.27,
-    "sent_s": 0.27,
+    "queued_s": 0.25,
+    "sent_s": 0.25,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 0.27,
-     "sent_s": 0.27,
+     "queued_s": 0.25,
+     "sent_s": 0.25,
      "status": "SENT"
     },
     {
-     "queued_s": 0.31,
-     "sent_s": 0.31,
+     "queued_s": 0.41,
+     "sent_s": 0.42,
      "status": "SENT"
     },
     {
-     "queued_s": 0.39,
-     "sent_s": 0.39,
+     "queued_s": 0.19,
+     "sent_s": 0.2,
      "status": "SENT"
     },
     {
-     "queued_s": 0.29,
-     "sent_s": 0.29,
+     "queued_s": 0.47,
+     "sent_s": 0.48,
      "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 0.0,
-    "max": 0.0
+    "median": 0.01,
+    "max": 0.01
    },
    "timing": {
     "trigger_cursor": 39,
@@ -1853,39 +1844,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 21.8,
+   "wall_s": 20.0,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -1895,19 +1885,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -1923,124 +1933,104 @@
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-10": [
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-24": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "no LLM configured": 15
+    "no LLM configured": 15,
+    "gate: NORMAL day (template only)": 15
    },
    "pubmed_failures_recorded": 0,
    "pubmed_http_attempts": 0,
    "llm_requests": 0,
    "injected_alert": {
-    "queued_s": 0.29,
-    "sent_s": 3.3,
+    "queued_s": 0.41,
+    "sent_s": 3.43,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 0.29,
-     "sent_s": 3.3,
-     "status": "SENT"
-    },
-    {
-     "queued_s": 0.42,
+     "queued_s": 0.41,
      "sent_s": 3.43,
      "status": "SENT"
     },
     {
-     "queued_s": 0.35,
-     "sent_s": 3.36,
+     "queued_s": 0.44,
+     "sent_s": 3.45,
      "status": "SENT"
     },
     {
-     "queued_s": 0.55,
-     "sent_s": 3.56,
+     "queued_s": 0.48,
+     "sent_s": 3.49,
+     "status": "SENT"
+    },
+    {
+     "queued_s": 0.37,
+     "sent_s": 3.38,
      "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 3.01,
-    "max": 3.02
+    "median": 3.02,
+    "max": 3.03
    },
    "timing": {
     "trigger_cursor": 39,
@@ -2056,41 +2046,38 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "wall_s": 18.8,
+   "wall_s": 23.5,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 7,
-    "FAILED": 5
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 14,
-    "FAILED": 10
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 14,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -2100,19 +2087,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -2128,124 +2135,104 @@
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-10": [
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-24": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "no LLM configured": 15
+    "no LLM configured": 15,
+    "gate: NORMAL day (template only)": 15
    },
    "pubmed_failures_recorded": 0,
    "pubmed_http_attempts": 0,
    "llm_requests": 0,
    "injected_alert": {
-    "queued_s": 0.21,
-    "sent_s": null,
-    "status": "FAILED"
+    "queued_s": 0.36,
+    "sent_s": 15.4,
+    "status": "SENT"
    },
    "injected_alerts_all": [
     {
-     "queued_s": 0.21,
-     "sent_s": null,
-     "status": "FAILED"
+     "queued_s": 0.36,
+     "sent_s": 15.4,
+     "status": "SENT"
     },
     {
-     "queued_s": 0.43,
-     "sent_s": null,
-     "status": "FAILED"
+     "queued_s": 0.36,
+     "sent_s": 7.39,
+     "status": "SENT"
     },
     {
-     "queued_s": 0.5,
-     "sent_s": null,
-     "status": "FAILED"
+     "queued_s": 0.36,
+     "sent_s": 7.38,
+     "status": "SENT"
     },
     {
-     "queued_s": 0.37,
-     "sent_s": 3.39,
+     "queued_s": 0.27,
+     "sent_s": 7.31,
      "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 0.0,
-    "max": 3.02
+    "median": 0.01,
+    "max": 15.04
    },
    "timing": {
     "trigger_cursor": 39,
@@ -2261,40 +2248,39 @@
     "activity": "F01"
    },
    "finished_within_cap": true,
-   "api_alerts_visible_after_restart": 12,
-   "wall_s": 19.7,
+   "api_alerts_visible_after_restart": 11,
+   "wall_s": 18.2,
    "alerts": [
-    "c55f8|2019-04-02|fall|6",
-    "c55f8|2019-04-06|fall|21",
-    "c55f8|2019-04-09|fall|36",
-    "c55f8|2019-04-10|fall|40",
-    "c5785|2019-04-24|fall|49",
-    "c5785|2019-04-25|fall|69",
-    "c5785|2019-04-27|fall|76",
-    "c5785|2019-05-02|fall|91",
-    "ec812|2019-04-02|fall|8",
-    "ec812|2019-04-09|fall|42",
-    "ec812|2019-04-15|fall|61",
-    "ec812|2019-04-16|fall|65"
+    "6b29b|2019-04-19|fall|68",
+    "6b29b|2019-04-23|fall|81",
+    "6b29b|2019-04-26|fall|90",
+    "c55f8|2019-04-01|fall|1",
+    "c55f8|2019-04-01|fall|2",
+    "c55f8|2019-04-02|fall|7",
+    "c55f8|2019-04-07|fall|40",
+    "c55f8|2019-04-09|fall|51",
+    "ec812|2019-04-02|fall|11",
+    "ec812|2019-04-04|fall|22",
+    "ec812|2019-04-10|fall|59"
    ],
    "alert_status": {
-    "SENT": 12
+    "SENT": 11
    },
-   "outbox_rows": 24,
+   "outbox_rows": 22,
    "outbox_status": {
-    "SENT": 24
+    "SENT": 22
    },
    "outbox_duplicates": 0,
-   "mails_sent": 24,
+   "mails_sent": 22,
    "mail_duplicates": 0,
    "cases": {
     "c55f8|2019-04-01": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-02": [
      "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
+     "[\"fall p=0.92 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-02": [
      "URGENT",
@@ -2304,19 +2290,39 @@
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-03": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-04": [
      "MONITOR",
      "[\"vitals alert p=0.88\"]"
+    ],
+    "ec812|2019-04-04": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "c55f8|2019-04-05": [
      "NORMAL",
      "[]"
     ],
+    "ec812|2019-04-05": [
+     "NORMAL",
+     "[]"
+    ],
     "c55f8|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "ec812|2019-04-06": [
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-07": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-07": [
+    "ec812|2019-04-07": [
      "NORMAL",
      "[]"
     ],
@@ -2332,129 +2338,109 @@
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "c55f8|2019-04-10": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
     "ec812|2019-04-09": [
-     "URGENT",
-     "[\"fall p=0.97 + post-fall inactivity\"]"
+     "NORMAL",
+     "[]"
+    ],
+    "c55f8|2019-04-10": [
+     "NORMAL",
+     "[]"
     ],
     "ec812|2019-04-10": [
-     "NORMAL",
-     "[]"
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
     "ec812|2019-04-11": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-24": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "ec812|2019-04-12": [
      "MONITOR",
-     "[\"vitals alert p=0.28\"]"
+     "[\"possible fall p=1.00 (no inactivity)\"]"
     ],
-    "ec812|2019-04-13": [
+    "6b29b|2019-04-18": [
      "NORMAL",
      "[]"
     ],
-    "ec812|2019-04-14": [
-     "NORMAL",
-     "[]"
-    ],
-    "ec812|2019-04-15": [
+    "6b29b|2019-04-19": [
      "URGENT",
      "[\"fall p=1.00 + post-fall inactivity\"]"
     ],
-    "ec812|2019-04-16": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-25": [
-     "URGENT",
-     "[\"fall p=0.98 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-04-26": [
+    "6b29b|2019-04-20": [
      "NORMAL",
      "[]"
     ],
-    "c5785|2019-04-27": [
-     "URGENT",
-     "[\"fall p=1.00 + post-fall inactivity\", \"vitals alert p=0.81\"]"
-    ],
-    "c5785|2019-04-28": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-29": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-04-30": [
-     "NORMAL",
-     "[]"
-    ],
-    "c5785|2019-05-01": [
+    "6b29b|2019-04-21": [
      "MONITOR",
-     "[\"vitals alert p=0.72\"]"
+     "[\"vitals alert p=0.42\"]"
     ],
-    "c5785|2019-05-02": [
-     "URGENT",
-     "[\"fall p=0.91 + post-fall inactivity\"]"
-    ],
-    "c5785|2019-05-03": [
+    "6b29b|2019-04-22": [
      "NORMAL",
      "[]"
+    ],
+    "6b29b|2019-04-23": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-24": [
+     "NORMAL",
+     "[]"
+    ],
+    "6b29b|2019-04-25": [
+     "MONITOR",
+     "[\"vitals alert p=0.92\"]"
+    ],
+    "6b29b|2019-04-26": [
+     "URGENT",
+     "[\"fall p=1.00 + post-fall inactivity\"]"
+    ],
+    "6b29b|2019-04-27": [
+     "MONITOR",
+     "[\"vitals alert p=0.91\"]"
     ]
    },
    "report_modes": {
     "template": 30
    },
    "fallbacks": {
-    "gate: NORMAL day (template only)": 15,
-    "no LLM configured": 15
+    "no LLM configured": 15,
+    "gate: NORMAL day (template only)": 15
    },
    "pubmed_failures_recorded": 0,
    "pubmed_http_attempts": 0,
    "llm_requests": 0,
    "injected_alert": {
-    "queued_s": 0.3,
-    "sent_s": 0.3,
+    "queued_s": 0.47,
+    "sent_s": 0.47,
     "status": "SENT"
    },
    "injected_alerts_all": [
     {
+     "queued_s": 0.47,
+     "sent_s": 0.47,
+     "status": "SENT"
+    },
+    {
      "queued_s": 0.3,
-     "sent_s": 0.3,
+     "sent_s": 0.31,
+     "status": "SENT"
+    },
+    {
+     "queued_s": 0.34,
+     "sent_s": 0.34,
      "status": "SENT"
     },
     {
      "queued_s": 0.37,
-     "sent_s": 0.37,
-     "status": "SENT"
-    },
-    {
-     "queued_s": 0.29,
-     "sent_s": 0.29,
-     "status": "SENT"
-    },
-    {
-     "queued_s": 0.33,
-     "sent_s": 0.34,
+     "sent_s": 0.38,
      "status": "SENT"
     }
    ],
-   "falls_alerted": "12/12",
+   "falls_alerted": "10/11",
    "send_delay_after_queue_s": {
-    "median": 0.0,
-    "max": 0.0
+    "median": 0.01,
+    "max": 0.01
    },
    "timing": {
     "trigger_cursor": 39,
     "inject_event_id": 40,
-    "api_downtime_s": 2.44,
+    "api_downtime_s": 2.45,
     "api_startup_s": 0.43,
     "sse_reconnect_ok": true
    }

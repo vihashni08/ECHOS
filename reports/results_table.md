@@ -23,34 +23,31 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 
 | Measure | Value |
 |---|---|
-| Patients / patient-days / patient-weeks | 20 / 1265 / 180.7 |
+| Patients / patient-days / patient-weeks | 20 / 1298 / 185.4 |
 | Injected falls | 60 |
-| Fall detection rate (URGENT, fall reason) | 0.800 (0.682-0.882) (48/60) |
-| Detection delay, simulated (fall -> end of day), median / max | 13.2 h / 23.8 h |
-| False fall alerts per patient-week | 0.017 (3 alerts) |
+| Fall detection rate (URGENT, fall reason) | 0.767 (0.646-0.856) (46/60) |
+| Detection delay, simulated (fall -> end of day), median / max | 14.3 h / 23.4 h |
+| False fall alerts per patient-week | 0.016 (3 alerts) |
 | URGENT days from critical vitals (real TIHM readings) | 4 |
-| All URGENT alerts per patient-week | 0.31 |
-| Days Normal / Monitor / Urgent | 74.3% / 21.3% / 4.3% |
-| Days with a data gap (any status) | 4.4% |
+| All URGENT alerts per patient-week | 0.286 |
+| Days Normal / Monitor / Urgent | 78.8% / 17.1% / 4.1% |
+| Days with a data gap (any status) | 0.5% |
 | Duplicate alerts | 0 |
 
-MONITOR days by reason (270 days)
+MONITOR days by reason (222 days)
 
 | Reason | Days | Share of MONITOR days |
 |---|---|---|
-| vitals only | 199 | 73.7% |
-| data gap only | 47 | 17.4% |
-| possible fall (no inactivity) only | 16 | 5.9% |
-| data gap + vitals | 4 | 1.5% |
-| possible fall (no inactivity) + vitals | 2 | 0.7% |
-| data gap + possible fall (no inactivity) | 2 | 0.7% |
+| vitals only | 194 | 87.4% |
+| possible fall (no inactivity) only | 18 | 8.1% |
+| data gap only | 6 | 2.7% |
+| possible fall (no inactivity) + vitals | 4 | 1.8% |
 
 DATA_GAP causes, all statuses (a day can have several)
 
 | Cause | Days |
 |---|---|
-| sensor gap | 55 |
-| vitals gap > 7 days | 2 |
+| vitals gap > 7 days | 7 |
 
 ### Vitals MONITOR threshold re-selected from out-of-fold predictions (alert budget)
 
@@ -58,6 +55,6 @@ Budget: vitals <= 1 alert per patient-week. Score scale: calibrated.
 
 |  | Previous (config) | Current |
 |---|---|---|
-| vitals_prob | 0.278 | 0.278 |
-| Vitals alerts / patient-week | 1.00 | 1.00 |
+| vitals_prob | 0.278 | 0.284 |
+| Vitals alerts / patient-week | 1.02 | 1.00 |
 | Vitals recall (BP/pulse/water labels) | 0.721 | 0.721 |

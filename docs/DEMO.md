@@ -25,7 +25,7 @@ Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`).
 | 2:00 | **Demo tools** -> *Inject a fall now* | "A SisFall recording is written as one accelerometer event at the patient's current data time. The URGENT alert is queued before any other work: fixed template, no LLM." Back on **Today**: the alert card, the escalation countdown. |
 | 2:45 | **Open case** (People -> the person) | "How this decision was made": headline, evidence level (not a probability), suggested next checks, and the Investigator's step-by-step trace. |
 | 3:30 | **Acknowledge** | "Acknowledging stops the escalation timer; the Care Coordinator opens a check-in task. If nobody acknowledges, the same alert goes to a second contact." (Alerts page: delivery log, tasks.) |
-| 4:15 | **Today** -> *Data needs checking* | "A day with only data problems is a device to check, not a change in the person; it can never be Normal." |
+| 4:15 | **Today** -> *Data needs checking* (only shown when a person has gone more than 7 days without a vitals reading; the 4-patient demo data usually has none, then skip this line) | "A day with only data problems is a device to check, not a change in the person; it can never be Normal." |
 | 4:40 | **System** -> limitations | "What we do not claim: clinical validity, forecasting, novelty. Small cohort, simulated falls, no real device." |
 
 ## Replay mode (evaluation)

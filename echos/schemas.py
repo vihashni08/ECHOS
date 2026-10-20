@@ -29,8 +29,6 @@ class DataQualityResult(BaseModel):
     day: date
     has_vitals: bool                                  # a BP/HR reading exists that day (after range checks)
     invalid_values: List[Dict[str, Any]] = Field(default_factory=list)  # [{device_type, value, range}] set to NaN, never imputed
-    sensor_gap: bool = False                          # activity sensor silent / abnormally low: NOT "zero activity"
-    sensor_gap_reason: Optional[str] = None           # zero_events | low_events | no_activity_record
     days_since_last_reading: Optional[int] = None     # 0 = reading today; counted from the patient's first record if never read
     completeness: float = Field(default=1.0, ge=0.0, le=1.0)
     quality_checked: bool = True                      # False = Agent 0 failed, data passed through unchecked

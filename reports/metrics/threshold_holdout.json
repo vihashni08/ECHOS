@@ -1,53 +1,52 @@
 {
- "patient_days": 2796,
+ "patient_days": 2749,
  "patients": 56,
  "repeats": "5 x 5-fold patient-level",
  "shipped": {
-  "vitals_prob": 0.278,
-  "share_all_days": 0.3383404864091559,
-  "heldout_share_mean": 0.3368771924263397,
+  "vitals_prob": 0.284,
+  "share_all_days": 0.2775554747180793,
+  "heldout_share_mean": 0.27690058397132256,
   "heldout_vitals_recall": 0.7018398206722467
  },
  "budget_rule": {
-  "heldout_share_mean": 0.33768498141853115,
+  "heldout_share_mean": 0.278189522123077,
   "heldout_share_ci95": [
-   0.30133065416333277,
-   0.35839425046884216
+   0.2504347267598019,
+   0.29822726455335236
   ],
-  "heldout_vitals_recall": 0.7022308436178016,
+  "heldout_vitals_recall": 0.6969389345376252,
   "vitals_prob_chosen_range": [
-   0.23732064057098562,
-   0.3390354768243785
+   0.23889058976617916,
+   0.34230535867984524
   ]
  },
  "load_rule_25pct": {
-  "heldout_share_mean": 0.2509724639477841,
+  "heldout_share_mean": 0.24820973945575875,
   "heldout_share_ci95": [
-   0.21580092118433286,
-   0.27263056131966473
+   0.21692038181689557,
+   0.2716816501460678
   ],
-  "heldout_vitals_recall": 0.39724976260998146,
+  "heldout_vitals_recall": 0.6304358477623656,
   "vitals_prob_chosen_range": [
-   0.43,
-   0.79
+   0.25,
+   0.51
   ],
-  "vitals_prob_on_all_data": 0.64,
-  "share_all_days_at_that_threshold": 0.24964234620886983,
-  "heldout_share_over_cap_in_folds": 12,
+  "vitals_prob_on_all_data": 0.36,
+  "share_all_days_at_that_threshold": 0.24918152055292833,
+  "heldout_share_over_cap_in_folds": 14,
   "folds": 25
  },
  "notes": [
   "out-of-fold scores; thresholds chosen on training patients only and scored on held-out patients",
   "MONITOR share excludes possible-fall days (about 1% of replay days): a lower bound of the replay share",
-  "the replay share (reports/metrics/e2e.json) also uses 20 patients x ~63 days, so absolute values differ from this all-patient OOF table"
+  "the replay share (reports/metrics/e2e.json) uses 20 patients x ~63 days, so absolute values differ from this all-patient OOF table"
  ],
  "drivers_all_days": {
-  "data_gap_any": 0.19742489270386265,
-  "vitals_flag": 0.1427038626609442,
-  "data_gap_only": 0.19563662374821172,
+  "data_gap_any": 0.1353219352491815,
+  "vitals_flag": 0.14223353946889777,
+  "data_gap_only": 0.1353219352491815,
   "gap_reasons": {
-   "sensor_gap": 0.046852646638054364,
-   "no_vitals_over_max_days": 0.15593705293276108
+   "no_vitals_over_max_days": 0.1353219352491815
   }
  }
 }

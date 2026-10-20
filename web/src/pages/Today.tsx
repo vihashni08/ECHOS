@@ -137,7 +137,7 @@ export default function Today() {
           </section>
           {dataIssues.length > 0 && (
             <section aria-labelledby="dat" className="flex flex-col gap-2"><h2 id="dat" className="text-lg font-semibold">Data needs checking</h2>
-              <p className="text-sm text-muted-foreground">Nothing suggests a change in the person. A sensor or reading is missing, so ECHOS cannot say the day is normal.</p>
+              <p className="text-sm text-muted-foreground">Nothing suggests a change in the person. A reading is missing or the data could not be checked, so ECHOS cannot say the day is normal.</p>
               <ul className="flex flex-col gap-2" data-testid="data-list">{dataIssues.map((p) => <DataRow key={p.patient_id} p={p} />)}</ul></section>)}
           {fine.length > 0 && (
             <section aria-labelledby="ok" className="flex flex-col gap-2"><h2 id="ok" className="text-lg font-semibold">As usual</h2>

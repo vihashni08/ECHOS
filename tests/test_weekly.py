@@ -24,9 +24,9 @@ TO = {"caregiver": "care@example.test", "clinician": "doc@example.test"}
 KB = {"id": "KB-7", "text": "Check blood pressure again later.", "title": "Hypertension in adults", "source": "NICE NG136 (2019), page 5", "finding_type": "blood_pressure"}
 
 
-def facts(day, flags=(), falls=(), reading=True, activity=True, gap=False, invalid=()):
-    return {"patient_id": PID, "day": day, "status": "NORMAL", "has_reading": reading, "has_activity": activity, "flags": list(flags), "falls": list(falls),
-            "quality": {"checked": True, "sensor_gap": gap, "invalid_values": list(invalid), "days_since_last_reading": 0}}
+def facts(day, flags=(), falls=(), reading=True, invalid=()):
+    return {"patient_id": PID, "day": day, "status": "NORMAL", "has_reading": reading, "flags": list(flags), "falls": list(falls),
+            "quality": {"checked": True, "invalid_values": list(invalid), "days_since_last_reading": 0}}
 
 
 @pytest.fixture
@@ -35,8 +35,8 @@ def world(tmp_path):
     days = pd.date_range("2019-04-01", "2019-05-11")
     rows = []
     for i, d in enumerate(days):
-        rows.append({"patient_id": PID, "day": d, "has_activity": True, "has_reading": True, "sys": 128 + i % 5, "dia": 80 + i % 3, "hr": 70 + i % 4, "temp": 36.5,
-                     "weight": 70.0, "total_events": 300 + 5 * (i % 6)})
+        rows.append({"patient_id": PID, "day": d, "has_reading": True, "sys": 128 + i % 5, "dia": 80 + i % 3, "hr": 70 + i % 4, "temp": 36.5,
+                     "weight": 70.0})
     pdy = pd.DataFrame(rows)
     ph = []
     for d, sy in (("2019-05-06", 129), ("2019-05-07", 162), ("2019-05-08", 130), ("2019-05-09", 128), ("2019-05-10", 131), ("2019-05-11", 129)):
@@ -48,7 +48,7 @@ def world(tmp_path):
     fall = {"time": "14:02", "prob": 0.93, "post_fall_inactive": True}
     spec = [("2019-05-06", "NORMAL", False, facts("2019-05-06")), ("2019-05-07", "MONITOR", False, facts("2019-05-07", [fl_bp])),
             ("2019-05-08", "NORMAL", False, facts("2019-05-08", invalid=[{"device_type": "Heart rate", "value": 300}])),
-            ("2019-05-09", "URGENT", False, facts("2019-05-09", falls=[fall])), ("2019-05-10", "MONITOR", True, facts("2019-05-10", reading=False, gap=True)),
+            ("2019-05-09", "URGENT", False, facts("2019-05-09", falls=[fall])), ("2019-05-10", "MONITOR", True, facts("2019-05-10", reading=False)),
             ("2019-05-11", "NORMAL", False, facts("2019-05-11"))]
     with eng.begin() as c:
         for d, st, gap, f in spec:
@@ -79,7 +79,7 @@ def test_builder_numbers_match_the_database(world):
     sysv = d["vitals_summary"]["sys"]
     assert sysv["n_readings"] == 6 and sysv["n_flagged"] == 1 and sysv["flagged_days"] == ["2019-05-07"] and 128 < sysv["baseline"] < 132
     comp = d["completeness"]
-    assert (comp["days_with_data"], comp["days_with_activity"], comp["days_with_vitals"], comp["sensor_gap_days"], comp["invalid_values_removed"]) == (6, 6, 5, 1, 1)
+    assert (comp["days_with_data"], comp["days_with_vitals"], comp["invalid_values_removed"]) == (6, 5, 1)
     assert comp["longest_vitals_gap_days"] == 1 and d["partial_week_note"] == "Partial week: only 6 of 7 days have data."
     assert d["any_monitor_or_urgent"] and set(d["finding_types"]) == {"blood_pressure"}
 
@@ -298,7 +298,7 @@ def test_simulation_uses_the_template_narrative_unless_configured(tmp_path, monk
 def test_fall_probability_formatting():
     assert [WD.fmt_prob(x) for x in (0.93, 0.994, 0.996, 1.0, 0.5, None)] == ["0.93", "0.99", ">0.99", ">0.99", "0.50", "n/a"]
     d = {"falls": [{"day": "2019-05-09", "time": "14:02", "probability": 0.998, "probability_text": ">0.99", "inactivity": True}], "status_counts": {"NORMAL": 0, "MONITOR": 0, "URGENT": 1, "DATA_GAP": 0},
-         "completeness": {"days_with_data": 1, "days_with_vitals": 1, "days_with_activity": 1, "sensor_gap_days": 0, "invalid_values_removed": 0}, "week_start": "a", "week_end": "b",
+         "completeness": {"days_with_data": 1, "days_with_vitals": 1, "invalid_values_removed": 0}, "week_start": "a", "week_end": "b",
          "days_in_week": 7, "partial_week_note": None,
          "vitals_summary": {k: {"name": k, "unit": "u", "n_readings": 0, "baseline_established": False} for k in ("sys", "dia", "hr", "temp", "weight")}}
     assert "probability >0.99" in " ".join(i["text"] for i in WN.template_items(d)["key_findings"])

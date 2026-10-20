@@ -45,7 +45,7 @@ export default function HowItWorks() {
   return (
     <div className="flex flex-col gap-5">
       <div><h2 className="text-xl font-semibold">How ECHOS works</h2>
-        <p className="max-w-3xl text-sm text-muted-foreground">ECHOS watches the sensors and vital signs of one older person and tells their caregiver and clinician, at once when a fall or critical reading is detected, and once a day whether anything differs from that person's own usual. It supports decisions; it never diagnoses, and a language model never decides an emergency.</p></div>
+        <p className="max-w-3xl text-sm text-muted-foreground">ECHOS watches the vital signs and the fall sensor of one older person and tells their caregiver and clinician, at once when a fall or critical reading is detected, and once a day whether anything differs from that person's own usual. It supports decisions; it never diagnoses, and a language model never decides an emergency.</p></div>
       <Card><CardHeader><CardTitle>Data source right now: {MODE[mode].label}</CardTitle></CardHeader><CardContent className="text-sm">{MODE[mode].what}</CardContent></Card>
       <ol className="flex flex-wrap items-center gap-2 text-sm" aria-label="Pipeline" data-testid="pipeline">
         {FLOW.map((f, i) => <li key={f} className="flex items-center gap-2"><span className="rounded-lg border bg-card px-3 py-1.5 font-medium">{f}</span>{i < FLOW.length - 1 && <ArrowRight className="size-4 text-muted-foreground" aria-hidden="true" />}</li>)}

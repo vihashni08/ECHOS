@@ -8,7 +8,7 @@ Threshold choice (from validation metrics, see scripts/tuning/choose_thresholds.
   with and without inactivity confirmation on unbiased v2 windows). fall_prob_high null = no URGENT without inactivity: a flagged
   fall without it is only MONITOR. SisFall ADL trials are short and vigorous, so false alarms per hour overstate daily life.
 - critical vitals: absolute clinical limits, independent of any model.
-DATA_GAP (Agent 0: sensor gap, quality unchecked/missing, or no vitals for > max_vitals_gap_days) is never NORMAL: it yields MONITOR.
+DATA_GAP (Agent 0: quality unchecked/missing, monitoring degraded, or no vitals for > max_vitals_gap_days) is never NORMAL: it yields MONITOR.
 Not a diagnostic tool; the LLM never takes part in these decisions.
 """
 from __future__ import annotations
@@ -82,8 +82,6 @@ def triage(results: dict, days_since_vitals: int = 0, cfg: Optional[dict] = None
     elif not qe.get("quality_checked", True):
         gap.append("quality unchecked (Agent 0 failed, data passed through)")
     else:
-        if qe.get("sensor_gap"):
-            gap.append("sensor gap (" + str(qe.get("sensor_gap_reason") or "activity silent") + "): activity not treated as zero")
         if qe.get("days_since_last_reading") is not None:
             days_since_vitals = qe["days_since_last_reading"]
     if health is None:

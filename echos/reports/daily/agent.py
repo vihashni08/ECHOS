@@ -111,7 +111,7 @@ def llm_view(facts: dict) -> dict:
         if isinstance(x, dict):
             return {k: strip(v) for k, v in x.items() if k not in _HIDDEN}
         return [strip(v) for v in x] if isinstance(x, list) else x
-    v = strip({k: facts[k] for k in ("patient_id", "day", "status", "vitals", "falls", "flags", "quality", "has_reading", "has_activity") if k in facts})
+    v = strip({k: facts[k] for k in ("patient_id", "day", "status", "vitals", "falls", "flags", "quality", "has_reading") if k in facts})
     return v
 
 
@@ -289,10 +289,6 @@ def daily_data_note(facts: dict):
     notes, q = [], facts.get("quality") or {}
     if "quality" in facts and not q.get("checked", False):
         notes.append("The data-quality check did not run today, so today's data was used unchecked.")
-    if q.get("sensor_gap"):
-        notes.append("The room sensors were silent or unusually quiet today (sensor gap).")
-    elif not facts["has_activity"]:
-        notes.append("No room-sensor activity was recorded today.")
     if not facts["has_reading"]:
         notes.append("No blood pressure or heart rate reading was recorded today, so vitals could not be compared with the usual level.")
     dsl = q.get("days_since_last_reading")
@@ -331,7 +327,6 @@ def weekly_stats(days: list, patient_id: str, end_day: str) -> dict:
                 for i, (k, v) in enumerate(sorted(groups.items()))]
     n = len(days)
     comp = {"days_covered": n, "days_with_vitals": sum(d["has_reading"] for d in days),
-            "days_with_activity": sum(d["has_activity"] for d in days),
             "days_with_temperature": sum(d["vitals"]["temp"]["value"] is not None for d in days),
             "days_with_weight": sum(d["vitals"]["weight"]["value"] is not None for d in days),
             "days_with_data_gap": sum(d["data_gap"] for d in days)}
@@ -377,8 +372,7 @@ def weekly_template_items(stats: dict) -> dict:
             out.append({"text": f"{label}{extra} on {e['count']} occasion(s). {shown}.", "cites": [e["id"]]})
         else:
             out.append({"text": f"{label}{extra} on {e['count']} occasion(s): {', '.join(e['days'])}.", "cites": [e["id"]]})
-    out.append({"text": f"Data completeness: vitals on {c['days_with_vitals']} of {c['days_covered']} days, "
-                        f"room-sensor activity on {c['days_with_activity']} of {c['days_covered']} days.", "cites": []})
+    out.append({"text": f"Data completeness: vitals on {c['days_with_vitals']} of {c['days_covered']} days.", "cites": []})
     if not stats["evidence"]:
         out.insert(0, {"text": "No alerts were raised this week.", "cites": []})
     return {"highlights": out, "guidance": guidance_template_items(stats)}

@@ -6,7 +6,7 @@ from scripts.demo.device_client import DeviceClient
 
 
 def ev(i):
-    return {"patient_id": "p1", "device_id": "d1", "ts": f"2019-05-20T08:{i // 60:02d}:{i % 60:02d}", "kind": "activity", "room": "Kitchen"}
+    return {"patient_id": "p1", "device_id": "d1", "ts": f"2019-05-20T08:{i // 60:02d}:{i % 60:02d}", "kind": "heartbeat"}
 
 
 class Fake:

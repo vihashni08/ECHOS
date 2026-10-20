@@ -53,16 +53,6 @@ class VitalLine(BaseModel):
         return clean(v, 40)
 
 
-class RoomEvent(BaseModel):
-    time: str
-    room: str
-
-    @field_validator("time", "room")
-    @classmethod
-    def _safe(cls, v):
-        return clean(v, 50)
-
-
 class AlertPayload(BaseModel):
     model_config = ConfigDict(validate_assignment=True)
 
@@ -78,8 +68,6 @@ class AlertPayload(BaseModel):
     vitals: list[VitalLine] = Field(default_factory=list)
     today_status: str = "URGENT"
     vitals_note: Optional[str] = None                                    # e.g. "no recent vitals ..."
-    recent_room_events: list[RoomEvent] = Field(default_factory=list)    # last 3 within 6 h of the event, oldest first
-    room_note: Optional[str] = None                                      # printed when there are none
     data_quality_note: Optional[str] = None
     checklist: tuple[str, ...] = CHECKLIST
     is_test: bool = False
@@ -89,7 +77,7 @@ class AlertPayload(BaseModel):
     def _safe(cls, v):
         return clean(v, 80)
 
-    @field_validator("data_quality_note", "vitals_note", "room_note")
+    @field_validator("data_quality_note", "vitals_note")
     @classmethod
     def _safe_note(cls, v):
         return None if v is None else clean(v, 160)
@@ -120,10 +108,6 @@ def _vital_rows(p: AlertPayload) -> list[str]:
     return out or ["no vitals available"]
 
 
-def _room_rows(p: AlertPayload) -> list[str]:
-    return [f"{e.time}  {e.room}" for e in p.recent_room_events] or [p.room_note or "none available"]
-
-
 def subject(p: AlertPayload) -> str:
     pre = "[ECHOS TEST] " if p.is_test else "[ECHOS URGENT] "
     return f"{pre}{TITLE[p.alert_type]} - patient {p.patient_id} - {p.event_time[:16].replace('T', ' ')}"
@@ -146,8 +130,6 @@ def render_text(p: AlertPayload, ack_url: Optional[str] = None) -> str:
     out += [f"{k}: {v}" for k, v in _lines(p)]
     out += ["", "Latest vitals vs this patient's own baseline:"]
     out += [f"  {r}" for r in _vital_rows(p)]
-    out += ["", "Last room-sensor events (within 6 h of the event):"]
-    out += [f"  {r}" for r in _room_rows(p)]
     out += ["", "Data quality: " + (p.data_quality_note or "no issues noted"), "", "Checklist:"]
     out += [f"  [ ] {c}" for c in p.checklist]
     if ack_url:
@@ -160,12 +142,11 @@ def render_html(p: AlertPayload, ack_url: Optional[str] = None) -> str:
     e = html.escape
     rows = "".join(f"<tr><th align=left>{e(k)}</th><td>{e(v)}</td></tr>" for k, v in _lines(p))
     vit = "".join(f"<li>{e(r)}</li>" for r in _vital_rows(p))
-    rooms = "".join(f"<li>{e(r)}</li>" for r in _room_rows(p))
     chk = "".join(f"<li>{e(c)}</li>" for c in p.checklist)
     ack = f'<p><a href="{e(ack_url)}">I have seen this</a> (acknowledges the alert; no login needed)</p>' if ack_url else ""
     test = "<p><b>*** TEST MESSAGE - NO REAL EVENT ***</b></p>" if p.is_test else ""
     return (f"<html><body>{test}<h2>{e(TITLE[p.alert_type])}</h2><table>{rows}</table>"
-            f"<h3>Latest vitals vs this patient's own baseline</h3><ul>{vit}</ul><h3>Last room-sensor events (within 6 h of the event)</h3><ul>{rooms}</ul>"
+            f"<h3>Latest vitals vs this patient's own baseline</h3><ul>{vit}</ul>"
             f"<p>Data quality: {e(p.data_quality_note or 'no issues noted')}</p><h3>Checklist</h3><ol>{chk}</ol>{ack}"
             "<p><i>ECHOS is a decision-support system, not a diagnostic tool. This message is a fixed template.</i></p></body></html>")
 
@@ -182,7 +163,6 @@ def _age_band(pid: str) -> str:
     return band_label(_CACHE["demo"].get(pid, ""))      # "(80, 90]" -> "80-90"; the open top band "(90, 110]" -> "90+"
 
 
-ROOM_WINDOW_H = 6
 VITAL_WINDOW_H = 24
 
 
@@ -207,36 +187,12 @@ def _live(df, pid: str, kind: str):
     if LIVE_ENG is None:
         return df
     from echos.live import store as LS
-    base = df if df is not None else pd.DataFrame(columns=["patient_id", "location_name", "date", "day"] if kind == "activity" else ["patient_id", "device_type", "value", "date", "day"])
+    base = df if df is not None else pd.DataFrame(columns=["patient_id", "device_type", "value", "date", "day"])
     if "day" not in base:
         base = base.assign(day=base.date.dt.normalize())
-    m = LS.merge_live(LIVE_ENG, base, kind)
+    m = LS.merge_live(LIVE_ENG, base)
     m = m[m.patient_id == pid].sort_values("date")
     return m if len(m) else None
-
-
-def _activity(pid: str):
-    if "act" not in _CACHE:
-        from echos.config import ROOT, load_config
-        a = pd.read_csv(ROOT / load_config()["paths"]["tihm"] / "Activity.csv", usecols=["patient_id", "location_name", "date"],
-                        parse_dates=["date"]).sort_values("date")
-        _CACHE["act"] = {p: g for p, g in a.groupby("patient_id")}
-    return _live(_CACHE["act"].get(pid), pid, "activity")
-
-
-def recent_room_events(pid: str, event_time: str, k: int = 3) -> tuple[list[RoomEvent], Optional[str]]:
-    """Last k room events within ROOM_WINDOW_H before the event; if none, (empty, the plain-words note with the last recorded time)."""
-    g = _activity(pid)
-    t = pd.Timestamp(event_time)
-    past = g[g.date <= t] if g is not None else None
-    if past is None or past.empty:
-        return [], f"No room-sensor activity recorded in the {ROOM_WINDOW_H} hours before the event (last recorded: none on file)"
-    inwin = past[past.date >= t - pd.Timedelta(hours=ROOM_WINDOW_H)].tail(k)
-    if inwin.empty:
-        return [], (f"No room-sensor activity recorded in the {ROOM_WINDOW_H} hours before the event "
-                    f"(last recorded: {past.date.iloc[-1].strftime('%Y-%m-%d %H:%M:%S')})")
-    return [RoomEvent(time=clean(f"{d.strftime('%Y-%m-%d %H:%M:%S')}, {humanize_age(t - d).replace(' before this event', '')} before", 50), room=clean(r, 30))
-            for r, d in zip(inwin.location_name, inwin.date)], None
 
 
 def quality_note(results: dict) -> Optional[str]:
@@ -246,8 +202,6 @@ def quality_note(results: dict) -> Optional[str]:
     qe = q.get("evidence", {})
     if not qe.get("quality_checked", True):
         return "quality unchecked"
-    if qe.get("sensor_gap"):
-        return f"sensor gap ({qe.get('sensor_gap_reason') or 'activity silent'})"
     return None
 
 
@@ -298,10 +252,6 @@ def _set_vitals(p, eng, pid, day, event_time, decision, results):
     p.vitals, p.vitals_note = vitals_lines(eng, pid, day, event_time, decision, results)
 
 
-def _set_rooms(p, pid, event_time):
-    p.recent_room_events, p.room_note = recent_room_events(pid, event_time)
-
-
 def build_payload(eng, alert_id: str, alert_type: str, patient_id: str, day: str, event_time: str, event_id=None,
                   decision: Optional[dict] = None, results: Optional[dict] = None, fall: Optional[dict] = None) -> AlertPayload:
     """Every context lookup is best-effort: a failure leaves that field empty and NEVER stops the alert."""
@@ -315,7 +265,6 @@ def build_payload(eng, alert_id: str, alert_type: str, patient_id: str, day: str
         p.post_fall_inactivity = bool(ev["post_fall_inactive"]) if "post_fall_inactive" in ev else None
     for name, fn in (("age_band", lambda: setattr(p, "age_band", clean(_age_band(patient_id)))),
                      ("vitals", lambda: _set_vitals(p, eng, patient_id, day, event_time, decision, results)),
-                     ("rooms", lambda: _set_rooms(p, patient_id, event_time)),
                      ("quality", lambda: setattr(p, "data_quality_note", quality_note(results)))):
         try:
             fn()

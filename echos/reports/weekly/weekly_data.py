@@ -174,10 +174,8 @@ def build_weekly_data(eng, patient_id: str, week, pdy: Optional[pd.DataFrame] = 
 
     # ---- completeness
     has_vit = [bool(d in fx and fx[d].get("has_reading")) or (d not in fx and bool(len(pdf[(pdf.day == pd.Timestamp(d))]) and pdf[pdf.day == pd.Timestamp(d)].iloc[0].has_reading)) for d in dstr]
-    has_act = [bool(d in fx and fx[d].get("has_activity")) or (d not in fx and bool(len(pdf[(pdf.day == pd.Timestamp(d))]) and pdf[pdf.day == pd.Timestamp(d)].iloc[0].has_activity)) for d in dstr]
     inv = [i for d in dstr for i in ((fx.get(d) or {}).get("quality") or {}).get("invalid_values", [])]
-    gaps = [bool((fx.get(d) or {}).get("quality", {}).get("sensor_gap")) for d in dstr]
-    comp = {"days_with_data": len(with_data), "days_with_activity": sum(has_act), "days_with_vitals": sum(has_vit), "sensor_gap_days": sum(gaps),
+    comp = {"days_with_data": len(with_data), "days_with_vitals": sum(has_vit),
             "invalid_values_removed": len(inv), "longest_vitals_gap_days": _longest_run([not v for v, d in zip(has_vit, dstr) if d in with_data])}
 
     demo = __import__("echos.data.loaders", fromlist=["x"]).load_demographics() if demo is None else demo

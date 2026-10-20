@@ -6,7 +6,7 @@ from scripts.evaluation import live_fault_check as F
 
 def test_duplicate_and_late_events_change_nothing():
     r = F.s_duplicates_and_late_events()
-    assert r["duplicates_detected"] == r["resent"] == 200 and r["decisions_changed"] is False and r["extra_rows"] == 0 and r["late_event_stored"] == 1
+    assert r["duplicates_detected"] == r["resent"] > 0 and r["decisions_changed"] is False and r["extra_rows"] == 0 and r["late_event_stored"] == 1
 
 
 def test_vitals_detector_down_is_a_data_gap_never_normal():

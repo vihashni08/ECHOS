@@ -9,7 +9,7 @@ s(x) = max( s_urgent(x), s_monitor(x), s_gap(x) )          NORMAL < MONITOR < UR
 
 s_urgent : fall score >= 0.8 AND post-fall inactivity      OR   a vital sign beyond its absolute clinical limit
 s_monitor: vitals score >= tau_v   OR   an unconfirmed fall
-s_gap    : sensor gap / quality unchecked / output missing / no vitals for > 7 days      (never NORMAL)
+s_gap    : quality unchecked / output missing / monitoring degraded / no vitals for > 7 days      (never NORMAL)
 ```
 
 **E1, why a maximum.** Each rule asks one question about one source, so a new source or rule can only add evidence, never hide it. This gives properties that can be checked rather than argued. On a grid of 512 input combinations, run through the real `triage()`: raising any score or switching on a flag never lowered the status (0 violations); a data gap was never NORMAL (0); a critical vital was always URGENT whatever the model score (0); a missing detector output was never NORMAL (0). All hold = True.
@@ -30,9 +30,9 @@ tau_k = min { t : FA_k(t) <= B_k }          vitals: B <= 1 alert / patient-week
 
 | Detector | threshold tau | implied c_miss / c_fa | Brier skill (calibrated) | recall at tau | precision at tau |
 |---|---|---|---|---|---|
-| Vitals | 0.278 | 2.6 | 0.402 | 0.721 | 0.569 |
+| Vitals | 0.284 | 2.52 | 0.402 | 0.721 | 0.579 |
 
-Reading: at the chosen budget the vitals rule treats one missed event as worth about 2.6 false alerts. Brier skill = 1 - Brier / Brier(prevalence): vitals 0.402 (the score is informative and can be read as a probability). 
+Reading: at the chosen budget the vitals rule treats one missed event as worth about 2.52 false alerts. Brier skill = 1 - Brier / Brier(prevalence): vitals 0.402 (the score is informative and can be read as a probability). 
 These costs are implied, not measured: nothing here estimates what a missed event really costs.
 
 ## Why a fall needs inactivity as well
@@ -47,7 +47,7 @@ If detectors raise alerts independently with day-rates a_k, the share of days wi
 a_day = 1 - prod_k (1 - a_k)          alerts / patient-week  <=  sum_k B_k          (E4: independence, union bound)
 ```
 
-On the 1265 replayed days (180.7 patient-weeks): the model alerts are bounded by 0.999 per patient-week by the budgets. Measured share of days by source: vitals model 0.174, possible fall 0.016, data gap 0.042, urgent fall 0.04, urgent vitals 0.003. MONITOR days measured 0.213 vs independence prediction 0.221 (close, so independence is a fair approximation here); without a data gap 0.172 of days are MONITOR, so the load comes from the model alerts, and data gaps add only 0.042 of days. The vitals rule raised 1.217 alerts per patient-week on these days against its budget of 0.999 measured on out-of-fold data: the replay is a subset (20 patients, 1265 of the 2796 patient-days the budget was set on), so the budget holds on the data it was set on and is exceeded on this subset: a budget is a design target, not a guarantee. URGENT: 0.304 days per patient-week, falls INJECTED from SisFall in the replay (TIHM has no falls) (urgent fall 0.04 of days), so this figure is a test load, not a rate of real falls.
+On the 1298 replayed days (185.4 patient-weeks): the model alerts are bounded by 0.998 per patient-week by the budgets. Measured share of days by source: vitals model 0.166, possible fall 0.017, data gap 0.005, urgent fall 0.038, urgent vitals 0.003. MONITOR days measured 0.171 vs independence prediction 0.184 (close, so independence is a fair approximation here); without a data gap 0.166 of days are MONITOR, so the load comes from the model alerts, and data gaps add only 0.005 of days. The vitals rule raised 1.159 alerts per patient-week on these days against its budget of 0.998 measured on out-of-fold data: the replay is a subset (20 patients, 1298 of the 2749 patient-days the budget was set on), so the budget holds on the data it was set on and is exceeded on this subset: a budget is a design target, not a guarantee. URGENT: 0.286 days per patient-week, falls INJECTED from SisFall in the replay (TIHM has no falls) (urgent fall 0.038 of days), so this figure is a test load, not a rate of real falls.
 
 ## What this does not show
 

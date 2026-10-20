@@ -29,7 +29,7 @@ def main():
     oof["day"] = pd.to_datetime(oof["day"])
     v = oof[oof.agent == "physiological"].set_index(["patient_id", "day"]).oof.rename("v")
     d = pdy.set_index(["patient_id", "day"]).join(v).reset_index()
-    d["gap"] = d.sensor_gap.fillna(True).astype(bool) | (d.days_since_last_reading > T["max_vitals_gap_days"])
+    d["gap"] = d.days_since_last_reading > T["max_vitals_gap_days"]
     d["yv"] = ((d.bp_alert + d.pulse_alert + d.water_alert) > 0) & d.v.notna()
     pats = np.array(sorted(d.patient_id.unique()))
     grid = np.round(np.arange(0.15, 0.80, 0.01), 2)
@@ -81,7 +81,7 @@ def main():
                      "the replay share (reports/metrics/e2e.json) uses 20 patients x ~63 days, so absolute values differ from this all-patient OOF table"]}
     out["drivers_all_days"] = {"data_gap_any": float(d.gap.mean()), "vitals_flag": float((d.v.fillna(-1) >= T["vitals_prob"]).mean()),
                                "data_gap_only": float((d.gap & ~(d.v.fillna(-1) >= T["vitals_prob"])).mean()),
-                               "gap_reasons": {"sensor_gap": float(d.sensor_gap.fillna(True).astype(bool).mean()), "no_vitals_over_max_days": float((d.days_since_last_reading > T["max_vitals_gap_days"]).mean())}}
+                               "gap_reasons": {"no_vitals_over_max_days": float((d.days_since_last_reading > T["max_vitals_gap_days"]).mean())}}
     (ROOT / "reports/metrics/threshold_holdout.json").write_text(json.dumps(out, indent=1))
     print(json.dumps({k: out[k] for k in ("shipped", "budget_rule", "load_rule_25pct")}))
 

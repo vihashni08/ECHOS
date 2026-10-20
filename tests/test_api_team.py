@@ -64,8 +64,8 @@ def test_data_only_days_are_separated_from_changes(api):
     from echos.api.services import attention_kind
     from types import SimpleNamespace as N
     assert attention_kind(None) is None and attention_kind(N(status="NORMAL", reasons="[]")) is None
-    assert attention_kind(N(status="MONITOR", reasons=json_dumps(["DATA_GAP: sensor gap (zero_events)", "DATA_GAP: no vitals reading for 9 days"]))) == "data"
-    assert attention_kind(N(status="MONITOR", reasons=json_dumps(["vitals alert p=0.50", "DATA_GAP: sensor gap"]))) == "change"
+    assert attention_kind(N(status="MONITOR", reasons=json_dumps(["DATA_GAP: quality unchecked (Agent 0 failed, data passed through)", "DATA_GAP: no vitals reading for 9 days"]))) == "data"
+    assert attention_kind(N(status="MONITOR", reasons=json_dumps(["vitals alert p=0.50", "DATA_GAP: monitoring degraded"]))) == "change"
     assert attention_kind(N(status="URGENT", reasons=json_dumps(["DATA_GAP: x"]))) == "change"       # urgent is never filed under data problems
     assert all("attention_kind" in p for p in c.get("/api/patients").json()["items"])
 

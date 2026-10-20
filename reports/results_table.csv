@@ -18,13 +18,13 @@ agent3,adult,false_alarms_per_hour,0.421249461005464,,,
 agent3,elderly,sensitivity,0.56,0.44746569425928456,0.6666872402321515,
 agent3,elderly,specificity,1.0,,,
 agent3,elderly,false_alarms_per_hour,0.0,,,
-e2e,Patients / patient-days / patient-weeks,value,,,,20 / 1265 / 180.7
+e2e,Patients / patient-days / patient-weeks,value,,,,20 / 1298 / 185.4
 e2e,Injected falls,value,,,,60
-e2e,"Fall detection rate (URGENT, fall reason)",value,,,,0.800 (0.682-0.882) (48/60)
-e2e,"Detection delay, simulated (fall -> end of day), median / max",value,,,,13.2 h / 23.8 h
-e2e,False fall alerts per patient-week,value,,,,0.017 (3 alerts)
+e2e,"Fall detection rate (URGENT, fall reason)",value,,,,0.767 (0.646-0.856) (46/60)
+e2e,"Detection delay, simulated (fall -> end of day), median / max",value,,,,14.3 h / 23.4 h
+e2e,False fall alerts per patient-week,value,,,,0.016 (3 alerts)
 e2e,URGENT days from critical vitals (real TIHM readings),value,,,,4
-e2e,All URGENT alerts per patient-week,value,,,,0.31
-e2e,Days Normal / Monitor / Urgent,value,,,,74.3% / 21.3% / 4.3%
-e2e,Days with a data gap (any status),value,,,,4.4%
+e2e,All URGENT alerts per patient-week,value,,,,0.286
+e2e,Days Normal / Monitor / Urgent,value,,,,78.8% / 17.1% / 4.1%
+e2e,Days with a data gap (any status),value,,,,0.5%
 e2e,Duplicate alerts,value,,,,0

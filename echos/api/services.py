@@ -74,7 +74,7 @@ class Ctx:
             from echos.data.loaders import load_physiology
             self.phys = load_physiology()
         from echos.live import store as LS
-        return LS.merge_live(self.eng, self.phys, "vitals")
+        return LS.merge_live(self.eng, self.phys)
 
     def demo_df(self) -> pd.DataFrame:
         if self.demo is None:
@@ -159,11 +159,9 @@ def list_patients(ctx: Ctx) -> list[dict]:
     comp: dict = {}
     for pid, f in fx:
         d = json.loads(f)
-        x = comp.setdefault(pid, dict(days=0, days_with_activity=0, days_with_vitals=0, sensor_gap_days=0))
+        x = comp.setdefault(pid, dict(days=0, days_with_vitals=0))
         x["days"] += 1
-        x["days_with_activity"] += bool(d.get("has_activity"))
         x["days_with_vitals"] += bool(d.get("has_reading"))
-        x["sensor_gap_days"] += bool((d.get("quality") or {}).get("sensor_gap"))
     for pid in patient_ids(ctx):
         age, sex = demo_of(ctx, pid)
         la, a = last.get(pid), al.get(pid)
@@ -536,8 +534,8 @@ def quality(ctx: Ctx) -> dict:
     with ctx.eng.begin() as c:
         fx = [json.loads(r[0]) for r in c.execute(select(S.daily_facts.c.facts))]
     q = [f.get("quality") or {} for f in fx]
-    live = {"patient_days": len(fx), "days_unchecked": sum(not x.get("checked", True) for x in q), "sensor_gap_days": sum(bool(x.get("sensor_gap")) for x in q),
-            "days_with_activity": sum(bool(f.get("has_activity")) for f in fx), "days_with_vitals": sum(bool(f.get("has_reading")) for f in fx),
+    live = {"patient_days": len(fx), "days_unchecked": sum(not x.get("checked", True) for x in q),
+            "days_with_vitals": sum(bool(f.get("has_reading")) for f in fx),
             "invalid_values_removed": sum(len(x.get("invalid_values") or []) for x in q)}
     p = ctx.metrics_dir / "data_quality.json"
     return {"live": live, "static": json.loads(p.read_text()) if p.exists() else None}

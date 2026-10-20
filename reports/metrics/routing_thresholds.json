@@ -1,64 +1,64 @@
 {
  "method": "call budget (label-free): false calls on Normal days <= B per patient-week",
  "default_budget_per_patient_week": 0.25,
- "patient_days": 1265,
+ "patient_days": 1298,
  "patients": 20,
- "patient_weeks": 180.71,
- "normal_days": 940,
- "labelled_days_total": 215,
- "labelled_normal_days": 79,
- "theta": 0.8181,
- "false_calls_per_patient_week_achieved": 0.249,
+ "patient_weeks": 185.43,
+ "normal_days": 1023,
+ "labelled_days_total": 216,
+ "labelled_normal_days": 83,
+ "theta": 0.8298,
+ "false_calls_per_patient_week_achieved": 0.248,
  "bootstrap_by_patient_95": {
-  "lo": 0.6978,
-  "median": 0.8181,
-  "hi": 0.8574,
+  "lo": 0.7544,
+  "median": 0.8298,
+  "hi": 0.8663,
   "n_boot": 1000,
   "n_patients": 20
  },
  "budget_grid": {
   "0.1": {
    "allowed_false_calls": 18,
-   "theta": 0.9003,
+   "theta": 0.9266,
    "false_calls": 18,
-   "false_calls_per_patient_week": 0.1,
-   "labelled_normal_days_called": 5,
-   "labelled_share_called": 0.278,
+   "false_calls_per_patient_week": 0.097,
+   "labelled_normal_days_called": 3,
+   "labelled_share_called": 0.167,
    "labelled_share_not_called": 0.08
   },
   "0.25": {
-   "allowed_false_calls": 45,
-   "theta": 0.8181,
-   "false_calls": 45,
-   "false_calls_per_patient_week": 0.249,
-   "labelled_normal_days_called": 15,
-   "labelled_share_called": 0.333,
-   "labelled_share_not_called": 0.072
+   "allowed_false_calls": 46,
+   "theta": 0.8298,
+   "false_calls": 46,
+   "false_calls_per_patient_week": 0.248,
+   "labelled_normal_days_called": 12,
+   "labelled_share_called": 0.261,
+   "labelled_share_not_called": 0.073
   },
   "0.5": {
-   "allowed_false_calls": 90,
-   "theta": 0.6593,
-   "false_calls": 90,
-   "false_calls_per_patient_week": 0.498,
-   "labelled_normal_days_called": 27,
-   "labelled_share_called": 0.3,
-   "labelled_share_not_called": 0.061
+   "allowed_false_calls": 92,
+   "theta": 0.66,
+   "false_calls": 92,
+   "false_calls_per_patient_week": 0.496,
+   "labelled_normal_days_called": 25,
+   "labelled_share_called": 0.272,
+   "labelled_share_not_called": 0.062
   },
   "1.0": {
-   "allowed_false_calls": 180,
-   "theta": 0.4887,
-   "false_calls": 180,
-   "false_calls_per_patient_week": 0.996,
-   "labelled_normal_days_called": 31,
-   "labelled_share_called": 0.172,
-   "labelled_share_not_called": 0.063
+   "allowed_false_calls": 185,
+   "theta": 0.4792,
+   "false_calls": 185,
+   "false_calls_per_patient_week": 0.998,
+   "labelled_normal_days_called": 32,
+   "labelled_share_called": 0.173,
+   "labelled_share_not_called": 0.061
   }
  },
  "r_normal_quantiles_50_90_99_max": [
-  0.209,
-  0.653,
-  0.95,
-  0.994
+  0.193,
+  0.643,
+  0.963,
+  1.0
  ],
  "notes": [
   "theta is a fraction of each detector's own alert threshold (r = p / tau, max over detectors); it is a quantile of r on the Normal days, so it depends on those days and on the detectors' score scale.",

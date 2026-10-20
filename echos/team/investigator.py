@@ -60,7 +60,7 @@ class Investigator:
             flagged.append("fall")
         return {"flagged": flagged, "vitals_available": bool(v.get("available")),
                 "persistent": bool((v.get("persistence") or {}).get("persistent")), "post_fall_inactive": bool((f.get("evidence") or {}).get("post_fall_inactive")),
-                "sensor_gap": bool(q.get("sensor_gap")), "unchecked": q.get("quality_checked") is False, "degraded": degraded,
+                "unchecked": q.get("quality_checked") is False, "degraded": degraded,
                 "urgent_types": decision.get("urgent_types") or []}
 
     @staticmethod
@@ -100,8 +100,6 @@ class Investigator:
         out = []
         if det["unchecked"]:
             out.append("The data-quality check did not run; treat the values with care.")
-        if det["sensor_gap"]:
-            out.append("The room sensors were silent today (sensor gap).")
         if det["degraded"]:
             out.append("Monitoring was degraded: only fixed vitals thresholds were used.")
         return out

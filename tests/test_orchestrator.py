@@ -32,7 +32,7 @@ def health(v=None, degraded=False):
 
 
 def qual(**ev):
-    base = {"quality_checked": True, "sensor_gap": False, "days_since_last_reading": 0, "invalid_values": [], "has_vitals": True}
+    base = {"quality_checked": True, "days_since_last_reading": 0, "invalid_values": [], "has_vitals": True}
     return R(0.0, **{**base, **ev})
 
 
@@ -57,7 +57,6 @@ def test_triage_branches(r, status, gap):
 
 
 @pytest.mark.parametrize("r,dsv", [
-    (res(quality=qual(sensor_gap=True, sensor_gap_reason="zero_events")), 0),   # sensor gap (Agent 0)
     (res(quality=qual(days_since_last_reading=CFG["max_vitals_gap_days"] + 1)), 0),  # no vitals for too long
     (res(quality=qual(quality_checked=False)), 0),       # Agent 0 failed: pass-through, unchecked
     ({**res(), "quality": None}, 0),                      # Agent 0 output missing

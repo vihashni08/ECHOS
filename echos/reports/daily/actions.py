@@ -85,7 +85,7 @@ def for_flag(f: dict, th: Optional[dict] = None) -> list[dict]:
         return out
     if t == "data_gap":
         out.append(_a("TODAY", "CAREGIVER",
-                      "Take a blood pressure and pulse reading today, and check that the monitor and room sensors are switched on, in range and have fresh batteries. "
+                      "Take a blood pressure and pulse reading today, and check that the monitor is switched on, in range and have fresh batteries. "
                       "A missing reading does not mean the value is normal.", "", i, "data_gap"))
     return out
 

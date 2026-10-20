@@ -19,7 +19,7 @@ class Clock:
 
 
 def ev(i=0, dev="dev-1", pid="px"):
-    return {"patient_id": pid, "device_id": dev, "ts": f"2019-05-20T08:{i // 60:02d}:{i % 60:02d}", "kind": "activity", "room": "Kitchen"}
+    return {"patient_id": pid, "device_id": dev, "ts": f"2019-05-20T08:{i // 60:02d}:{i % 60:02d}", "kind": "heartbeat"}
 
 
 def make(tmp_path, **ingest):

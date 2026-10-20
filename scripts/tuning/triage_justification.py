@@ -76,7 +76,7 @@ def render(r: dict) -> str:
          "```", "s(x) = max( s_urgent(x), s_monitor(x), s_gap(x) )          NORMAL < MONITOR < URGENT", "",
          "s_urgent : fall score >= 0.8 AND post-fall inactivity      OR   a vital sign beyond its absolute clinical limit",
          "s_monitor: vitals score >= tau_v   OR   an unconfirmed fall",
-         "s_gap    : sensor gap / quality unchecked / output missing / no vitals for > 7 days      (never NORMAL)", "```", "",
+         "s_gap    : quality unchecked / output missing / monitoring degraded / no vitals for > 7 days      (never NORMAL)", "```", "",
          "**E1, why a maximum.** Each rule asks one question about one source, so a new source or rule can only add evidence, never hide it. This gives properties that can be checked rather than argued. "
          f"On a grid of {p['grid_points']} input combinations, run through the real `triage()`: raising any score or switching on a flag never lowered the status "
          f"({p['violations_monotone']} violations); a data gap was never NORMAL ({p['violations_gap_is_normal']}); a critical vital was always URGENT whatever the model score ({p['violations_critical_not_urgent']}); "

@@ -1,15 +1,15 @@
 {
  "detectors": {
   "vitals": {
-   "tau": 0.278,
-   "implied_miss_to_false_alert_cost_ratio": 2.6,
+   "tau": 0.284,
+   "implied_miss_to_false_alert_cost_ratio": 2.52,
    "prevalence": 0.182,
    "brier_calibrated": 0.0889,
    "brier_prevalence_baseline": 0.1487,
    "brier_skill": 0.402,
    "recall_at_tau": 0.721,
-   "precision_at_tau": 0.569,
-   "alerts_per_patient_week": 0.999
+   "precision_at_tau": 0.579,
+   "alerts_per_patient_week": 0.998
   }
  },
  "fall": {
@@ -27,27 +27,27 @@
   "note": "SisFall adult trials; ADL trials are short and vigorous, so false alarms per hour overstate daily life"
  },
  "load": {
-  "patient_days": 1265,
-  "patient_weeks": 180.7,
+  "patient_days": 1298,
+  "patient_weeks": 185.4,
   "share_of_days_by_source": {
-   "vitals_model": 0.174,
-   "possible_fall": 0.016,
-   "data_gap": 0.042,
-   "urgent_fall": 0.04,
+   "vitals_model": 0.166,
+   "possible_fall": 0.017,
+   "data_gap": 0.005,
+   "urgent_fall": 0.038,
    "urgent_vitals": 0.003
   },
   "alerts_per_patient_week_by_source": {
-   "vitals_model": 1.217,
-   "possible_fall": 0.111,
-   "data_gap": 0.293,
-   "urgent_fall": 0.282,
+   "vitals_model": 1.159,
+   "possible_fall": 0.119,
+   "data_gap": 0.032,
+   "urgent_fall": 0.264,
    "urgent_vitals": 0.022
   },
-  "monitor_days_measured": 0.213,
-  "monitor_days_independence_prediction": 0.221,
-  "monitor_days_without_data_gap": 0.172,
-  "urgent_days_per_patient_week": 0.304,
-  "budget_union_bound_model_alerts_per_patient_week": 0.999
+  "monitor_days_measured": 0.171,
+  "monitor_days_independence_prediction": 0.184,
+  "monitor_days_without_data_gap": 0.166,
+  "urgent_days_per_patient_week": 0.286,
+  "budget_union_bound_model_alerts_per_patient_week": 0.998
  },
  "properties": {
   "grid_points": 512,

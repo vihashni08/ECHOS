@@ -191,7 +191,7 @@ def _build(d, narrative, sources, out_path, gen, scale, findings=None, considera
     tiles = [[f"<b>Days by status</b><br/>({comp['days_with_data']} days with data)<br/>Normal {c['NORMAL']} | Monitor {c['MONITOR']}<br/>Urgent {c['URGENT']}"
               + (f" | Not processed {n_np}" if n_np else "") + f"<br/><font size=6.5 color='#6b7280'>Data-gap days (counted within the above): {c['DATA_GAP']}</font>",
               f"<b>Vitals alerts</b><br/>{len(d['vitals_alerts'])}", f"<b>Falls</b><br/>{len(d['falls'])}",
-              f"<b>Completeness</b><br/>Vitals {comp['days_with_vitals']}/7 days<br/>Activity {comp['days_with_activity']}/7 days"]]
+              f"<b>Completeness</b><br/>Vitals {comp['days_with_vitals']}/7 days"]]
     t = Table([[Paragraph(x, st["tile"]) for x in tiles[0]]], colWidths=[W_MM / 4 * mm] * 4)
     t.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), .6, LINE), ("INNERGRID", (0, 0), (-1, -1), .6, LINE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f3f4f6")), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
@@ -216,8 +216,8 @@ def _build(d, narrative, sources, out_path, gen, scale, findings=None, considera
     at.setStyle(TableStyle([("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 7.5), ("LINEBELOW", (0, 0), (-1, 0), .8, INK),
                             ("LINEBELOW", (0, 1), (-1, -1), .3, LINE), ("VALIGN", (0, 0), (-1, -1), "TOP")] + ([("SPAN", (0, 1), (-1, 1))] if not shown else [])))
     story += [KeepTogether([Paragraph("Alerts", st["h2"]), at])]
-    q = [f"Days with room-sensor activity: {comp['days_with_activity']} of 7. Days with vitals readings: {comp['days_with_vitals']} of 7.",
-         f"Sensor-gap days: {comp['sensor_gap_days']}. Invalid values removed: {comp['invalid_values_removed']}. Longest stretch without vitals: {comp['longest_vitals_gap_days']} day(s).",
+    q = [f"Days with vitals readings: {comp['days_with_vitals']} of 7.",
+         f"Invalid values removed: {comp['invalid_values_removed']}. Longest stretch without vitals: {comp['longest_vitals_gap_days']} day(s).",
          f"Days with data: {comp['days_with_data']} of 7." + (f" {d['partial_week_note']}" if d["partial_week_note"] else "")]
     nb = [VARS[k][0] for k in VARS if d["vitals_summary"][k]["n_readings"] and not d["vitals_summary"][k]["baseline_established"]]
     if nb:

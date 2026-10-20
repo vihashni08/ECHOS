@@ -48,8 +48,6 @@ def gap_causes(q: dict | None, health: dict | None, dsv: int, max_gap: int) -> l
     if q is None or not qe.get("quality_checked", True):
         out.append("quality unchecked")
     else:
-        if qe.get("sensor_gap"):
-            out.append("sensor gap")
         if qe.get("days_since_last_reading") is not None:
             dsv = qe["days_since_last_reading"]
     if health is None:

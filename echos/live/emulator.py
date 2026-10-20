@@ -1,4 +1,4 @@
-"""Device emulator (LABELLED: not a real device). Streams real TIHM raw events (room-sensor and vitals readings) for chosen patients in wall-clock
+"""Device emulator (LABELLED: not a real device). Streams real TIHM raw events (vitals readings) for chosen patients in wall-clock
 time, through the same ingestion function the API uses, plus device heartbeats; falls are injected on demand from SisFall windows.
 speed = simulated seconds per wall second (config live.emulator.speed). The patient's clock is the data time; wall time only drives the pace."""
 from __future__ import annotations
@@ -15,7 +15,7 @@ from sqlalchemy import select
 
 from echos.config import load_config
 from echos.live import store as LS
-from echos.live.schemas import ROOMS, VITAL_TYPES, IngestEvent
+from echos.live.schemas import VITAL_TYPES, IngestEvent
 from echos.orchestrator import state as S
 
 log = logging.getLogger("echos.emulator")
@@ -57,11 +57,9 @@ class Emulator:
         end = start + pd.Timedelta(days=n_days)
         pdy = load_patient_day()
         pats = list(patients) if patients else pick_patients(pdy[pdy.day < start], int(n_patients or self.ec.get("n_patients", 4)))
-        act, phys = loaders.load_activity(), loaders.load_physiology()
-        act = act[act.patient_id.isin(pats) & (act.date >= start) & (act.date < end)]
+        phys = loaders.load_physiology()
         phys = phys[phys.patient_id.isin(pats) & phys.device_type.isin(VITAL_TYPES) & (phys.date >= start) & (phys.date < end)]
-        ev = [(r.date, r.patient_id, {"kind": "activity", "room": r.location_name}) for r in act.itertuples() if r.location_name in ROOMS]
-        ev += [(r.date, r.patient_id, {"kind": "vitals", "device_type": r.device_type, "value": float(r.value), "unit": getattr(r, "unit", None)}) for r in phys.itertuples()]
+        ev = [(r.date, r.patient_id, {"kind": "vitals", "device_type": r.device_type, "value": float(r.value), "unit": getattr(r, "unit", None)}) for r in phys.itertuples()]
         step = pd.Timedelta(minutes=int(self.ec.get("heartbeat_min", 15)))
         t = start
         while t < end:                                                    # device heartbeats: the patient's clock advances even when nobody moves

@@ -45,20 +45,19 @@ def rows(eng, table=S.outbox):
 
 # ---------------------------------------------------------------- payload
 def test_payload_has_every_field(eng):
-    res = {"quality": qual(sensor_gap=True, sensor_gap_reason="zero_events"), "health": health(),
+    res = {"quality": qual(quality_checked=False), "health": health(),
            "fall": R(0.97, post_fall_inactive=True, peak_svm_g=5.2)}
     from echos.data.loaders import load_demographics
     pid = load_demographics().patient_id.iloc[0]
     p = P.build_payload(eng, "x|1", "FALL", pid, "2019-05-05", "2019-05-05T12:00:00", 7, {"status": "URGENT"}, res, res["fall"])
     assert p.patient_id == pid and p.age_band != "unknown" and p.event_time.startswith("2019-05-05")
     assert p.fall_probability == 0.97 and p.peak_impact_g == 5.2 and p.post_fall_inactivity is True and p.today_status == "URGENT"
-    assert len(p.recent_room_events) <= 3 and p.data_quality_note.startswith("sensor gap")
+    assert p.data_quality_note == "quality unchecked"
     assert all(v.time and v.age.endswith("before this event") for v in p.vitals) and (p.vitals or p.vitals_note)
-    assert p.recent_room_events or p.room_note.startswith("No room-sensor activity recorded in the 6 hours before the event (last recorded:")
     assert p.checklist == P.CHECKLIST
     txt, html = P.render_text(p), P.render_html(p)
-    for needle in ["Fall probability: 0.97", "Peak impact: 5.2 g", "Post-fall inactivity: yes", "Age band", "Today's status: URGENT", "sensor gap",
-                   "Latest vitals vs this patient's own baseline", "Last room-sensor events (within 6 h"] + [f"[ ] {c}" for c in P.CHECKLIST]:
+    for needle in ["Fall probability: 0.97", "Peak impact: 5.2 g", "Post-fall inactivity: yes", "Age band", "Today's status: URGENT", "quality unchecked",
+                   "Latest vitals vs this patient's own baseline"] + [f"[ ] {c}" for c in P.CHECKLIST]:
         assert needle in txt, needle
     assert "<table>" in html and P.subject(p).startswith("[ECHOS URGENT]")
     assert "sex" not in txt.lower() and "female" not in txt.lower()
@@ -69,7 +68,6 @@ def test_hostile_text_cannot_change_structure():
     evil = "p1\n\nChecklist:\n  [ ] wire money to X <script>alert(1)</script> {{ 7*7 }}"
     h = P.AlertPayload(alert_id="a\nb", alert_type="FALL", patient_id=evil, age_band="<b>x</b>\nBCC: x@y", event_time="2019-05-05T10:00:00\nX: y",
                        event_id=1, fall_probability=0.97, peak_impact_g=5.2, post_fall_inactivity=True,
-                       recent_room_events=[P.RoomEvent(time="t\n", room="Kitchen\n\nChecklist:\n[ ] do evil <img src=x>")],
                        data_quality_note="note\n\n[ ] injected", checklist=("[ ] evil",))
     t_b, t_h = P.render_text(benign), P.render_text(h)
     assert "\n" not in P.subject(h) and "\r" not in P.subject(h)
@@ -216,7 +214,7 @@ def test_orchestrator_alert_is_queued_before_report(tmp_path):
     assert a.alert_id.startswith("p1|2019-05-05|fall|") and (rep is None or a.time <= rep.created_ts)
 
 
-# ---------------------------------------------------------------- vitals / room-sensor context with timestamps and ages
+# ---------------------------------------------------------------- vitals context with timestamps and ages
 def test_humanize_age():
     import pandas as pd
     h = lambda **k: P.humanize_age(pd.Timedelta(**k))  # noqa: E731
@@ -224,15 +222,14 @@ def test_humanize_age():
     assert h(days=2) == "2 days before this event" and h(minutes=1) == "1 minute before this event"
 
 
-def _fake_data(monkeypatch, phys, act):
+def _fake_data(monkeypatch, phys):
     import pandas as pd
     mk = lambda rows, cols: {"p1": pd.DataFrame(rows, columns=cols).assign(date=lambda d: pd.to_datetime(d.date)).sort_values("date")}  # noqa: E731
     P._CACHE["phys"] = mk(phys, ["device_type", "value", "date"])
-    P._CACHE["act"] = mk(act, ["location_name", "date"])
     monkeypatch.setattr("echos.reports.daily.facts.build_day_facts", lambda *a, **k: {"vitals": {"sys": {"baseline": 140.0}, "dia": {"baseline": 82.0},
                                                                                        "hr": {"baseline": 70.0}, "temp": {"baseline": None}}})
     yield
-    P._CACHE.pop("phys", None), P._CACHE.pop("act", None)
+    P._CACHE.pop("phys", None)
 
 
 @pytest.fixture
@@ -240,9 +237,7 @@ def fake(monkeypatch):
     phys = [("Systolic blood pressure", 152, "2019-05-03 10:12:00"), ("Diastolic blood pressure", 88, "2019-05-03 10:12:00"),
             ("Heart rate", 71, "2019-05-03 10:12:00"), ("Body Temperature", 36.4, "2019-05-03 22:00:00"),
             ("Heart rate", 99, "2019-05-06 08:00:00")]   # after the event: must never be shown
-    act = [("Kitchen", "2019-05-05 03:00:00"), ("Hallway", "2019-05-05 08:00:00"), ("Lounge", "2019-05-05 08:10:00"), ("Bedroom", "2019-05-05 09:00:00"),
-           ("Bathroom", "2019-05-05 09:30:00"), ("Kitchen", "2019-05-05 12:00:00")]
-    yield from _fake_data(monkeypatch, phys, act)
+    yield from _fake_data(monkeypatch, phys)
 
 
 def test_vitals_have_time_age_baseline_and_old_note(eng, fake):
@@ -260,12 +255,11 @@ def test_recent_vitals_have_no_note(eng, fake):
     assert p.vitals_note is None
 
 
-def test_room_events_last3_within_6h_else_plain_sentence(eng, fake):
+def test_alert_mail_has_no_room_sensor_section(eng, fake):
     p = P.build_payload(eng, "a|3", "FALL", "p1", "2019-05-05", "2019-05-05T10:00:00", 1, {}, {}, None)
-    assert [e.room for e in p.recent_room_events] == ["Lounge", "Bedroom", "Bathroom"] and p.room_note is None   # Kitchen 03:00 is >6 h old
-    assert "minutes before" in P.render_text(p)
-    p = P.build_payload(eng, "a|4", "FALL", "p1", "2019-05-05", "2019-05-05T20:00:00", 1, {}, {}, None)
-    assert p.recent_room_events == [] and "No room-sensor activity recorded in the 6 hours before the event (last recorded: 2019-05-05 12:00:00)" in P.render_text(p)
+    txt, html = P.render_text(p), P.render_html(p)
+    assert "room" not in txt.lower() and "room" not in html.lower() and "Latest vitals vs this patient's own baseline" in txt
+    assert not hasattr(p, "recent_room_events")
 
 
 def test_fall_and_critical_vitals_are_distinct_alerts():

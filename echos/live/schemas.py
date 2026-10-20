@@ -7,15 +7,13 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 VITAL_TYPES = ["Systolic blood pressure", "Diastolic blood pressure", "Heart rate", "Body Temperature", "Body weight"]
-ROOMS = ["Kitchen", "Hallway", "Lounge", "Bedroom", "Fridge Door", "Bathroom", "Front Door", "Back Door"]
 
 
 class IngestEvent(BaseModel):
     patient_id: str = Field(min_length=1, max_length=64)
     device_id: str = Field(default="device-1", max_length=64)
     ts: datetime                                             # DATA time (when it happened). Naive = local time of the patient.
-    kind: Literal["activity", "vitals", "accel", "heartbeat"]
-    room: Optional[str] = None                               # activity: one of ROOMS
+    kind: Literal["vitals", "accel", "heartbeat"]
     device_type: Optional[str] = None                        # vitals: one of VITAL_TYPES
     value: Optional[float] = None                            # vitals
     unit: Optional[str] = None
@@ -25,8 +23,6 @@ class IngestEvent(BaseModel):
 
     @model_validator(mode="after")
     def _kind_fields(self):
-        if self.kind == "activity" and self.room not in ROOMS:
-            raise ValueError(f"activity needs room in {ROOMS}")
         if self.kind == "vitals" and (self.device_type not in VITAL_TYPES or self.value is None):
             raise ValueError(f"vitals needs device_type in {VITAL_TYPES} and a value")
         if self.kind == "accel":

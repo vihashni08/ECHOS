@@ -69,7 +69,7 @@ export default function Clinician() {
               {[
                 ["Days by status", d ? `Normal ${d.status_counts.NORMAL} · Monitor ${d.status_counts.MONITOR} · Urgent ${d.status_counts.URGENT}` : "n/a", d ? `data gap ${d.status_counts.DATA_GAP}${(d.status_counts as Record<string, number>).NOT_PROCESSED ? ` · not yet processed ${(d.status_counts as Record<string, number>).NOT_PROCESSED}` : ""}` : ""],
                 ["Vitals alerts", String(d?.vitals_alerts?.length ?? 0), ""], ["Falls", String(d?.falls?.length ?? 0), ""],
-                ["Completeness", d ? `vitals ${d.completeness.days_with_vitals}/7 · activity ${d.completeness.days_with_activity}/7` : "n/a", d?.partial_week_note ?? ""],
+                ["Completeness", d ? `vitals ${d.completeness.days_with_vitals}/7` : "n/a", d?.partial_week_note ?? ""],
               ].map(([t, v, s]) => (
                 <Card key={t} className="py-3"><CardContent className="flex flex-col gap-0.5 px-3"><div className="text-xs text-muted-foreground">{t}</div><div className="text-sm font-semibold leading-snug">{v}</div>{s && <div className="text-xs text-muted-foreground">{s}</div>}</CardContent></Card>
               ))}
@@ -89,7 +89,7 @@ export default function Clinician() {
                     <thead className="text-xs text-muted-foreground"><tr><th className="pb-1 pr-3 font-medium">Date</th><th className="pb-1 pr-3 font-medium">Time</th><th className="pb-1 pr-3 font-medium">Type</th><th className="pb-1 font-medium">Detail</th></tr></thead>
                     <tbody>{rows.map((r, i) => <tr key={i} className="border-t align-top"><td className="num py-1.5 pr-3">{r.date}</td><td className="num py-1.5 pr-3">{r.time}</td><td className="py-1.5 pr-3 font-medium">{r.type}</td><td className="py-1.5">{r.detail}</td></tr>)}</tbody>
                   </table></div>)}
-                {d && <p className="mt-3 text-xs text-muted-foreground" data-testid="dq-line">Data quality: room-sensor activity on {d.completeness.days_with_activity} of 7 days, vitals on {d.completeness.days_with_vitals} of 7 days, {d.completeness.sensor_gap_days} sensor-gap day(s), {d.completeness.invalid_values_removed} invalid value(s) removed, longest stretch without vitals {d.completeness.longest_vitals_gap_days} day(s).{d.partial_week_note ? ` ${d.partial_week_note}` : ""}</p>}
+                {d && <p className="mt-3 text-xs text-muted-foreground" data-testid="dq-line">Data quality: vitals on {d.completeness.days_with_vitals} of 7 days, {d.completeness.invalid_values_removed} invalid value(s) removed, longest stretch without vitals {d.completeness.longest_vitals_gap_days} day(s).{d.partial_week_note ? ` ${d.partial_week_note}` : ""}</p>}
               </CardContent>
             </Card>
             <Card>

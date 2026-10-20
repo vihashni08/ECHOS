@@ -23,7 +23,7 @@ def db(tmp_path):
 def seed(eng):
     with eng.begin() as c:
         c.execute(S.agent_output.insert().values(event_id=1, agent_id="fall", patient_id="p1", day="2019-05-05", result=json.dumps({"score": 0.97, "flag": True}), done_ts=100.0))
-        c.execute(S.agent_output.insert().values(event_id=2, agent_id="quality", patient_id="p1", day="2019-05-05", result=json.dumps({"evidence": {"sensor_gap": True, "has_vitals": False}}), done_ts=99.0))
+        c.execute(S.agent_output.insert().values(event_id=2, agent_id="quality", patient_id="p1", day="2019-05-05", result=json.dumps({"evidence": {"invalid_values": [{"device_type": "Heart rate"}], "has_vitals": False}}), done_ts=99.0))
         S.upsert(c, S.case_state, ["patient_id", "day"], patient_id="p1", day="2019-05-05", status="URGENT", data_gap=False, reasons=json.dumps(["possible fall"]), updated_ts=101.0, provisional=False)
         S.upsert(c, S.case_state, ["patient_id", "day"], patient_id="p2", day="2019-05-05", status="NORMAL", data_gap=False, reasons="[]", updated_ts=50.0, provisional=False)
         c.execute(S.alerts.insert().values(alert_id="p1|2019-05-05|fall|1", patient_id="p1", type="fall", time=102.0, payload="{}", status="SENT", event_id=1, event_time="2019-05-05T10:00:00"))
@@ -55,7 +55,7 @@ def test_filters_by_agent_patient_and_one_case_with_detectors_in_order(db):
     seed(db)
     c = ctx(db)
     assert {e["agent"] for e in AC.events(c, 100, agent="fall")} == {"fall"} and "score 0.97, flagged" in AC.events(c, 5, agent="fall")[0]["text"]
-    assert "sensor gap" in AC.events(c, 5, agent="quality")[0]["text"]
+    assert "invalid value" in AC.events(c, 5, agent="quality")[0]["text"]
     assert {e["patient_id"] for e in AC.events(c, 100, patient_id="p2")} == {"p2"}
     case = AC.events(c, 100, patient_id="p1", day="2019-05-05", asc=True)
     order = [e["agent"] for e in case]

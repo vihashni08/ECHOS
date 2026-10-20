@@ -59,8 +59,7 @@ def template_items(d: dict) -> dict:
         s.append(f"{_plural(len(d['falls']), 'possible fall')}: {f}.")
     else:
         s.append("No possible falls were detected.")
-    s.append(f"Vitals readings were recorded on {comp['days_with_vitals']} of {d['days_in_week']} days and room-sensor activity on {comp['days_with_activity']} "
-             f"of {d['days_in_week']} days; {_plural(comp['sensor_gap_days'], 'sensor-gap day')}, {comp['invalid_values_removed']} invalid values removed.")
+    s.append(f"Vitals readings were recorded on {comp['days_with_vitals']} of {d['days_in_week']} days; {comp['invalid_values_removed']} invalid values removed.")
     if d["partial_week_note"]:
         s.append(d["partial_week_note"])
     return {"impression": [{"text": template_impression(d), "cites": []}], "key_findings": [{"text": x, "cites": []} for x in s], "guidance": []}
@@ -81,7 +80,7 @@ def template_impression(d: dict) -> str:
     else:
         lead = "Nothing differed from this person's own usual pattern this week."
     tail = f" {c['MONITOR']} Monitor and {c['URGENT']} Urgent day{'' if c['MONITOR'] + c['URGENT'] == 1 else 's'} of {comp['days_with_data']} with data."
-    gap = " Missing readings are not evidence of normal values." if comp["days_with_vitals"] < comp["days_with_data"] or comp["days_with_activity"] < comp["days_with_data"] else ""
+    gap = " Missing readings are not evidence of normal values." if comp["days_with_vitals"] < comp["days_with_data"] else ""
     return lead + tail + gap
 
 

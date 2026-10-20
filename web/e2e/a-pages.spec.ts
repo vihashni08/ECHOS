@@ -4,7 +4,7 @@ import { writeFileSync } from "node:fs"
 import { API, firstPatient, json, setTheme, watchConsole } from "./helpers"
 
 const ROUTES = ["/", "/alerts", "/falls", "/patient", "/caregiver", "/clinician", "/how-it-works", "/system"]
-const WEEK = "2019-W20"      // contains 201d8's fall on 2019-05-13 (URGENT)
+const WEEK = "2019-W20"      // contains 6b29b's fall on 2019-05-13 (URGENT)
 
 test("each page loads without console errors", async ({ page }) => {
   const errors = watchConsole(page)
@@ -51,14 +51,14 @@ test("Caregiver page renders the day's report, the alert time, the 7-day strip a
   await prov.locator("summary").click()
   await expect(prov).toContainText("Fixed template")
   // a day with a fall shows the alert and its time at the top
-  await page.goto(`/caregiver?patient=201d8&day=2019-05-13`)
+  await page.goto(`/caregiver?patient=6b29b&day=2019-05-13`)
   await expect(page.getByTestId("alert-banner")).toContainText("Possible fall at 10:18")
 })
 
 test("Clinician page: report data, citation side panel, PDF links, dry-run send with second confirmation", async ({ page }) => {
-  await page.goto(`/clinician?patient=201d8&week=${WEEK}`)
+  await page.goto(`/clinician?patient=6b29b&week=${WEEK}`)
   await expect(page.getByTestId("narrative")).toBeVisible({ timeout: 100000 })        // first visit builds the weekly report (nothing is emailed)
-  const w = await json<{ data: { status_counts: Record<string, number>; falls: unknown[] }; narrative: string }>(`/patients/201d8/reports/weekly?week=${WEEK}`)
+  const w = await json<{ data: { status_counts: Record<string, number>; falls: unknown[] }; narrative: string }>(`/patients/6b29b/reports/weekly?week=${WEEK}`)
   await expect(page.getByTestId("tiles")).toContainText(`Urgent ${w.data.status_counts.URGENT}`)
   await expect(page.getByTestId("narrative")).toContainText(w.narrative.slice(0, 40))
   await expect(page.getByTestId("alerts-table")).toContainText("Possible fall")
@@ -79,7 +79,7 @@ test("Clinician page: report data, citation side panel, PDF links, dry-run send 
   const pdf = await page.request.get((await page.getByTestId("download-pdf").getAttribute("href"))!)
   expect(pdf.headers()["content-type"]).toBe("application/pdf")
   // dry-run send
-  const weeklyRows = () => page.getByTestId("outbox-list").locator("li", { hasText: "201d8_2019-W20.pdf" })
+  const weeklyRows = () => page.getByTestId("outbox-list").locator("li", { hasText: "6b29b_2019-W20.pdf" })
   await page.getByTestId("send-weekly").click()
   await expect(page.getByRole("alertdialog")).toContainText("DRY RUN")
   await page.getByTestId("confirm-send").click()
@@ -144,7 +144,7 @@ test("Agent activity page: every part has a card, the latest activity lists real
 
 test("axe: no serious or critical violations on any page, light and dark", async ({ page }) => {
   const p = await firstPatient()
-  const pages = ["/", "/alerts", "/how-it-works", "/agents", "/falls", `/patients/${p.patient_id}`, `/caregiver?patient=${p.patient_id}&day=${p.latest_day}`, `/clinician?patient=201d8&week=${WEEK}`, "/system"]
+  const pages = ["/", "/alerts", "/how-it-works", "/agents", "/falls", `/patients/${p.patient_id}`, `/caregiver?patient=${p.patient_id}&day=${p.latest_day}`, `/clinician?patient=6b29b&week=${WEEK}`, "/system"]
   const found: { page: string; theme: string; id: string; impact: string; nodes: number; first: string }[] = []
   for (const theme of ["light", "dark"] as const) {
     await setTheme(page, theme)

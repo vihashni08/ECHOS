@@ -4,8 +4,8 @@ from __future__ import annotations
 
 COMPONENTS = [
     {"id": "quality", "name": "Data Quality gate", "kind": "detector", "worker": True,
-     "role": "Checks that the data can be trusted before anything is scored: ranges, silent sensors, gaps, freshness.",
-     "inputs": "raw activity and vitals events", "outputs": "quality verdict per patient-day (never imputes)",
+     "role": "Checks that the data can be trusted before anything is scored: ranges, duplicates, gaps in the readings, freshness.",
+     "inputs": "raw vitals events", "outputs": "quality verdict per patient-day (never imputes)",
      "on_failure": "data passes through marked 'quality unchecked'; the day can never be NORMAL",
      "never": "fill in missing values"},
     {"id": "health_monitoring", "name": "Vitals detector", "kind": "detector", "worker": True,

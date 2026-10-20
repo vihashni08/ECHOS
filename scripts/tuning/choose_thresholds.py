@@ -25,4 +25,4 @@ out = {"fall_operating_points_oof": rows,
        "agent1_threshold_1_per_patient_week": json.load(open(ROOT / "reports/metrics/agent1.json"))["threshold_at_1_per_week"]}
 (ROOT / "reports/metrics/triage_thresholds.json").write_text(json.dumps(out, indent=2))
 print(pd.DataFrame(rows).round(3).to_string(index=False)); print({k: v for k, v in out.items() if k.startswith("agent")})
-p = pd.read_parquet(cfg["paths"]["processed"]); print("vitals coverage", p.has_reading.mean().round(2), "activity", p.has_activity.mean().round(2))
+p = pd.read_parquet(cfg["paths"]["processed"]); print("vitals coverage", p.has_reading.mean().round(2))

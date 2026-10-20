@@ -18,7 +18,7 @@ def facts(day="2019-05-01", status="MONITOR", sys_now=162.0, with_flag=True):
     flags = [{"id": "F1", "type": "blood_pressure", "evidence": {"kind": "vitals_alert", "risk": 0.71, "sys_now": sys_now,
                                                                  "sys_baseline": 128.0}}] if with_flag else []
     return {"patient_id": "p1", "day": day, "status": status, "data_gap": False, "triage_reasons": [], "has_reading": True,
-            "has_activity": True, "vitals": v,
+            "vitals": v,
             "falls": [], "flags": flags}
 
 

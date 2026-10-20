@@ -60,7 +60,7 @@ def status(ctx: Ctx) -> dict:
     out = []
     for p in lp:
         streams = {}
-        for k, col in (("activity", p.wall_activity), ("vitals", p.wall_vitals), ("accel", p.wall_accel), ("heartbeat", p.wall_heartbeat)):
+        for k, col in (("vitals", p.wall_vitals), ("accel", p.wall_accel), ("heartbeat", p.wall_heartbeat)):
             if col is None:
                 streams[k] = {"last_wall_age_s": None, "state": "none"}
                 continue

@@ -27,34 +27,31 @@ Wilson CIs treat trials as independent; trials are clustered within subjects, so
 
 | Measure | Value |
 |---|---|
-| Patients / patient-days / patient-weeks | 20 / 1265 / 180.7 |
+| Patients / patient-days / patient-weeks | 20 / 1298 / 185.4 |
 | Injected falls | 60 |
-| Fall detection rate (URGENT, fall reason) | 0.800 (0.682-0.882) (48/60) |
-| Detection delay, simulated (fall -> end of day), median / max | 13.2 h / 23.8 h |
-| False fall alerts per patient-week | 0.017 (3 alerts) |
+| Fall detection rate (URGENT, fall reason) | 0.767 (0.646-0.856) (46/60) |
+| Detection delay, simulated (fall -> end of day), median / max | 14.3 h / 23.4 h |
+| False fall alerts per patient-week | 0.016 (3 alerts) |
 | URGENT days from critical vitals (real TIHM readings) | 4 |
-| All URGENT alerts per patient-week | 0.31 |
-| Days Normal / Monitor / Urgent | 74.3% / 21.3% / 4.3% |
-| Days with a data gap (any status) | 4.4% |
+| All URGENT alerts per patient-week | 0.286 |
+| Days Normal / Monitor / Urgent | 78.8% / 17.1% / 4.1% |
+| Days with a data gap (any status) | 0.5% |
 | Duplicate alerts | 0 |
 
-MONITOR days by reason (270 days)
+MONITOR days by reason (222 days)
 
 | Reason | Days | Share of MONITOR days |
 |---|---|---|
-| vitals only | 199 | 73.7% |
-| data gap only | 47 | 17.4% |
-| possible fall (no inactivity) only | 16 | 5.9% |
-| data gap + vitals | 4 | 1.5% |
-| possible fall (no inactivity) + vitals | 2 | 0.7% |
-| data gap + possible fall (no inactivity) | 2 | 0.7% |
+| vitals only | 194 | 87.4% |
+| possible fall (no inactivity) only | 18 | 8.1% |
+| data gap only | 6 | 2.7% |
+| possible fall (no inactivity) + vitals | 4 | 1.8% |
 
 DATA_GAP causes, all statuses (a day can have several)
 
 | Cause | Days |
 |---|---|
-| sensor gap | 55 |
-| vitals gap > 7 days | 2 |
+| vitals gap > 7 days | 7 |
 
 ### Vitals MONITOR threshold re-selected from out-of-fold predictions (alert budget)
 
@@ -62,19 +59,18 @@ Budget: vitals <= 1 alert per patient-week. Score scale: calibrated.
 
 |  | Previous (config) | Current |
 |---|---|---|
-| vitals_prob | 0.278 | 0.278 |
-| Vitals alerts / patient-week | 1.00 | 1.00 |
+| vitals_prob | 0.278 | 0.284 |
+| Vitals alerts / patient-week | 1.02 | 1.00 |
 | Vitals recall (BP/pulse/water labels) | 0.721 | 0.721 |
 
 ## Data Quality agent
 
 From `reports/eda/DATA_QUALITY.md` (read-only EDA, `scripts/eda.py`) and the rules in `docs/DATA_POLICY.md` (`echos/agents/data_quality.py`, counts in `reports/metrics/data_quality.json`).
 
-- 56 patients, median window 54 days; no BP/HR reading on 39.9% of patient-days (1152 of 2885); 18 patients have a gap > 7 days (max 91).
-- Activity outages: 128 zero-event and 56 low-event (< 5% of the patient's median) patient-days; 2 system-wide days (2019-06-15, 06-16), 99 patient-specific.
-- Implausible physiology values: 9 of 17679 (0.05%). Exact duplicates and out-of-order rows: 0 in Physiology, Activity and Labels.
+- 56 patients, median window 51 days; no BP/HR reading on 37.3% of patient-days (1030 of 2763); 18 patients have a gap > 7 days (max 91).
+- Implausible physiology values: 9 of 17679 (0.05%). Exact duplicates and out-of-order rows: 0 in Physiology and Labels.
 - Labels: 608 rows, 49 patients, 7 patients with none. Base rate: vitals alert 18.2% (Agitation labels, 4.19% of days, are present but not used: there is no behaviour detector).
-- Policy: out-of-range values become NaN and are listed (never dropped silently, never imputed); no forward-fill of vitals; the room-sensor activity stream is used only as a daily event count for the sensor-gap rule (a silent sensor is a data gap, never read as "zero activity"); a day with a sensor gap, unchecked data, or more than 7 days without vitals is DATA_GAP and cannot be Normal (Urgent still wins). Daily reports carry a data note.
+- Policy: out-of-range values become NaN and are listed (never dropped silently, never imputed); no forward-fill of vitals; the room-sensor Activity file is not used (no sensor-gap rule); the patient-day calendar runs from each patient's first to last day with a vitals reading or label; a day with unchecked data, degraded monitoring, or more than 7 days without vitals is DATA_GAP and cannot be Normal (Urgent still wins). Daily reports carry a data note.
 
 ## Report agent: RAG, LLM and privacy
 
@@ -88,8 +84,8 @@ From `reports/eda/DATA_QUALITY.md` (read-only EDA, `scripts/eda.py`) and the rul
 - **The vitals sub-model** beats the fixed BP rule on PR-AUC (0.70 vs 0.26; CIs do not overlap). At the rule's own alert count it recalls 0.89 vs 0.76, though the CIs overlap. At ~1 alert/patient-week it recalls 0.71 with 0.40 false alerts/patient-week. The target includes `water_alert`, which has no BP/HR signal, and labels are likely threshold-derived, so part of this is re-learning the labelling rule.
 - **The fall agent** is near-ceiling on adults in SisFall (tables above and the fall audit section). Elderly sensitivity rests on a single subject (SE06) and is much lower once post-fall inactivity is required. False alarms per hour are measured on short vigorous SisFall ADL trials and overstate daily life, but are still high for continuous wear; the triage rules therefore require post-fall inactivity for URGENT (operating point in `config.yaml`, chosen by `scripts/fall_audit.py`).
 <!-- reading_e2e_fault:start -->
-- **End-to-end (template mode, DryRun mail, out-of-fold vitals scores):** 48/60 injected held-out-subject falls raised an URGENT alert (80.0%, Wilson 95% CI 0.682-0.882); 3 false fall alerts (0.017 per patient-week). Alerts are decided at day close, so the simulated delay is 13.2 h median (max 23.8 h): the orchestrator is a daily batch, not real-time; a fall injected through the live controller (which closes the day at once) is queued in about 0.31 s on average. 21.3% of patient-days are Monitor (4.4% carry a data gap), within the 25% I consider usable for caregivers; switching the vitals trigger off would leave 5.6% (see the MONITOR driver section; a threshold change is proposed, not applied).
-- **Fault injection (fakes, 3 patients x 10 days, compared with a clean run):** no alert lost and no duplicate in 11 of 11 fault cases; the exception is the SMTP outage longer than the retry window, where alerts were queued but 10 outbox rows ended FAILED (undelivered, visible; measured before the 15-minute retry window and 2-hour sweeper were added, see Limitations). Worker kills were detected in 2.9-3.1 s and recovered (first new output) in 3.2-11.1 s; a fall injected during such an outage is delayed by up to the restart time but not lost. Duplicates are impossible by construction (unique alert key). Differences from the clean run were restricted to quality / degraded flags.
+- **End-to-end (template mode, DryRun mail, out-of-fold vitals scores):** 46/60 injected held-out-subject falls raised an URGENT alert (76.7%, Wilson 95% CI 0.646-0.856); 3 false fall alerts (0.016 per patient-week). Alerts are decided at day close, so the simulated delay is 14.3 h median (max 23.4 h): the orchestrator is a daily batch, not real-time; a fall injected through the live controller (which closes the day at once) is queued in about 1.63 s on average. 17.1% of patient-days are Monitor (0.5% carry a data gap), within the 25% I consider usable for caregivers; switching the vitals trigger off would leave 2.2% (see the MONITOR driver section; a threshold change is proposed, not applied).
+- **Fault injection (fakes, 3 patients x 10 days, compared with a clean run):** no alert lost and no duplicate in 11 of 11 fault cases. Worker kills were detected in 2.5-3.3 s and recovered (first new output) in 3.0-11.1 s; a fall injected during such an outage is delayed by up to the restart time but not lost. Duplicates are impossible by construction (unique alert key). Differences from the clean run were restricted to quality / degraded flags.
 <!-- reading_e2e_fault:end -->
 - **Bugs found and fixed while producing these results:** (1) `run_orchestrator` could stop before processing days inserted during a slow pass (lost alerts under a slow LLM); (2) the vitals sub-model's bootstrap CIs for recall at an alert budget undercounted patient-weeks for resampled duplicate patients, biasing them low. Point estimates are unchanged.
 
@@ -99,7 +95,7 @@ From `reports/eda/DATA_QUALITY.md` (read-only EDA, `scripts/eda.py`) and the rul
 - **Label provenance is not verified by us.** The dataset papers describe the labels as clinician-verified events at 6-hour resolution; we did not check how each label was produced. Since 99% of BP-label days have a BP reading, the vitals model may partly learn the link between labelled events and readings; treat vitals results as an upper bound on generalisation. Our label counts match the dataset description. The vitals model detects same-day clinical-alert labels; it does not forecast.
 - **Falls are simulated.** TIHM has no falls and no accelerometer: falls are SisFall windows (young volunteers, scripted falls on mats) injected into TIHM patient-days. Fall results say nothing about real home falls, and the end-to-end detection rate is a pipeline check on held-out SisFall subjects (SA03, SA11, SA19, SE06).
 - **Elderly fall evidence is one subject:** only SE06 (a judo expert) performed falls; every elderly cell in the per-type table has 5 trials of one person, and the confidence interval of the elderly sensitivity is degenerate. Several fall types are weak or missed (see the per-type table); elderly sensitivity cannot be generalised.
-- **Replay numbers:** vitals scores are out-of-fold, but the vitals MONITOR threshold was chosen on those same scores (mild optimism); injected sensor windows are unrelated to the patient's TIHM data. The replay MONITOR share (21.3%, 20 patients) is below the 25% I consider usable, but on all 56 patients out-of-fold it is about 34% at the shipped threshold, mostly from data gaps (see the MONITOR driver section and docs/LIMITATIONS.md).
+- **Replay numbers:** vitals scores are out-of-fold, but the vitals MONITOR threshold was chosen on those same scores (mild optimism); injected sensor windows are unrelated to the patient's TIHM data. The replay MONITOR share (17.1%, 20 patients) is below the 25% I consider usable, but on all 56 patients out-of-fold it is about 28% at the shipped threshold, from vitals flags (14%) and more than 7 days without a reading (14%) (see the MONITOR driver section and docs/LIMITATIONS.md).
 - **Alerts depend on SMTP delivery.** Alerts are always queued in the outbox (none lost in the fault tests), but delivery depends on the mail server: a FALL / CRITICAL_VITALS e-mail is retried with backoff for 15 minutes (outbox PENDING -> RETRYING -> SENT or FAILED) and a sweeper retries FAILED rows every 5 minutes for 2 hours; after that a row stays FAILED until retried by hand (`POST /api/outbox/{id}/retry`). The SMTP-outage fault case above was measured before this retry window existed (3 attempts, then FAILED); the new retry logic is covered by `tests/test_email_retry.py` with a fake clock and has not been re-measured by fault injection. Real SMTP is never exercised by tests or demos (FakeMailer / DryRun only). A fall alert raised while an agent or the supervisor is down is delayed by up to the restart time (seconds for a worker; the operator's restart time for the supervisor) but never dropped.
 - **Fault injection is small:** 3 patients x 10 days, one fault per case, one machine, fakes for the LLM, SMTP and PubMed; it does not cover disk failure, host loss, real network faults or how the real Gemini API responds.
 - **LLM wording quality was not evaluated.** All tables used template mode or fakes; the RAG guidance path (paraphrase / citation checks) is covered by unit tests and fakes, not by a study of real model output.
@@ -194,56 +190,56 @@ SisFall ADL trials are short, vigorous trials (running, jumping, stairs, sit-dow
 <!-- ablation:start -->
 ## System ablation (written by scripts/evaluation/ablation.py)
 
-Out-of-fold scores, patient-level folds; patient-level bootstrap 95% CIs (1000 resamples). 56 patients, 2796 patient-days (399.4 patient-weeks); 315 vitals-labelled days. A = fixed BP rule, B = vitals model only, C = full system (vitals model + arbiter). Budget = alert days per patient-week; false alerts = alert days without the target label.
+Out-of-fold scores, patient-level folds; patient-level bootstrap 95% CIs (1000 resamples). 56 patients, 2749 patient-days (392.7 patient-weeks); 315 vitals-labelled days. A = fixed BP rule, B = vitals model only, C = full system (vitals model + arbiter). Budget = alert days per patient-week; false alerts = alert days without the target label.
 
 ### Vitals-labelled days (BP / pulse / body-water clinical alerts)
 
 | Budget | System | Alerts / pt-wk | Recall (95% CI) | Chance recall | False alerts / pt-wk (95% CI) |
 |---|---|---|---|---|---|
-| A's budget | A fixed BP rule | 2.09 | 0.76 (0.61-0.88) | 0.48 | 1.49 (1.11-1.88) |
-| A's budget | B vitals model only | 2.09 | 0.90 (0.83-0.94) | 0.48 | 1.38 (0.95-1.80) |
-| A's budget | C full system | 2.09 | 0.90 (0.83-0.94) | 0.48 | 1.38 (0.95-1.80) |
-| 0.5 / pt-wk | B vitals model only | 0.50 | 0.50 (0.40-0.63) | 0.12 | 0.11 (0.04-0.20) |
-| 0.5 / pt-wk | C full system | 0.50 | 0.50 (0.40-0.63) | 0.12 | 0.11 (0.04-0.20) |
-| 1.0 / pt-wk | B vitals model only | 1.00 | 0.72 (0.63-0.81) | 0.23 | 0.43 (0.26-0.60) |
-| 1.0 / pt-wk | C full system | 1.00 | 0.72 (0.63-0.81) | 0.23 | 0.43 (0.26-0.60) |
-| 2.0 / pt-wk | B vitals model only | 2.00 | 0.88 (0.82-0.94) | 0.46 | 1.30 (1.01-1.51) |
-| 2.0 / pt-wk | C full system | 2.00 | 0.88 (0.82-0.94) | 0.46 | 1.30 (1.01-1.51) |
+| A's budget | A fixed BP rule | 2.12 | 0.76 (0.61-0.88) | 0.48 | 1.52 (1.15-1.89) |
+| A's budget | B vitals model only | 2.12 | 0.90 (0.83-0.94) | 0.48 | 1.41 (0.99-1.83) |
+| A's budget | C full system | 2.12 | 0.90 (0.83-0.94) | 0.48 | 1.41 (0.99-1.83) |
+| 0.5 / pt-wk | B vitals model only | 0.50 | 0.49 (0.39-0.62) | 0.11 | 0.10 (0.04-0.20) |
+| 0.5 / pt-wk | C full system | 0.50 | 0.49 (0.39-0.62) | 0.11 | 0.10 (0.04-0.20) |
+| 1.0 / pt-wk | B vitals model only | 1.00 | 0.72 (0.62-0.81) | 0.23 | 0.42 (0.26-0.60) |
+| 1.0 / pt-wk | C full system | 1.00 | 0.72 (0.62-0.81) | 0.23 | 0.42 (0.26-0.60) |
+| 2.0 / pt-wk | B vitals model only | 2.00 | 0.88 (0.82-0.94) | 0.45 | 1.29 (1.00-1.51) |
+| 2.0 / pt-wk | C full system | 2.00 | 0.88 (0.82-0.94) | 0.45 | 1.29 (1.00-1.51) |
 
 ### Day-level: any labelled clinical alert (vitals), shipped threshold
 
-Positives: 315 labelled days. Shipped threshold: vitals 0.278 (+ critical limits).
+Positives: 315 labelled days. Shipped threshold: vitals 0.284 (+ critical limits).
 
 | System | Alerts / pt-wk | Recall (95% CI) | False alerts / pt-wk (95% CI) |
 |---|---|---|---|
-| A fixed BP rule | 2.09 | 0.76 (0.61-0.88) | 1.49 (1.11-1.88) |
-| B vitals score, matched to C's budget | 1.00 | 0.72 (0.62-0.80) | 0.43 (0.28-0.60) |
-| C full system, shipped threshold | 1.00 | 0.72 (0.62-0.80) | 0.43 (0.28-0.60) |
+| A fixed BP rule | 2.12 | 0.76 (0.61-0.88) | 1.52 (1.15-1.88) |
+| B vitals score, matched to C's budget | 1.00 | 0.72 (0.62-0.80) | 0.42 (0.27-0.59) |
+| C full system, shipped threshold | 1.00 | 0.72 (0.62-0.80) | 0.42 (0.27-0.59) |
 
-**C vs B (recall at matched budget):** vitals @ A's budget: C 0.90 vs B 0.90 -> no difference; vitals @ 0.5 / pt-wk: C 0.50 vs B 0.50 -> no difference; vitals @ 1.0 / pt-wk: C 0.72 vs B 0.72 -> no difference; vitals @ 2.0 / pt-wk: C 0.88 vs B 0.88 -> no difference.
+**C vs B (recall at matched budget):** vitals @ A's budget: C 0.90 vs B 0.90 -> no difference; vitals @ 0.5 / pt-wk: C 0.49 vs B 0.49 -> no difference; vitals @ 1.0 / pt-wk: C 0.72 vs B 0.72 -> no difference; vitals @ 2.0 / pt-wk: C 0.88 vs B 0.88 -> no difference.
 <!-- ablation:end -->
 
 <!-- monitor_driver:start -->
 ## MONITOR share driver and threshold proposal (written by scripts/demo/monitor_driver.py; NOT applied)
 
-Current replay MONITOR share 21.3% of 1265 days (limit I set myself: 25%). Triage re-run over stored agent outputs (0 mismatches vs the stored statuses).
+Current replay MONITOR share 17.1% of 1298 days (limit I set myself: 25%). Triage re-run over stored agent outputs (0 mismatches vs the stored statuses).
 
 | Trigger switched off | MONITOR share |
 |---|---|
-| none (current) | 21.3% |
-| vitals trigger (only data gaps / possible falls remain) | 5.6% |
+| none (current) | 17.1% |
+| vitals trigger (only data gaps / possible falls remain) | 2.2% |
 
 | vitals_prob | MONITOR share | vitals alert days | vitals alerts / patient-week |
 |---|---|---|---|
-| 0.278 | 21.3% | 220 | 1.22 |
-| 0.35 | 18.2% | 174 | 0.96 |
-| 0.4 | 16.3% | 148 | 0.82 |
-| 0.45 | 15.1% | 133 | 0.74 |
-| 0.5 | 14.3% | 121 | 0.67 |
-| 0.6 | 12.5% | 96 | 0.53 |
+| 0.284 | 17.1% | 215 | 1.16 |
+| 0.35 | 14.4% | 174 | 0.94 |
+| 0.4 | 12.6% | 148 | 0.80 |
+| 0.45 | 11.6% | 133 | 0.72 |
+| 0.5 | 10.9% | 121 | 0.65 |
+| 0.6 | 9.1% | 96 | 0.52 |
 
-Out-of-fold vitals recall at fixed budgets (ablation, B): 0.5 / pt-wk -> 0.50, 1.0 / pt-wk -> 0.72, 2.0 / pt-wk -> 0.88.
-**Proposal (not applied):** raise `triage.vitals_prob` to 0.35: MONITOR share 18.2%, about 0.96 vitals alerts per patient-week (recall cost: see the budget recalls above).
+Out-of-fold vitals recall at fixed budgets (ablation, B): 0.5 / pt-wk -> 0.49, 1.0 / pt-wk -> 0.72, 2.0 / pt-wk -> 0.88.
+**Proposal (not applied):** raise `triage.vitals_prob` to 0.35: MONITOR share 14.4%, about 0.94 vitals alerts per patient-week (recall cost: see the budget recalls above).
 <!-- monitor_driver:end -->
 
 <!-- fall_eval:start -->
@@ -277,16 +273,16 @@ Operating point: score >= 0.8 AND post-fall inactivity (config `agent3.operating
 
 | Item | Value |
 |---|---|
-| Injected falls (20 patients, 180.7 patient-weeks; subjects SA03, SA11, SA19, SE06 held out of the model) | 60 |
-| Detected as URGENT fall alert | 48/60 = 0.800 (Wilson 95% CI 0.682-0.882) |
-| False fall alerts on non-injected days | 3 = 0.017 per patient-week |
-| Simulated event -> alert delay (daily batch: decided at day close), median / max | 13.2 h / 23.8 h |
+| Injected falls (20 patients, 185.4 patient-weeks; subjects SA03, SA11, SA19, SE06 held out of the model) | 60 |
+| Detected as URGENT fall alert | 46/60 = 0.767 (Wilson 95% CI 0.646-0.856) |
+| False fall alerts on non-injected days | 3 = 0.016 per patient-week |
+| Simulated event -> alert delay (daily batch: decided at day close), median / max | 14.3 h / 23.4 h |
 | Wall clock injected fall (live controller, day closes at once) -> alert queued, median / max (4 alerts, 3 patients x 10 days) | 0.29 s / 0.36 s |
 | Wall clock injected fall -> alert sent (fake mailer, no network), median / max | 0.29 s / 0.36 s |
 
 The wall-clock rows measure software latency only; the clinically relevant delay is the simulated one, because the orchestrator decides once per patient-day.
 
-Missed injected falls: F01_SE06_R01 (SE06), F14_SE06_R01 (SE06), F07_SE06_R04 (SE06), F04_SA03_R01 (SA03), F04_SA03_R01 (SA03), F13_SA03_R01 (SA03), F10_SE06_R03 (SE06), F07_SA19_R03 (SA19), F04_SA03_R04 (SA03), F14_SE06_R02 (SE06), F10_SE06_R01 (SE06), F10_SE06_R04 (SE06).
+Missed injected falls: F14_SE06_R01 (SE06), F10_SE06_R01 (SE06), F08_SE06_R01 (SE06), F07_SE06_R03 (SE06), F01_SA03_R01 (SA03), F08_SE06_R04 (SE06), F04_SA03_R01 (SA03), F04_SA03_R02 (SA03), F10_SA19_R02 (SA19), F14_SE06_R02 (SE06), F06_SE06_R01 (SE06), F10_SE06_R04 (SE06), F10_SA19_R02 (SA19), F10_SA19_R02 (SA19).
 
 ### (iii) Effect of inactivity confirmation on false alerts
 
@@ -295,8 +291,8 @@ Missed injected falls: F01_SE06_R01 (SE06), F14_SE06_R01 (SE06), F07_SE06_R04 (S
 | SisFall sliding ADL windows: false alarms / hour (all subjects) | 0.76 | 0.28 |
 | Adult fall sensitivity (out-of-fold) | 0.952 | 0.918 |
 | Elderly (SE06) fall sensitivity | 0.653 | 0.560 |
-| Replay: false fall alert days per patient-week | 0.122 (22 days) | 0.022 (4 days) |
-| Replay: injected falls with score >= threshold / alerted | 52/60 | 48/60 |
+| Replay: false fall alert days per patient-week | 0.124 (23 days) | 0.016 (3 days) |
+| Replay: injected falls with score >= threshold / alerted | 50/60 | 46/60 |
 
 Without confirmation a flagged event would be URGENT on score alone; in the shipped rules it is only MONITOR ("possible fall, no inactivity").
 
@@ -306,20 +302,20 @@ Caveats: SisFall falls are scripted on mats by young volunteers; the elderly col
 <!-- gate_eval:start -->
 ## Gatekeeper evaluation (written by scripts/evaluation/gate_eval.py)
 
-Count only (counting FakeLLM, stub retrieval, nothing sent) on the stored replay: 1265 patient-days (940 Normal, 270 Monitor, 55 Urgent). Gate ON = NORMAL days get a template report; gate OFF = hypothetical always-LLM policy.
+Count only (counting FakeLLM, stub retrieval, nothing sent) on the stored replay: 1298 patient-days (1023 Normal, 222 Monitor, 53 Urgent). Gate ON = NORMAL days get a template report; gate OFF = hypothetical always-LLM policy.
 
 | Measure | Gate ON | Always-LLM | Avoided |
 |---|---|---|---|
-| Daily reports routed to the LLM | 325 | 1265 | 940 (74.3% of days) |
-| LLM requests, lower bound (2 per report) | 650 | 2530 | 1880 |
-| LLM requests, counting fake (4 per report) | 975 | 3795 | 2820 |
-| Retrievals executed (local index; MONITOR / URGENT only) | 911 | 911 | 0 |
-| Retrieval requests blocked by the retriever's status guard (NORMAL days) | 0 | 940 | n/a: the guard exists in both policies |
-| Live PubMed searches | 618 | 618 | 0 |
+| Daily reports routed to the LLM | 275 | 1298 | 1023 (78.8% of days) |
+| LLM requests, lower bound (2 per report) | 550 | 2596 | 2046 |
+| LLM requests, counting fake (4 per report) | 825 | 3894 | 3069 |
+| Retrievals executed (local index; MONITOR / URGENT only) | 851 | 851 | 0 |
+| Retrieval requests blocked by the retriever's status guard (NORMAL days) | 0 | 1023 | n/a: the guard exists in both policies |
+| Live PubMed searches | 563 | 563 | 0 |
 
-Triage results identical with gate on and off: **True** (1265 days); alerts identical: **True** (56 vs 56); outbox rows identical: **True**; alerts missed due to gating: **0**.
+Triage results identical with gate on and off: **True** (1298 days); alerts identical: **True** (53 vs 53); outbox rows identical: **True**; alerts missed due to gating: **0**.
 
-The avoided share is the Normal share of days in this cohort (74.3%); it depends on the data mix and would be smaller where more days are Monitor. The gate never touches triage or alerts: the gated step runs after the alert has been queued.
+The avoided share is the Normal share of days in this cohort (78.8%); it depends on the data mix and would be smaller where more days are Monitor. The gate never touches triage or alerts: the gated step runs after the alert has been queued.
 <!-- gate_eval:end -->
 
 <!-- fault_injection:start -->
@@ -329,29 +325,29 @@ The avoided share is the Normal share of days in this cohort (74.3%); it depends
 
 | Fault | Alerts queued (clean) | Lost / extra | Duplicates (outbox / mail) | Delivered (SENT) / FAILED rows | Falls alerted | Detect (s) | Recover (s) | Injected fall: delay added, queued / sent (s) | Cases identical / quality-flag only / other | Report modes |
 |---|---|---|---|---|---|---|---|---|---|---|
-| clean run (reference) | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | - | +0.00 / +0.00 | 30 / 0 / 0 | template:30 |
-| kill quality worker | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | 2.9 | 3.2 | +3.11 / +3.11 | 30 / 0 / 0 | template:30 |
-| kill health_monitoring worker | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | 3.1 | 5.2 | +5.13 / +5.13 | 30 / 0 / 0 | template:30 |
-| kill fall worker | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | 3.0 | 4.1 | +3.94 / +3.94 | 30 / 0 / 0 | template:30 |
-| kill supervisor (workers keep running) | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | n/a (no worker died) | n/a (no worker died) | +0.26 / +0.26 | 30 / 0 / 0 | template:30 |
-| kill supervisor, then fall worker; supervisor restarted after 10 s | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | 11.1 | +10.98 / +10.98 | 30 / 0 / 0 | template:30 |
-| LLM raising errors (HTTP 503 on every call) | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | - | +0.16 / +0.16 | 30 / 0 / 0 | template:30 |
-| LLM timing out (every call) | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | - | +0.13 / +0.13 | 30 / 0 / 0 | template:30 |
-| PubMed failing (HTTP 503) | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | - | -0.02 / -0.02 | 30 / 0 / 0 | template:30 |
-| SMTP fails twice per recipient, then recovers | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | - | +0.00 / +3.01 | 30 / 0 / 0 | template:30 |
-| SMTP down for 8 s (longer than the 3-attempt retry window) | 12 (12) | 0 / 0 | 0 / 0 | 14 / 10 | 12/12 | - | - | -0.08 / not sent | 30 / 0 / 0 | template:30 |
-| API process killed mid-run, restarted after 2 s | 12 (12) | 0 / 0 | 0 / 0 | 24 / 0 | 12/12 | - | API back after 2.4 | +0.01 / +0.01 | 30 / 0 / 0 | template:30 |
+| clean run (reference) | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | - | - | +0.00 / +0.00 | 30 / 0 / 0 | template:30 |
+| kill quality worker | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | 2.7 | 3.0 | -0.37 / -0.37 | 30 / 0 / 0 | template:30 |
+| kill health_monitoring worker | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | 2.5 | 4.4 | +0.94 / +0.95 | 30 / 0 / 0 | template:30 |
+| kill fall worker | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | 3.3 | 4.3 | +0.96 / +0.97 | 30 / 0 / 0 | template:30 |
+| kill supervisor (workers keep running) | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | n/a (no worker died) | n/a (no worker died) | -3.04 / -3.03 | 30 / 0 / 0 | template:30 |
+| kill supervisor, then fall worker; supervisor restarted after 10 s | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | - | 11.1 | +7.69 / +7.70 | 30 / 0 / 0 | template:30 |
+| LLM raising errors (HTTP 503 on every call) | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | - | - | -3.14 / -3.14 | 30 / 0 / 0 | template:30 |
+| LLM timing out (every call) | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | - | - | -3.09 / -3.09 | 30 / 0 / 0 | template:30 |
+| PubMed failing (HTTP 503) | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | - | - | -3.25 / -3.25 | 30 / 0 / 0 | template:30 |
+| SMTP fails twice per recipient, then recovers | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | - | - | -3.09 / -0.07 | 30 / 0 / 0 | template:30 |
+| SMTP down for 8 s (longer than the 3-attempt retry window) | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | - | - | -3.14 / +11.90 | 30 / 0 / 0 | template:30 |
+| API process killed mid-run, restarted after 2 s | 11 (11) | 0 / 0 | 0 / 0 | 22 / 0 | 10/11 | - | API back after 2.5 | -3.03 / -3.03 | 30 / 0 / 0 | template:30 |
 
 Notes: alerts are unique per (patient, day, type, event), so duplicates are impossible by construction (the columns check the outbox rows and the mails the fake mailer received). 'Detect' = kill -> supervisor notices and restarts; 'Recover' = kill -> the worker's first new output. 'Delay added' = injected fall: (time from injection to alert queued / sent) minus the same in the clean run. Differences between cases and the clean run are allowed only in quality / degraded flags (middle column).
 
-- SMTP down for 8 s (longer than the 3-attempt retry window): outbox {'SENT': 14, 'FAILED': 10}, alert status {'SENT': 7, 'FAILED': 5}; send delay after queueing median/max {'median': 0.0, 'max': 3.02}. Rows that exhausted the 3 attempts stay FAILED (visible, not re-sent automatically).
-- SMTP fails twice per recipient, then recovers: outbox {'SENT': 24}, alert status {'SENT': 12}; send delay after queueing median/max {'median': 3.01, 'max': 3.02}. All recovered by retry.
-- API restart: down 2.44 s (includes a 2 s restart delay and 0.43 s start-up), SSE reconnect True, alerts visible through the restarted API: 12; the run itself was unaffected.
-- PubMed failing: 30 failed HTTP attempts across 60 fake-LLM requests; each failure was logged and the retriever fell back to local sources only; reports ended as {'template': 30} (the fake model's answers do not validate, so they fall back to the template: {'gate: NORMAL day (template only)': 15, 'fake-retrieving: validation_failed': 15}); no alert was affected.
-- LLM raising errors (HTTP 503 on every call): 30 fake requests, report modes {'template': 30}, fallbacks {'gate: NORMAL day (template only)': 15, 'fake-errors: 503 UNAVAILABLE': 15}.
-- LLM timing out (every call): 15 fake requests, report modes {'template': 30}, fallbacks {'gate: NORMAL day (template only)': 15, 'fake-timeout: timeout': 15}.
+- SMTP down for 8 s (longer than the 3-attempt retry window): outbox {'SENT': 22}, alert status {'SENT': 11}; send delay after queueing median/max {'median': 0.01, 'max': 15.04}. All recovered by retry.
+- SMTP fails twice per recipient, then recovers: outbox {'SENT': 22}, alert status {'SENT': 11}; send delay after queueing median/max {'median': 3.02, 'max': 3.03}. All recovered by retry.
+- API restart: down 2.45 s (includes a 2 s restart delay and 0.43 s start-up), SSE reconnect True, alerts visible through the restarted API: 11; the run itself was unaffected.
+- PubMed failing: 30 failed HTTP attempts across 45 fake-LLM requests; each failure was logged and the retriever fell back to local sources only; reports ended as {'template': 30} (the fake model's answers do not validate, so they fall back to the template: {'fake-retrieving: validation_failed': 15, 'gate: NORMAL day (template only)': 15}); no alert was affected.
+- LLM raising errors (HTTP 503 on every call): 30 fake requests, report modes {'template': 30}, fallbacks {'fake-errors: 503 UNAVAILABLE': 15, 'gate: NORMAL day (template only)': 15}.
+- LLM timing out (every call): 15 fake requests, report modes {'template': 30}, fallbacks {'fake-timeout: timeout': 15, 'gate: NORMAL day (template only)': 15}.
 - kill supervisor (workers keep running): workers kept running without a supervisor; no worker died, so nothing needed restarting.
-- kill supervisor, then fall worker; supervisor restarted after 10 s: workers kept running without a supervisor; fall worker killed, restarted by the new supervisor 10.03 s after the kill, first output 11.09 s after the kill.
+- kill supervisor, then fall worker; supervisor restarted after 10 s: workers kept running without a supervisor; fall worker killed, restarted by the new supervisor 10.04 s after the kill, first output 11.14 s after the kill.
 
 Supervisor death is a single point of failure for RESTARTS only: with no supervisor a dead worker stays dead until the supervisor is restarted (assumed 10 s here), and a fall alert injected during that outage waits for it (see the delay-added column).
 <!-- fault_injection:end -->

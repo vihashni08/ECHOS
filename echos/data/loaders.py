@@ -19,10 +19,6 @@ def load_physiology() -> pd.DataFrame:
     return _with_day(pd.read_csv(_dir() / "Physiology.csv"))
 
 
-def load_activity() -> pd.DataFrame:
-    return _with_day(pd.read_csv(_dir() / "Activity.csv"))
-
-
 def load_labels() -> pd.DataFrame:
     return _with_day(pd.read_csv(_dir() / "Labels.csv"))
 

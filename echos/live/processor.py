@@ -1,9 +1,9 @@
 """LiveProcessor: turns raw ingested events into decisions, as they arrive.
 
-  events (activity / vitals / accel / heartbeat)  ->  Quality gate, Vitals detector, Fall detector (on arrival)
+  events (vitals / accel / heartbeat)  ->  Quality gate, Vitals detector, Fall detector (on arrival)
   -> the SAME rule-based triage as replay (echos/orchestrator/triage.py) -> immediate alert (URGENT) -> Case Investigator -> Report agent.
 A day stays open and PROVISIONAL (case_state.provisional) until an event of a later day arrives; the decision is refreshed on every vitals / fall event and,
-throttled, on activity. Detectors are scored from the events themselves (echos/live/features.py), never from the pre-built training table; the
+throttled, on heartbeats. Detectors are scored from the events themselves (echos/live/features.py), never from the pre-built training table; the
 training table only supplies the patient's earlier history (their own usual) before the first live day.
 
 One thread, one process: models are loaded here (the API never loads them). Detector failures degrade exactly as in replay: vitals -> fixed thresholds,
@@ -66,7 +66,7 @@ class LiveProcessor:
         self.gate_on = bool(self.cfg.get("report_gate", {}).get("enabled", True))
         self._fall_ready = False
         from echos.alerts import payload as _P
-        _P.LIVE_ENG = eng                  # alert e-mails show the recent vitals / rooms of ingested events too
+        _P.LIVE_ENG = eng                  # alert e-mails show the recent vitals of ingested events too
 
     # ------------------------------------------------------------ main loop
     def run(self, poll_s: float = 0.2):
@@ -154,20 +154,13 @@ class LiveProcessor:
         return VitalsPart(available=True, probability=1.0 if hit else 0.0, flag=hit, fixed_rule_triggered=hit,
                           current_vs_baseline={k: {"current": c, "baseline": None, "z": None} for k, c in cur.items()})
 
-    def _quality(self, pid: str, day: pd.Timestamp, row: dict, last_act_ts, clock_ts, closed: bool, failed: Optional[str]) -> dict:
+    def _quality(self, pid: str, day: pd.Timestamp, row: dict, failed: Optional[str]) -> dict:
         if failed:
             return dq.unchecked(pid, day, failed).model_dump(mode="json")
-        gap, why = bool(row["sensor_gap"]), row["sensor_gap_reason"]
-        lo, hi = self.lc.get("day_window", [7, 22])
-        if not closed and not gap and clock_ts is not None:
-            ref = last_act_ts if last_act_ts is not None else day + pd.Timedelta(hours=lo)
-            silent = (clock_ts - ref) / pd.Timedelta(hours=1)
-            if silent >= float(self.lc.get("silent_hours", 6)) and lo <= clock_ts.hour < hi + 1:
-                gap, why = True, "sensor_silent"
         inv = json.loads(row["invalid_json"]) if row.get("invalid_json") else []
-        q = DataQualityResult(patient_id=pid, day=day.date(), has_vitals=bool(row["has_reading"]), invalid_values=inv, sensor_gap=gap, sensor_gap_reason=why,
-                              days_since_last_reading=int(row["days_since_last_reading"]), completeness=float(dq.completeness(gap, row["has_reading"], len(inv))))
-        return AgentResult(patient_id=pid, day=day.date(), agent="quality", score=round(1 - q.completeness, 3), flag=gap or bool(inv),
+        q = DataQualityResult(patient_id=pid, day=day.date(), has_vitals=bool(row["has_reading"]), invalid_values=inv,
+                              days_since_last_reading=int(row["days_since_last_reading"]), completeness=float(dq.completeness(row["has_reading"], len(inv))))
+        return AgentResult(patient_id=pid, day=day.date(), agent="quality", score=round(1 - q.completeness, 3), flag=bool(inv),
                            evidence=q.model_dump(mode="json")).model_dump(mode="json")
 
     # ------------------------------------------------------------ decision
@@ -175,22 +168,19 @@ class LiveProcessor:
         st = self.st[pid]
         d = pd.Timestamp(day).normalize()
         rows = LS.events_of_day(self.eng, pid, day)
-        act, vit = LS.frames_of_day(rows)
+        vit = LS.vitals_of_day(rows)
         hist = LF.history_for(self.parquet, LS.closed_rows(self.eng, pid), pid, d)
-        row = LF.build_row(pid, d, act, vit, hist, closed)
+        row = LF.build_row(pid, d, vit, hist)
         LS.save_row(self.eng, pid, day, row, closed)
         full = pd.concat([hist, pd.DataFrame([row])], ignore_index=True, sort=False)
         full["day"] = pd.to_datetime(full["day"])
-        for col in ("has_activity", "has_reading", "sensor_gap"):
-            full[col] = full[col].fillna(False).astype(bool)
+        full["has_reading"] = full["has_reading"].fillna(False).astype(bool)
         clock_ts = pd.Timestamp(max([r.ts for r in rows] or [day]))
-        acts = [r.ts for r in rows if r.kind == "activity"]
-        last_act = pd.Timestamp(max(acts)) if acts else None
         # Quality gate
         try:
-            quality = self._quality(pid, d, row, last_act, clock_ts, closed, "fall_window_unanalysed" if st.fall_failed else None)
+            quality = self._quality(pid, d, row, "fall_window_unanalysed" if st.fall_failed else None)
         except Exception as ex:  # noqa: BLE001
-            quality = self._quality(pid, d, row, last_act, clock_ts, closed, type(ex).__name__)
+            quality = self._quality(pid, d, row, type(ex).__name__)
         # Vitals (scored on arrival)
         from echos.agents.health import vitals as vm
         degraded, reason, vpart = False, None, VitalsPart()
@@ -258,7 +248,7 @@ class LiveProcessor:
 
         def job():
             pdy = LS.live_pdy(self.eng, self.parquet)
-            phys = LS.merge_live(self.eng, load_physiology(), "vitals")
+            phys = LS.merge_live(self.eng, load_physiology())
             make_weekly(self.eng, pid, day, self.dispatcher, budget=self.reporter.budget, retriever=self.reporter.retriever, use_llm=False,
                         root=self.reporter.root, pdy=pdy, phys=phys)
         try:

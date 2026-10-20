@@ -1040,20 +1040,10 @@ export interface components {
              */
             days: number;
             /**
-             * Days With Activity
-             * @default 0
-             */
-            days_with_activity: number;
-            /**
              * Days With Vitals
              * @default 0
              */
             days_with_vitals: number;
-            /**
-             * Sensor Gap Days
-             * @default 0
-             */
-            sensor_gap_days: number;
         };
         /** ComponentOut */
         ComponentOut: {
@@ -1308,9 +1298,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "activity" | "vitals" | "accel" | "heartbeat";
-            /** Room */
-            room?: string | null;
+            kind: "vitals" | "accel" | "heartbeat";
             /** Device Type */
             device_type?: string | null;
             /** Value */

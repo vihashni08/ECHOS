@@ -8,19 +8,17 @@ from echos.agents import data_quality as dq
 from echos.config import load_config
 from echos.data.patient_day import PHYS
 
-COLS = ["patient_id", "day", "has_activity", "has_reading", "sys", "dia", "hr", "temp", "weight", "sensor_gap", "sensor_gap_reason",
+COLS = ["patient_id", "day", "has_reading", "sys", "dia", "hr", "temp", "weight",
         "days_since_last_reading", "completeness", "n_invalid", "invalid_json", "source"]
 
 
-def build_row(patient_id: str, day: pd.Timestamp, act: pd.DataFrame, vit: pd.DataFrame, hist: pd.DataFrame, closed: bool) -> dict:
+def build_row(patient_id: str, day: pd.Timestamp, vit: pd.DataFrame, hist: pd.DataFrame) -> dict:
     """One patient-day row from the events of that day. `hist` = this patient's earlier rows (training table before the live start + closed live days).
-    Ranges: out-of-range readings are set to NaN and listed (never imputed), as in Agent 0. The sensor-gap rule needs the whole day: it is only applied
-    when `closed`; an open day reports sensor silence through the Quality gate's silent-hours rule instead."""
+    Ranges: out-of-range readings are set to NaN and listed (never imputed), as in Agent 0."""
     cfg = load_config()
     d = pd.Timestamp(day).normalize()
     row = {c: np.nan for c in COLS}
     row.update(patient_id=patient_id, day=d, source="live")
-    row["total_events"], row["has_activity"] = float(len(act)), bool(len(act))
     invalid = []
     ranges = cfg["data_quality"]["ranges"]
     for dev, var in PHYS.items():
@@ -34,25 +32,11 @@ def build_row(patient_id: str, day: pd.Timestamp, act: pd.DataFrame, vit: pd.Dat
     import json
     row["invalid_json"] = json.dumps(invalid) if invalid else ""
     row["n_invalid"] = len(invalid)
-    # sensor gap (closed days only): zero events, or fewer than frac x the median of the PAST non-gap days
-    gap, why = False, None
-    if closed:
-        dqc = cfg["data_quality"]
-        n = row["total_events"]
-        past = hist[(hist.day < d) & hist.has_activity & ~hist.sensor_gap.fillna(False).astype(bool)].total_events.tail(60) if len(hist) else pd.Series(dtype=float)
-        med = float(np.median(past)) if len(past) >= dqc["min_history_days"] else np.nan
-        if n == 0:
-            gap, why = True, "zero_events"
-        elif not np.isnan(med) and n < dqc["sensor_gap_frac"] * med:
-            gap, why = True, "low_events"
-    row["sensor_gap"], row["sensor_gap_reason"] = gap, why
-    if gap:                                  # a gap is not "zero activity": the count stays NaN, as in the training table
-        row["total_events"], row["has_activity"] = np.nan, False
     # days since the last reading, counted over history
     last = hist[(hist.day < d) & hist.has_reading].day.max() if len(hist) else pd.NaT
     first = hist.day.min() if len(hist) else d
     row["days_since_last_reading"] = 0 if row["has_reading"] else int((d - last).days if pd.notna(last) else (d - first).days + 1)
-    row["completeness"] = dq.completeness(gap, row["has_reading"], row["n_invalid"])
+    row["completeness"] = dq.completeness(row["has_reading"], row["n_invalid"])
     return row
 
 
@@ -64,7 +48,7 @@ def history_for(parquet: pd.DataFrame, closed_live: pd.DataFrame, patient_id: st
         c = closed_live[(closed_live.patient_id == patient_id) & (closed_live.day < d)]
         p = pd.concat([p[~p.day.isin(c.day)], c], ignore_index=True, sort=False)
     p = p.sort_values("day").reset_index(drop=True)
-    for col, default in (("sensor_gap", False), ("has_activity", False), ("has_reading", False)):
+    for col, default in (("has_reading", False),):
         if col in p:
             p[col] = p[col].fillna(default).astype(bool)
     return p

@@ -2,14 +2,13 @@
 Multi-agent decision-support system for home-dwelling elderly patients. Not a diagnostic tool.
 
 ## Data (never cat large files; use pandas nrows or aggregate in scripts)
-- data/tihm/Dataset/: Activity.csv (patient_id, location_name, date; ~1M rows, 36MB), Physiology.csv
-  (patient_id, date, device_type, value, unit), Labels.csv (patient_id, date, type; 608 rows),
+- data/tihm/Dataset/: Physiology.csv (patient_id, date, device_type, value, unit), Labels.csv (patient_id, date, type; 608 rows),
   Sleep.csv (only 17 patients: NOT used), Demographics.csv (patient_id, age band, sex).
 - Physiology device_type values: Body Temperature, Body weight, Diastolic blood pressure, Heart rate,
   O/E - muscle mass, Skin Temperature, Systolic blood pressure, Total body water.
 - Label types: Blood pressure 305, Agitation 135 (not modelled: there is no behaviour detector), Pulse 95, Body water 68, Weight 4, Body temperature 1.
-- Activity rooms: Kitchen, Hallway, Lounge, Bedroom, Fridge Door, Bathroom, Front Door, Back Door. The activity stream is used ONLY by the Data Quality
-  gate (daily event count `total_events`, sensor-gap rule -> DATA_GAP); there is no behaviour / routine detector (removed: no room, night or drift features).
+- Activity.csv (room sensors) is NOT used: ECHOS does not read, interpret or monitor room-sensor events (no behaviour / routine detector, no sensor-gap rule); the ingestion API rejects `activity` events.
+  The patient-day calendar is one row per day between a patient's first and last vitals reading or label (echos/data/patient_day.py `_calendar`).
 - TIHM has NO falls and NO accelerometer. Fall model is trained on SisFall (data/sisfall/) only. Fall windows (v2, `build_windows_v2`): falls and
   ADL "peak" windows are built IDENTICALLY (centred on own max-SVM sample, +/-0.5 s jitter) plus sliding ADL windows for false-alarm exposure; v1
   (fall centred exactly on the peak, ADL sliding) leaked the peak position and is kept only for the audit (scripts/evaluation/fall_audit.py). Model: models/fall_v2.joblib.

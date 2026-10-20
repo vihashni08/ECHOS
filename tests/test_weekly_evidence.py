@@ -89,8 +89,8 @@ def test_injected_falls_marked_simulated_and_peak_shown(world, tmp_path):
 # ------------------------------------------------------------------ peak for every fall event (facts, payload)
 def test_peak_stored_for_every_fall_event_including_without_inactivity(tmp_path):
     eng = S.get_engine(tmp_path / "p.db")
-    pdy = pd.DataFrame([{"patient_id": "p1", "day": pd.Timestamp("2019-05-05"), "has_activity": True, "has_reading": False, "sys": None, "dia": None, "hr": None,
-                         "temp": None, "weight": None, "total_events": 5}])
+    pdy = pd.DataFrame([{"patient_id": "p1", "day": pd.Timestamp("2019-05-05"), "has_reading": False, "sys": None, "dia": None, "hr": None,
+                         "temp": None, "weight": None}])
     with eng.begin() as c:
         for eid, (score, inactive, peak) in enumerate([(0.95, True, 4.7), (0.91, False, 3.2), (0.88, False, None)], 1):
             res = {"score": score, "evidence": {"post_fall_inactive": inactive, "ts": f"2019-05-05T1{eid}:00:00", **({"peak_svm_g": peak} if peak is not None else {})}}

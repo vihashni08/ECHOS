@@ -4229,19 +4229,9 @@
       "title": "Days",
       "default": 0
      },
-     "days_with_activity": {
-      "type": "integer",
-      "title": "Days With Activity",
-      "default": 0
-     },
      "days_with_vitals": {
       "type": "integer",
       "title": "Days With Vitals",
-      "default": 0
-     },
-     "sensor_gap_days": {
-      "type": "integer",
-      "title": "Sensor Gap Days",
       "default": 0
      }
     },
@@ -5017,23 +5007,11 @@
      "kind": {
       "type": "string",
       "enum": [
-       "activity",
        "vitals",
        "accel",
        "heartbeat"
       ],
       "title": "Kind"
-     },
-     "room": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Room"
      },
      "device_type": {
       "anyOf": [

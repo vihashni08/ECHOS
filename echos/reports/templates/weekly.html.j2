@@ -33,7 +33,7 @@ th{background:#f1f5f9} img{max-width:100%} .muted{color:#64748b;font-size:.85rem
 {% else %}<p>No flags this week.</p>{% endif %}
 
 <h2>Data completeness</h2>
-<p>{{ s.completeness.days_covered }} days covered. Vitals readings on {{ s.completeness.days_with_vitals }}, room-sensor activity on {{ s.completeness.days_with_activity }},
+<p>{{ s.completeness.days_covered }} days covered. Vitals readings on {{ s.completeness.days_with_vitals }},
 temperature on {{ s.completeness.days_with_temperature }}, weight on {{ s.completeness.days_with_weight }}; days with a data gap: {{ s.completeness.days_with_data_gap }}.
 Missing readings are not evidence of normal values.</p>
 

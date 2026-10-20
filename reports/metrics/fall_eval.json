@@ -558,92 +558,104 @@
  },
  "injected_end_to_end": {
   "patients": 20,
-  "patient_weeks": 180.7,
+  "patient_weeks": 185.4,
   "injected": 60,
-  "detected": 48,
-  "detection_rate": 0.8,
+  "detected": 46,
+  "detection_rate": 0.7666666666666667,
   "wilson95": [
-   0.6821795390818299,
-   0.8817161026314104
+   0.6456348865960799,
+   0.8556056838156894
   ],
   "missed": [
    {
-    "patient_id": "ec812",
-    "day": "2019-04-19",
-    "subject": "SE06",
-    "trial": "F01_SE06_R01"
-   },
-   {
-    "patient_id": "201d8",
-    "day": "2019-05-01",
+    "patient_id": "30a32",
+    "day": "2019-04-30",
     "subject": "SE06",
     "trial": "F14_SE06_R01"
    },
    {
-    "patient_id": "55cd4",
-    "day": "2019-05-10",
+    "patient_id": "c5785",
+    "day": "2019-04-30",
     "subject": "SE06",
-    "trial": "F07_SE06_R04"
+    "trial": "F10_SE06_R01"
+   },
+   {
+    "patient_id": "201d8",
+    "day": "2019-05-05",
+    "subject": "SE06",
+    "trial": "F08_SE06_R01"
+   },
+   {
+    "patient_id": "55cd4",
+    "day": "2019-05-05",
+    "subject": "SE06",
+    "trial": "F07_SE06_R03"
    },
    {
     "patient_id": "96adf",
     "day": "2019-05-10",
     "subject": "SA03",
-    "trial": "F04_SA03_R01"
+    "trial": "F01_SA03_R01"
    },
    {
     "patient_id": "0efe8",
+    "day": "2019-05-16",
+    "subject": "SE06",
+    "trial": "F08_SE06_R04"
+   },
+   {
+    "patient_id": "7db78",
     "day": "2019-05-16",
     "subject": "SA03",
     "trial": "F04_SA03_R01"
    },
    {
-    "patient_id": "c5785",
-    "day": "2019-05-22",
+    "patient_id": "30a32",
+    "day": "2019-05-23",
     "subject": "SA03",
-    "trial": "F13_SA03_R01"
+    "trial": "F04_SA03_R02"
+   },
+   {
+    "patient_id": "28710",
+    "day": "2019-05-29",
+    "subject": "SA19",
+    "trial": "F10_SA19_R02"
+   },
+   {
+    "patient_id": "c8574",
+    "day": "2019-06-03",
+    "subject": "SE06",
+    "trial": "F14_SE06_R02"
    },
    {
     "patient_id": "6b29b",
     "day": "2019-06-08",
     "subject": "SE06",
-    "trial": "F10_SE06_R03"
+    "trial": "F06_SE06_R01"
    },
    {
-    "patient_id": "1fbe4",
-    "day": "2019-06-12",
-    "subject": "SA19",
-    "trial": "F07_SA19_R03"
-   },
-   {
-    "patient_id": "c55f8",
-    "day": "2019-06-13",
-    "subject": "SA03",
-    "trial": "F04_SA03_R04"
-   },
-   {
-    "patient_id": "1fbe4",
-    "day": "2019-06-17",
-    "subject": "SE06",
-    "trial": "F14_SE06_R02"
-   },
-   {
-    "patient_id": "28710",
-    "day": "2019-06-26",
-    "subject": "SE06",
-    "trial": "F10_SE06_R01"
-   },
-   {
-    "patient_id": "e8a78",
-    "day": "2019-06-26",
+    "patient_id": "c5785",
+    "day": "2019-06-24",
     "subject": "SE06",
     "trial": "F10_SE06_R04"
+   },
+   {
+    "patient_id": "c5785",
+    "day": "2019-06-25",
+    "subject": "SA19",
+    "trial": "F10_SA19_R02"
+   },
+   {
+    "patient_id": "0efe8",
+    "day": "2019-06-26",
+    "subject": "SA19",
+    "trial": "F10_SA19_R02"
    }
   ],
   "false_fall_alerts": 3,
-  "false_fall_alerts_per_patient_week": 0.017,
-  "sim_delay_h_median": 13.2,
-  "sim_delay_h_max": 23.8
+  "false_fall_alerts_per_patient_week": 0.016,
+  "sim_delay_h_median": 14.3,
+  "sim_delay_h_max": 23.4
  },
  "live_latency": {
   "patients": 3,
@@ -662,14 +674,14 @@
  },
  "inactivity_effect_replay": {
   "injected_events": 60,
-  "injected_p_ge_thr": 52,
-  "injected_urgent_with_confirmation": 48,
-  "adl_events": 2530,
-  "adl_events_p_ge_thr": 22,
-  "adl_events_urgent_with_confirmation": 4,
-  "false_fall_alert_days_with_confirmation": 4,
-  "false_fall_alert_days_without_confirmation": 22,
-  "false_fall_alerts_per_patient_week_with_confirmation": 0.022,
-  "false_fall_alerts_per_patient_week_without_confirmation": 0.122
+  "injected_p_ge_thr": 50,
+  "injected_urgent_with_confirmation": 46,
+  "adl_events": 2596,
+  "adl_events_p_ge_thr": 23,
+  "adl_events_urgent_with_confirmation": 3,
+  "false_fall_alert_days_with_confirmation": 3,
+  "false_fall_alert_days_without_confirmation": 23,
+  "false_fall_alerts_per_patient_week_with_confirmation": 0.016,
+  "false_fall_alerts_per_patient_week_without_confirmation": 0.124
  }
 }

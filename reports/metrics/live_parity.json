@@ -1,7 +1,7 @@
 {
-  "patient_days": 56,
+  "patient_days": 55,
   "vit": {
-    "compared": 52,
+    "compared": 54,
     "max_abs_diff": 0.0,
     "mean_abs_diff": 0.0,
     "live_only": 0,

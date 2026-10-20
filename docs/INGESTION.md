@@ -6,7 +6,6 @@
 
 ```json
 {"events": [
-  {"patient_id": "p-0001", "device_id": "hub-7", "ts": "2019-05-20T08:00:00", "kind": "activity", "room": "Kitchen", "source": "device"},
   {"patient_id": "p-0001", "device_id": "bp-cuff-2", "ts": "2019-05-20T08:05:00", "kind": "vitals", "device_type": "Heart rate", "value": 71, "unit": "bpm"},
   {"patient_id": "p-0001", "device_id": "hub-7", "ts": "2019-05-20T08:15:00", "kind": "heartbeat"},
   {"patient_id": "p-0001", "device_id": "wrist-1", "ts": "2019-05-20T09:30:00", "kind": "accel", "fs": 200, "samples": [[0.0, 0.0, 1.0], "..."]}
@@ -17,7 +16,7 @@
 |---|---|
 | `patient_id`, `device_id` | 1-64 characters: letters, digits, `- _ .` only (`device_id` defaults to `device-1`). Use a pseudonymous id, never a name. |
 | `ts` | **Data time**: when it happened, ISO 8601, second resolution (fractions are dropped). See *Clock rules*. |
-| `kind` | `activity` (needs `room`: Kitchen, Hallway, Lounge, Bedroom, Fridge Door, Bathroom, Front Door, Back Door), `vitals` (needs `device_type` and `value`: Systolic blood pressure, Diastolic blood pressure, Heart rate, Body Temperature, Body weight; `unit` optional), `accel` (needs `fs` 10-1000 Hz and `samples`, at most 6000 rows of `[x, y, z]` in g: the impact window plus what followed), `heartbeat` (no extra fields; proves the device is alive). |
+| `kind` | `vitals` (needs `device_type` and `value`: Systolic blood pressure, Diastolic blood pressure, Heart rate, Body Temperature, Body weight; `unit` optional), `accel` (needs `fs` 10-1000 Hz and `samples`, at most 6000 rows of `[x, y, z]` in g: the impact window plus what followed), `heartbeat` (no extra fields; proves the device is alive). |
 | `source` | `device`, `hub` or `emulator` (default `device`). |
 | Batch | 1 to `ingest.max_batch_events` (500) events per request. |
 
@@ -46,7 +45,7 @@ An event is identified by `(patient_id, device_id, kind, ts, room or device_type
 - `ts` is the time the event happened, **not** the upload time. Send it from a clock synchronised by NTP.
 - A timestamp without an offset is read as the patient's local time. A timestamp with an offset (`+01:00`, `Z`) has the offset **removed without converting**, so `2019-05-20T08:00:00Z` is stored as 08:00 local. Send local wall-clock time without an offset.
 - ECHOS keeps one clock per patient: the newest data time seen. A device with a wrong clock (far in the future) moves the patient's day forward and can close days early; fix the clock rather than the data.
-- Activity near midnight belongs to the calendar day of its `ts`.
+- An event near midnight belongs to the calendar day of its `ts`.
 
 ## Security
 

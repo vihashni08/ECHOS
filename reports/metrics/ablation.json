@@ -1,6 +1,6 @@
 {
- "patient_days": 2796,
- "patient_weeks": 399.4,
+ "patient_days": 2749,
+ "patient_weeks": 392.7,
  "patients": 56,
  "vitals_days_scored": 1733,
  "vitals_positive_days": 315,
@@ -13,12 +13,12 @@
       0.6114847560144947,
       0.8838873575206735
      ],
-     "false_alerts_per_pw": 1.4896280400572246,
+     "false_alerts_per_pw": 1.5150963986904329,
      "false_alerts_per_pw_ci95": [
-      1.114579064247732,
-      1.880997456481588
+      1.1465018776590437,
+      1.8943990418486685
      ],
-     "alerts_per_pw": 2.087982832618026,
+     "alerts_per_pw": 2.123681338668607,
      "alert_days": 834,
      "chance_recall": 0.4812463935372187,
      "positives": 315
@@ -29,12 +29,12 @@
       0.826519520851819,
       0.9447342196213133
      ],
-     "false_alerts_per_pw": 1.3819742489270386,
+     "false_alerts_per_pw": 1.4056020371044016,
      "false_alerts_per_pw_ci95": [
-      0.9468746877713444,
-      1.7958406792844177
+      0.9922354944292171,
+      1.8336713759106331
      ],
-     "alerts_per_pw": 2.087982832618026,
+     "alerts_per_pw": 2.123681338668607,
      "alert_days": 834,
      "chance_recall": 0.4812463935372187,
      "positives": 315
@@ -45,12 +45,12 @@
       0.826519520851819,
       0.9447342196213133
      ],
-     "false_alerts_per_pw": 1.3819742489270386,
+     "false_alerts_per_pw": 1.4056020371044016,
      "false_alerts_per_pw_ci95": [
-      0.9468746877713444,
-      1.7958406792844177
+      0.9922354944292171,
+      1.8336713759106331
      ],
-     "alerts_per_pw": 2.087982832618026,
+     "alerts_per_pw": 2.123681338668607,
      "alert_days": 834,
      "chance_recall": 0.4812463935372187,
      "positives": 315
@@ -58,35 +58,35 @@
    },
    "0.5 / pt-wk": {
     "B vitals model only": {
-     "recall": 0.5015873015873016,
+     "recall": 0.49206349206349204,
      "recall_ci95": [
-      0.39845502728943255,
-      0.629483981092437
+      0.3908872901678657,
+      0.6217444326617179
      ],
-     "false_alerts_per_pw": 0.10515021459227468,
+     "false_alerts_per_pw": 0.10440160058202982,
      "false_alerts_per_pw_ci95": [
-      0.04379508370185154,
-      0.20234351119881022
+      0.042996372541101884,
+      0.20087625154027164
      ],
-     "alerts_per_pw": 0.5007153075822603,
-     "alert_days": 200,
-     "chance_recall": 0.1154068090017311,
+     "alerts_per_pw": 0.4990905783921426,
+     "alert_days": 196,
+     "chance_recall": 0.11309867282169649,
      "positives": 315
     },
     "C full system": {
-     "recall": 0.4984126984126984,
+     "recall": 0.49206349206349204,
      "recall_ci95": [
-      0.39688823431034576,
-      0.6278031120401902
+      0.3908492053162104,
+      0.6179206757663906
      ],
-     "false_alerts_per_pw": 0.10765379113018597,
+     "false_alerts_per_pw": 0.10440160058202982,
      "false_alerts_per_pw_ci95": [
-      0.043840573924001376,
-      0.20234351119881022
+      0.04315624526832009,
+      0.20087625154027164
      ],
-     "alerts_per_pw": 0.5007153075822603,
-     "alert_days": 200,
-     "chance_recall": 0.1154068090017311,
+     "alerts_per_pw": 0.4990905783921426,
+     "alert_days": 196,
+     "chance_recall": 0.11309867282169649,
      "positives": 315
     }
    },
@@ -94,33 +94,33 @@
     "B vitals model only": {
      "recall": 0.7206349206349206,
      "recall_ci95": [
-      0.6302174849267873,
-      0.8102209310931833
+      0.6238263872124703,
+      0.8066081707707067
      ],
-     "false_alerts_per_pw": 0.4306151645207439,
+     "false_alerts_per_pw": 0.42269916333212076,
      "false_alerts_per_pw_ci95": [
-      0.26199691391069313,
-      0.6048037440353533
+      0.26101280271522753,
+      0.595672960763413
      ],
-     "alerts_per_pw": 0.9989270386266094,
-     "alert_days": 399,
-     "chance_recall": 0.23023658395845356,
+     "alerts_per_pw": 1.0007275372862858,
+     "alert_days": 393,
+     "chance_recall": 0.2267743796884016,
      "positives": 315
     },
     "C full system": {
      "recall": 0.7206349206349206,
      "recall_ci95": [
-      0.6302174849267873,
-      0.8102209310931833
+      0.6238263872124703,
+      0.8066081707707067
      ],
-     "false_alerts_per_pw": 0.4306151645207439,
+     "false_alerts_per_pw": 0.42269916333212076,
      "false_alerts_per_pw_ci95": [
-      0.26199691391069313,
-      0.6048037440353533
+      0.26101280271522753,
+      0.595672960763413
      ],
-     "alerts_per_pw": 0.9989270386266094,
-     "alert_days": 399,
-     "chance_recall": 0.23023658395845356,
+     "alerts_per_pw": 1.0007275372862858,
+     "alert_days": 393,
+     "chance_recall": 0.2267743796884016,
      "positives": 315
     }
    },
@@ -128,33 +128,33 @@
     "B vitals model only": {
      "recall": 0.8825396825396825,
      "recall_ci95": [
-      0.8178974691758598,
-      0.937506079766537
+      0.8163029827315542,
+      0.9351903870162298
      ],
-     "false_alerts_per_pw": 1.304363376251788,
+     "false_alerts_per_pw": 1.2910149145143688,
      "false_alerts_per_pw_ci95": [
-      1.0118121305860908,
-      1.5149113975661774
+      0.9977665998076851,
+      1.5085004226645502
      ],
-     "alerts_per_pw": 2.0003576537911303,
-     "alert_days": 799,
-     "chance_recall": 0.46105020196191576,
+     "alerts_per_pw": 1.9989086940705711,
+     "alert_days": 785,
+     "chance_recall": 0.4529717253317946,
      "positives": 315
     },
     "C full system": {
      "recall": 0.8825396825396825,
      "recall_ci95": [
-      0.8178974691758598,
-      0.937506079766537
+      0.8163029827315542,
+      0.9351903870162298
      ],
-     "false_alerts_per_pw": 1.304363376251788,
+     "false_alerts_per_pw": 1.2910149145143688,
      "false_alerts_per_pw_ci95": [
-      1.0118121305860908,
-      1.5149113975661774
+      0.9977665998076851,
+      1.5085004226645502
      ],
-     "alerts_per_pw": 2.0003576537911303,
-     "alert_days": 799,
-     "chance_recall": 0.46105020196191576,
+     "alerts_per_pw": 1.9989086940705711,
+     "alert_days": 785,
+     "chance_recall": 0.4529717253317946,
      "positives": 315
     }
    }
@@ -166,14 +166,14 @@
      0.6068499884339579,
      0.8771990910423692
     ],
-    "false_alerts_per_pw": 1.4896280400572246,
+    "false_alerts_per_pw": 1.5150963986904329,
     "false_alerts_per_pw_ci95": [
-     1.109850821792698,
-     1.8755806341723504
+     1.1458644749804008,
+     1.8839368697247543
     ],
-    "alerts_per_pw": 2.087982832618026,
+    "alerts_per_pw": 2.123681338668607,
     "alert_days": 834,
-    "chance_recall": 0.2982832618025751,
+    "chance_recall": 0.30338304838122954,
     "positives": 315
    },
    "B vitals score, matched to C's budget": {
@@ -182,14 +182,14 @@
      0.6164120126448894,
      0.8006803583502367
     ],
-    "false_alerts_per_pw": 0.4306151645207439,
+    "false_alerts_per_pw": 0.4176064023281193,
     "false_alerts_per_pw_ci95": [
-     0.27862867277063097,
-     0.5959298369633076
+     0.267788504539153,
+     0.5859277627054905
     ],
-    "alerts_per_pw": 0.9989270386266094,
-    "alert_days": 399,
-    "chance_recall": 0.1427038626609442,
+    "alerts_per_pw": 0.9956347762822845,
+    "alert_days": 391,
+    "chance_recall": 0.14223353946889777,
     "positives": 315
    },
    "C full system, shipped threshold": {
@@ -198,21 +198,21 @@
      0.6164120126448894,
      0.8006803583502367
     ],
-    "false_alerts_per_pw": 0.4306151645207439,
+    "false_alerts_per_pw": 0.4176064023281193,
     "false_alerts_per_pw_ci95": [
-     0.27862867277063097,
-     0.5959298369633076
+     0.267788504539153,
+     0.5859277627054905
     ],
-    "alerts_per_pw": 0.9989270386266094,
-    "alert_days": 399,
-    "chance_recall": 0.1427038626609442,
+    "alerts_per_pw": 0.9956347762822845,
+    "alert_days": 391,
+    "chance_recall": 0.14223353946889777,
     "positives": 315
    }
   }
  },
  "any_label_positives": 315,
  "shipped_thresholds": {
-  "vitals_prob": 0.278
+  "vitals_prob": 0.284
  },
  "notes": [
   "OOF scores only; labels are TIHM events described as clinician-verified (production not verified by us; treat vitals results as an upper bound); recall on labelled days of the scored population",
@@ -223,7 +223,7 @@
  ],
  "verdicts": [
   "vitals @ A's budget: C 0.90 vs B 0.90 -> no difference",
-  "vitals @ 0.5 / pt-wk: C 0.50 vs B 0.50 -> no difference",
+  "vitals @ 0.5 / pt-wk: C 0.49 vs B 0.49 -> no difference",
   "vitals @ 1.0 / pt-wk: C 0.72 vs B 0.72 -> no difference",
   "vitals @ 2.0 / pt-wk: C 0.88 vs B 0.88 -> no difference"
  ]

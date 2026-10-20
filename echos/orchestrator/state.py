@@ -26,7 +26,7 @@ case_state = Table("case_state", md, Column("patient_id", String, primary_key=Tr
                    Column("status", String), Column("data_gap", Boolean), Column("days_since_vitals", Integer),
                    Column("reasons", Text), Column("report", String), Column("updated_ts", Float),
                    Column("as_of", String),            # live mode: data time of the latest decision for this (still open) day
-                   Column("provisional", Boolean))     # live mode: True while the day is open (the sensor-gap rule is applied when the day closes)
+                   Column("provisional", Boolean))     # live mode: True while the day is open (the day row is final when the day closes)
 alerts = Table("alerts", md, Column("alert_id", String, primary_key=True),   # unique per event: patient|day|type|event_id
                Column("patient_id", String, index=True), Column("type", String), Column("time", Float),
                Column("payload", Text), Column("status", String, default="PENDING"),   # PENDING / SENT / FAILED: derived from the outbox
@@ -114,12 +114,12 @@ sim_command = Table("sim_command", md, Column("id", Integer, primary_key=True, a
 event_feed = Table("event_feed", md, Column("id", Integer, primary_key=True, autoincrement=True), Column("ts", Float), Column("kind", String),
                    Column("data", Text))                                                                      # server-sent events: filled by triggers below
 
-# ---- live / emulator mode (echos/live): raw events arrive through the ingestion API into event_log (kinds activity / vitals / accel / heartbeat)
+# ---- live / emulator mode (echos/live): raw events arrive through the ingestion API into event_log (kinds vitals / accel / heartbeat)
 live_day = Table("live_day", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True), Column("row", Text),
                  Column("closed", Boolean), Column("updated_ts", Float))             # the patient-day row built from raw events (same columns as the training table)
 live_patient = Table("live_patient", md, Column("patient_id", String, primary_key=True), Column("source", String), Column("first_wall", Float),
                      Column("last_event_ts", String),                                 # newest DATA time seen for this patient (any kind): the patient's clock
-                     Column("wall_activity", Float), Column("wall_vitals", Float), Column("wall_accel", Float), Column("wall_heartbeat", Float))   # WALL time of the newest event per stream
+                     Column("wall_vitals", Float), Column("wall_accel", Float), Column("wall_heartbeat", Float))   # WALL time of the newest event per stream
 
 # ---- multi-agent layer (echos/team): message bus, alert lifecycle, care tasks, case files
 agent_message = Table("agent_message", md, Column("id", Integer, primary_key=True, autoincrement=True), Column("ts", Float), Column("sender", String, index=True),

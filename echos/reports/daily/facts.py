@@ -31,10 +31,8 @@ def _r(x, nd=1):
     return None if x is None or pd.isna(x) else round(float(x), nd)
 
 
-def _past_baseline(pdf: pd.DataFrame, var: str, day: pd.Timestamp, window: int, min_n: int, active_only=False):
+def _past_baseline(pdf: pd.DataFrame, var: str, day: pd.Timestamp, window: int, min_n: int):
     past = pdf[pdf.day < day]
-    if active_only:
-        past = past[past.has_activity]
     s = past[var].dropna().tail(window)
     if len(s) < min_n:
         return None, None
@@ -112,7 +110,6 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
         b, sd = _past_baseline(pdf, v, d, win, 3)
         vitals[v] = {"value": cur, "baseline": _round(b),
                      "z": _r((cur - b) / sd) if cur is not None and b is not None and sd and sd > 0 else None}
-    has_activity = bool(row is not None and row["has_activity"])
 
     health = results.get("health") or {}
     vit = health.get("vitals") or {}
@@ -169,13 +166,12 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
     for g in gaps:
         add("data_gap", note=str(g)[len("DATA_GAP:"):].strip())
     qe = (results.get("quality") or {}).get("evidence", {})
-    quality = {"checked": bool(qe) and qe.get("quality_checked", True), "sensor_gap": bool(qe.get("sensor_gap")),
-               "sensor_gap_reason": qe.get("sensor_gap_reason"), "days_since_last_reading": qe.get("days_since_last_reading"),
+    quality = {"checked": bool(qe) and qe.get("quality_checked", True), "days_since_last_reading": qe.get("days_since_last_reading"),
                "invalid_values": qe.get("invalid_values", []), "completeness": qe.get("completeness")}
 
     return {"patient_id": patient_id, "day": day, "status": decision.get("status", "NORMAL"), "data_gap": bool(decision.get("data_gap")),
             "triage_reasons": list(decision.get("reasons", [])),
-            "has_reading": bool(row is not None and row["has_reading"]), "has_activity": has_activity,
+            "has_reading": bool(row is not None and row["has_reading"]),
             "vitals": vitals, "falls": falls, "flags": flags, "quality": quality}
 
 

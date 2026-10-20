@@ -17,7 +17,7 @@ LABELS = ["bp_alert", "pulse_alert", "water_alert"]
 def summary(df, kind):
     if kind == "patient_day":
         return {"rows": len(df), "patients": int(df.patient_id.nunique()), **{k: int(df[k].sum()) for k in LABELS},
-                "has_reading": int(df.has_reading.sum()), "has_activity": int(df.has_activity.sum())}
+                "has_reading": int(df.has_reading.sum())}
     return {"rows": len(df), "subjects": int(df.subject.nunique()), "falls": int(df.y.sum()), "adl_windows": int((df.y == 0).sum())}
 
 

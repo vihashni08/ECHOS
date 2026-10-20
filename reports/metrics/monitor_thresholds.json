@@ -1,18 +1,18 @@
 {
-  "patient_days": 2796,
-  "patient_weeks": 399.42857142857144,
+  "patient_days": 2749,
+  "patient_weeks": 392.7142857142857,
   "old": {
     "vitals_prob": 0.278,
-    "vitals_alerts_per_patient_week": 0.9989270386266094,
+    "vitals_alerts_per_patient_week": 1.0160058202982902,
     "vitals_recall": 0.7206349206349206,
     "vitals_precision": 0.568922305764411
   },
   "score_scale": "calibrated",
   "new": {
-    "vitals_prob": 0.278,
-    "vitals_alerts_per_patient_week": 0.9989270386266094,
+    "vitals_prob": 0.284,
+    "vitals_alerts_per_patient_week": 0.9981811567842852,
     "vitals_recall": 0.7206349206349206,
-    "vitals_precision": 0.568922305764411
+    "vitals_precision": 0.5790816326530612
   },
   "notes": [
     "OOF scores, patient-level GroupKFold; vitals budget uses all patient-days / 7 (as Agent 1 does)",

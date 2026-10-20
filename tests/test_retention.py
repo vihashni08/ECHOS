@@ -20,8 +20,14 @@ def db(tmp_path):
 
 
 def add(c, pid, day, kind, i=0, **pl):
-    payload = {"device_id": "d1", "source": "device", **({"room": "Kitchen"} if kind == "activity" else {}), **pl}
+    payload = {"device_id": "d1", "source": "device", **pl}
     return c.execute(S.event_log.insert().values(patient_id=pid, day=day, ts=f"{day}T08:{i:02d}:00", kind=kind, payload=json.dumps(payload))).inserted_primary_key[0]
+
+
+def _add(c, pid, day, kind):
+    """A plain event of the kind: a vitals reading, an accelerometer window or a heartbeat."""
+    pl = {"device_type": "Heart rate", "value": 70.0} if kind == "vitals" else ({"fs": 100, "samples": [[0, 0, 1]]} if kind == "accel" else {})
+    return add(c, pid, day, kind, **pl)
 
 
 def seed(eng):
@@ -31,11 +37,11 @@ def seed(eng):
         for pid in ("A", "B"):
             S.upsert(c, S.live_patient, ["patient_id"], patient_id=pid, source="device", first_wall=1.0, last_event_ts="2019-05-05T09:00:00")
         for d in ("2019-05-01", "2019-05-02", "2019-05-03", "2019-05-04"):
-            for k in ("activity", "vitals", "heartbeat"):
-                ids[("A", d, k)] = add(c, "A", d, k, device_type="Heart rate", value=70.0) if k == "vitals" else add(c, "A", d, k)
+            for k in ("accel", "vitals", "heartbeat"):
+                ids[("A", d, k)] = _add(c, "A", d, k)
             S.upsert(c, S.live_day, ["patient_id", "day"], patient_id="A", day=d, row="{}", closed=True, updated_ts=1.0)
-        for k in ("activity", "vitals", "heartbeat"):
-            ids[("A", "2019-05-05", k)] = add(c, "A", "2019-05-05", k, device_type="Heart rate", value=70.0) if k == "vitals" else add(c, "A", "2019-05-05", k)
+        for k in ("accel", "vitals", "heartbeat"):
+            ids[("A", "2019-05-05", k)] = _add(c, "A", "2019-05-05", k)
         S.upsert(c, S.live_day, ["patient_id", "day"], patient_id="A", day="2019-05-05", row="{}", closed=False, updated_ts=1.0)
         ids["fall"] = add(c, "A", "2019-05-02", "accel", i=30, fs=100, samples=[[0, 0, 1]])          # a fall: detector output points at it
         ids["alerted"] = add(c, "A", "2019-05-03", "accel", i=31, fs=100, samples=[[0, 0, 1]])        # an alert points at it
@@ -44,7 +50,7 @@ def seed(eng):
         c.execute(S.alerts.insert().values(alert_id="A|2019-05-03|fall|x", patient_id="A", type="fall", time=1.0, payload="{}", status="SENT", event_id=ids["alerted"], event_time="2019-05-03T08:31:00"))
         ck = max(ids.values())
         S.upsert(c, S.agent_checkpoint, ["agent_id"], agent_id="live", last_event_id=ck, ts=1.0)
-        ids[("B", "2019-05-01", "activity")] = add(c, "B", "2019-05-01", "activity")                    # id > checkpoint
+        ids[("B", "2019-05-01", "accel")] = _add(c, "B", "2019-05-01", "accel")                    # id > checkpoint
         S.upsert(c, S.live_day, ["patient_id", "day"], patient_id="B", day="2019-05-01", row="{}", closed=True, updated_ts=1.0)
     return ids
 
@@ -63,22 +69,22 @@ def test_dry_run_changes_nothing_and_counts(db, tmp_path):
     r = R.archive_old_events(db, tmp_path / "arch", 1, dry_run=True, now=NOW)
     assert r["dry_run"] and r["candidates"] > 0 and r["deleted"] == 0 and r["file"] is None and remaining(db) == before
     assert not (tmp_path / "arch").exists()
-    assert set(r["by_kind"]) == {"activity", "heartbeat", "accel"} and r["first_day"] == "2019-05-01" and r["last_day"] == "2019-05-03"      # strictly older than 1 day before the newest data day 05-05: days up to 05-03
+    assert set(r["by_kind"]) == {"heartbeat", "accel"} and r["first_day"] == "2019-05-01" and r["last_day"] == "2019-05-03"      # strictly older than 1 day before the newest data day 05-05: days up to 05-03
 
 
 def test_only_old_closed_unreferenced_events_up_to_the_checkpoint_are_archived(db, tmp_path):
     ids = seed(db)
     r = R.archive_old_events(db, tmp_path / "arch", 1, dry_run=False, now=NOW)
     left = remaining(db)
-    assert ids[("A", "2019-05-04", "activity")] in left                                  # 05-04 is only 1 day older than the newest data day: kept
+    assert ids[("A", "2019-05-04", "accel")] in left                                  # 05-04 is only 1 day older than the newest data day: kept
     # the open day is untouched
-    assert all(ids[("A", "2019-05-05", k)] in left for k in ("activity", "vitals", "heartbeat"))
+    assert all(ids[("A", "2019-05-05", k)] in left for k in ("accel", "vitals", "heartbeat"))
     # vitals are kept by default
     assert all(ids[("A", d, "vitals")] in left for d in ("2019-05-01", "2019-05-02", "2019-05-03", "2019-05-04"))
     # fall / alert events, and events after the checkpoint, stay
-    assert ids["fall"] in left and ids["alerted"] in left and ids[("B", "2019-05-01", "activity")] in left
-    # the plain old closed activity / heartbeat / accel rows are gone
-    gone = [ids[("A", d, k)] for d in ("2019-05-01", "2019-05-02", "2019-05-03") for k in ("activity", "heartbeat")] + [ids["plain_accel"]]
+    assert ids["fall"] in left and ids["alerted"] in left and ids[("B", "2019-05-01", "accel")] in left
+    # the plain old closed heartbeat / accel rows are gone
+    gone = [ids[("A", d, k)] for d in ("2019-05-01", "2019-05-02", "2019-05-03") for k in ("accel", "heartbeat")] + [ids["plain_accel"]]
     assert not (set(gone) & left) and r["deleted"] == r["archived"] == len(gone)
 
 
@@ -87,7 +93,7 @@ def test_older_than_days_uses_the_patients_own_clock_too(db, tmp_path):
     r = R.archive_old_events(db, tmp_path / "a1", 3, dry_run=False, now=NOW)           # newest data day 05-05 -> only days before 05-02 count
     assert r["last_day"] == "2019-05-01"
     with db.begin() as c:
-        assert c.execute(select(func.count()).select_from(S.event_log).where(S.event_log.c.day == "2019-05-02").where(S.event_log.c.kind == "activity")).scalar() == 1
+        assert c.execute(select(func.count()).select_from(S.event_log).where(S.event_log.c.day == "2019-05-02").where(S.event_log.c.kind == "accel")).scalar() == 2
 
 
 def test_wall_clock_guard_with_a_fake_clock(db, tmp_path):

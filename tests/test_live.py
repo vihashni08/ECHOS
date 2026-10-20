@@ -22,7 +22,7 @@ TO = {"caregiver": "care@example.test", "clinician": "doc@example.test", "escala
 
 
 def ev(pid="px", ts="2019-05-20T08:00:00", **kw):
-    return {"patient_id": pid, "ts": ts, "kind": "activity", "room": "Kitchen", **kw}
+    return {"patient_id": pid, "ts": ts, "kind": "heartbeat", **kw}
 
 
 @pytest.fixture
@@ -40,19 +40,19 @@ def client(eng, tmp_path):
 
 def test_ingest_contract_validates_dedups_and_tracks_freshness(client):
     c, ctx = client
-    r = c.post("/api/ingest/events", json={"events": [ev(), ev(ts="2019-05-20T08:05:00", room="Bedroom"),
+    r = c.post("/api/ingest/events", json={"events": [ev(), ev(ts="2019-05-20T08:05:00", device_id="hub-2"),
                                                       {"patient_id": "px", "ts": "2019-05-20T08:10:00", "kind": "vitals", "device_type": "Heart rate", "value": 71, "unit": "bpm"},
                                                       {"patient_id": "px", "ts": "2019-05-20T08:15:00", "kind": "heartbeat"}]})
     assert r.status_code == 200 and r.json() == {"accepted": 4, "duplicates": 0, "rejected": 0, "patients": ["px"]}
     assert c.post("/api/ingest/events", json={"events": [ev()]}).json()["duplicates"] == 1                    # exact repeat: idempotent
-    assert c.post("/api/ingest/events", json={"events": [ev(room="Garage")]}).status_code == 422             # unknown room
+    assert c.post("/api/ingest/events", json={"events": [ev(kind="activity", room="Kitchen")]}).status_code == 422     # room-sensor events are no longer accepted
     assert c.post("/api/ingest/events", json={"events": [{"patient_id": "px", "ts": "2019-05-20T08:00:00", "kind": "vitals", "device_type": "Heart rate"}]}).status_code == 422
     assert c.post("/api/ingest/events", json={"events": [{"patient_id": "p x!", "ts": "2019-05-20T08:00:00", "kind": "heartbeat"}]}).status_code == 422
     assert c.post("/api/ingest/events", json={"events": []}).status_code == 422
     st = c.get("/api/live/status").json()
     p = st["patients"][0]
     assert st["mode"] == "replay" and p["patient_id"] == "px" and p["last_event_ts"] == "2019-05-20T08:15:00"
-    assert p["streams"]["activity"]["state"] == "fresh" and p["streams"]["accel"]["state"] == "none"
+    assert p["streams"]["heartbeat"]["state"] == "fresh" and p["streams"]["accel"]["state"] == "none" and "activity" not in p["streams"]
 
 
 def test_ingest_token_when_configured(client, monkeypatch):
@@ -90,11 +90,11 @@ def test_emulated_days_are_scored_from_events_and_close_the_previous_day(eng):
         cases = {r.day: r for r in c.execute(select(S.case_state).where(S.case_state.c.patient_id == pats[0]))}
         rows = c.execute(select(S.live_day)).fetchall()
         kinds = {r[0] for r in c.execute(select(S.event_log.c.kind).distinct())}
-    assert kinds == {"activity", "vitals", "heartbeat"}               # raw events only: no 'day' summary event, nothing pre-aggregated
+    assert kinds == {"vitals", "heartbeat"}               # raw events only: no 'day' summary event, nothing pre-aggregated
     assert set(cases) >= {"2019-05-13", "2019-05-14"} and all(cases[x].provisional == 0 for x in ("2019-05-13", "2019-05-14"))
     assert cases["2019-05-15"].provisional == 1 or "2019-05-15" not in cases                    # the newest day stays open
     closed = {r.day: json.loads(r.row) for r in rows if r.closed}
-    assert closed["2019-05-13"]["source"] == "live" and closed["2019-05-13"]["total_events"] > 0
+    assert closed["2019-05-13"]["source"] == "live" and closed["2019-05-13"]["has_reading"] in (True, False)
     assert all(cases[x].as_of for x in cases)
     d.flush(5)
 
@@ -135,17 +135,6 @@ def c_all(eng):
     with eng.begin() as c:
         return c.execute(select(S.alerts)).fetchall()
 
-
-def test_silent_activity_sensor_is_a_provisional_data_gap_not_normal(eng):
-    proc, d = build(eng)
-    evs = [IngestEvent(patient_id="silent1", ts=f"2019-05-20T{h:02d}:00:00", kind="heartbeat", source="device") for h in range(7, 21)]
-    LS.write_events(eng, evs)
-    while proc.step():
-        pass
-    with eng.begin() as c:
-        cs = c.execute(select(S.case_state)).first()
-    assert cs.status == "MONITOR" and cs.data_gap and cs.provisional == 1 and "sensor" in cs.reasons
-    d.flush(5)
 
 
 def test_restart_rebuilds_the_open_day_and_changes_nothing(eng):

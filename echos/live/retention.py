@@ -1,6 +1,6 @@
 """Data retention: move OLD, CLOSED raw events out of event_log into a compressed archive file, then delete them from the database.
 Kept in the database (never archived): live_day (the closed patient-day rows every detector and chart reads), case_state, case_file, alerts, alert_state, reports, outbox, agent_output.
-What is archived (default kinds): activity, heartbeat, accel. Vitals are kept unless include_vitals=True (charts and personal vital baselines read them).
+What is archived (default kinds): heartbeat, accel. Vitals are kept unless include_vitals=True (charts and personal vital baselines read them).
 A raw event is archived only when ALL of these hold:
   1. its kind is selected (never the replay kinds such as 'day');
   2. its (patient, day) is CLOSED in live_day, so the OPEN day of every patient is never touched (restart recovery rebuilds the open day from event_log);
@@ -24,7 +24,7 @@ from sqlalchemy import select, text
 from echos.live.store import LIVE_KINDS
 from echos.orchestrator import state as S
 
-DEFAULT_KINDS = ("activity", "heartbeat", "accel")
+DEFAULT_KINDS = ("heartbeat", "accel")
 CHUNK = 5000
 
 

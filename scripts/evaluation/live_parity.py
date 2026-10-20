@@ -55,8 +55,7 @@ def main():
             hist = LF.history_for(proc.parquet, closed, p, d)
             full = pd.concat([hist, pd.DataFrame([r.to_dict()])], ignore_index=True, sort=False)
             full["day"] = pd.to_datetime(full["day"])
-            for col in ("has_activity", "has_reading", "sensor_gap"):
-                full[col] = full[col].fillna(False).astype(bool)
+            full["has_reading"] = full["has_reading"].fillna(False).astype(bool)
             lv, _ = vm.predict_live(p, d, full)
             ref = HM.predict(p, d)
             rows.append({"patient": p, "day": str(d.date()), "vit_live": lv.score if "current_vs_baseline" in lv.evidence else None, "vit_ref": ref.vitals.probability if ref.vitals.available else None})

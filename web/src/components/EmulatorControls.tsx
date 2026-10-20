@@ -23,7 +23,7 @@ export default function EmulatorControls() {
   const playing = e?.status === "playing"
   return (
     <section className="flex flex-col gap-3" aria-label="Device emulator" data-testid="emulator-controls">
-      <p className="text-sm text-muted-foreground">The emulator replays real TIHM room-sensor and vitals events in wall-clock time. It is a stand-in for a device, not a device.</p>
+      <p className="text-sm text-muted-foreground">The emulator replays real TIHM vitals readings in wall-clock time. It is a stand-in for a device, not a device.</p>
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => run({ action: playing ? "pause" : "play" })} disabled={emu.isPending || e?.status === "finished"} data-testid="emu-play">
           {playing ? <Pause className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}{playing ? "Pause" : e?.status === "paused" ? "Resume" : "Start"}

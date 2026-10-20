@@ -42,7 +42,7 @@ def build() -> str:
     rule, sub = vit[bud]["A fixed BP rule"], vit[bud]["B vitals model only"]
     one = vit["1.0 / pt-wk"]["B vitals model only"]
     rt = J("report_text_check")
-    sg_share = dq["sensor_gap_days"] / dq["patient_days"]
+    nr_share = dq["days_without_reading"] / dq["patient_days"]
     nl, ld = lat["no_load"], lat["load_4_busy_threads"]
     fall_ci = e2e["falls_detected_pct_ci95_wilson"]
     rows = [
@@ -59,10 +59,10 @@ def build() -> str:
          f"Vitals PR-AUC {ci(r1['xgboost']['pr_auc'] if 'xgboost' in r1 else a1['results']['at_rule_budget']['pr_auc'], c1['xgb_pr_auc'], 3)} vs fixed BP rule {ci(r1['fixed_rule']['pr_auc'], c1['rule_pr_auc'], 3)}; "
          f"at the rule's own alert count recall {ci(sub['recall'], sub['recall_ci95'])} vs {ci(rule['recall'], rule['recall_ci95'])} (out-of-fold, patient-level folds, patient bootstrap CI; the recall CIs overlap).",
          "Labels are described as clinician-verified events but we did not verify how they were produced, and 99% of BP-label days have a BP reading, so vitals results are an upper bound on generalisation; 54 patients."),
-        ("Fragile pipelines and silent sensor failure",
-         "Rule-based Data Quality agent (ranges, gaps, completeness; never imputes); a day with a sensor gap / unchecked data / >7 days without vitals is DATA_GAP and never Normal; "
+        ("Fragile pipelines and missing data",
+         "Rule-based Data Quality agent (ranges, gaps, completeness; never imputes); a day with unchecked data / monitoring degraded / >7 days without vitals is DATA_GAP and never Normal; "
          "supervisor restarts dead workers; documented fallbacks.",
-         f"{dq['sensor_gap_days']} of {dq['patient_days']} patient-days ({pct(sg_share)}) flagged as sensor gap; replay data-gap days {pct(e2e['data_gap_share_any_status'])}, "
+         f"{dq['days_without_reading']} of {dq['patient_days']} patient-days ({pct(nr_share)}) have no BP/HR reading, {dq['days_vitals_gap_over_max']} are more than 7 days after the last one (DATA_GAP); replay data-gap days {pct(e2e['data_gap_share_any_status'])}, "
          f"{e2e['data_gap_flag_vs_reconstruction_mismatches']} flag mismatches. Fault injection: {fault_summary(fi)}.",
          "3 patients x 10 days, one fault per case, fakes for LLM / SMTP / PubMed, one machine; the supervisor is a single point of failure for restarts."),
         ("Unsafe LLM text",

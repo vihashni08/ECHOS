@@ -70,13 +70,13 @@ def s_duplicates_and_late_events():
     emu, pats = start(eng, 6 * 3600, n_days=3)
     stream(eng, proc, emu, 8)
     with eng.begin() as c:
-        evs = c.execute(select(S.event_log).where(S.event_log.c.kind.in_(["activity", "vitals"])).limit(200)).fetchall()
+        evs = c.execute(select(S.event_log).where(S.event_log.c.kind == "vitals").limit(200)).fetchall()
         before = sorted((r.day, r.status, r.provisional) for r in c.execute(select(S.case_state)))
         n_before = c.execute(select(S.event_log.c.event_id)).fetchall()
     redo = [IngestEvent(patient_id=r.patient_id, device_id=json.loads(r.payload)["device_id"], ts=r.ts, kind=r.kind, source="emulator",
-                        **({"room": json.loads(r.payload)["room"]} if r.kind == "activity" else {"device_type": json.loads(r.payload)["device_type"], "value": json.loads(r.payload)["value"]})) for r in evs]
+                        device_type=json.loads(r.payload)["device_type"], value=json.loads(r.payload)["value"]) for r in evs]
     res = LS.write_events(eng, redo)
-    late = LS.write_events(eng, [IngestEvent(patient_id=pats[0], ts="2019-05-13T03:00:00", kind="activity", room="Kitchen", device_id="late-1", source="device")])   # a day that already closed
+    late = LS.write_events(eng, [IngestEvent(patient_id=pats[0], ts="2019-05-13T03:00:00", kind="heartbeat", device_id="late-1", source="device")])   # a day that already closed
     while proc.step():
         pass
     with eng.begin() as c:

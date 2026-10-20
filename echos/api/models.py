@@ -26,9 +26,7 @@ class ErrorOut(BaseModel):
 
 class Completeness(BaseModel):
     days: int = 0
-    days_with_activity: int = 0
     days_with_vitals: int = 0
-    sensor_gap_days: int = 0
 
 
 class PatientOut(BaseModel):

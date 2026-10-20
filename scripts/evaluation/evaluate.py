@@ -142,6 +142,8 @@ def sync_readme(path="README.md") -> int:
     t2 = re.sub(r"sensitivity [\d.]+ adults / [\d.]+ elderly", new, t)
     e = load("e2e")
     sh = e["status_share"]
+    lo, hi = e["falls_detected_pct_ci95_wilson"]
+    t2 = re.sub(r"(- End-to-end \([^)]*\): \d+ detected \(\d+%\); days are \d+% Normal / \d+% Monitor / \d+% Urgent)( \(Wilson 95% CI for detection )[\d.]+-[\d.]+", r"\1\g<2>" + f"{lo:.3f}-{hi:.3f}", t2)
     t2 = re.sub(r"- End-to-end \([^)]*\): \d+ detected \(\d+%\); days are \d+% Normal / \d+% Monitor / \d+% Urgent",
                 f"- End-to-end ({e['patients']} patients, {e['injected_falls']} injected falls): {e['falls_detected_as_urgent']} detected ({e['fall_detection_rate']:.0%}); "
                 f"days are {sh['NORMAL']:.0%} Normal / {sh['MONITOR']:.0%} Monitor / {sh['URGENT']:.0%} Urgent", t2)

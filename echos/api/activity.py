@@ -37,8 +37,8 @@ def _detector_text(agent: str, res: dict) -> tuple[str, str]:
         return ("flagged" if res.get("flag") else "checked"), (f"fall check: score {s:.2f}" + (", flagged" if res.get("flag") else ", not flagged") if isinstance(s, (int, float)) else "fall check")
     if agent == "quality":
         ev = res.get("evidence") or {}
-        gap = ev.get("sensor_gap")
-        return ("flagged" if gap else "checked"), ("data check: " + ("sensor gap" if gap else "data usable") + ("" if ev.get("has_vitals", True) else ", no vitals reading"))
+        bad = bool(ev.get("invalid_values"))
+        return ("flagged" if bad else "checked"), ("data check: " + ("invalid value set aside" if bad else "data usable") + ("" if ev.get("has_vitals", True) else ", no vitals reading"))
     v = res.get("vitals") or {}
     parts = ["vitals " + ("flagged" if v.get("flag") else "as usual")] if v.get("available") else []
     return ("flagged" if v.get("flag") else "checked"), ("health check: " + ", ".join(parts) if parts else "health check: nothing to score")

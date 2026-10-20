@@ -10,9 +10,9 @@ Detector: senses and turns data into evidence. Never decides a status and never 
 
 ### Data Quality gate (`quality`)
 
-Checks that the data can be trusted before anything is scored: ranges, silent sensors, gaps, freshness.
+Checks that the data can be trusted before anything is scored: ranges, duplicates, gaps in the readings, freshness.
 
-- **Takes in:** raw activity and vitals events
+- **Takes in:** raw vitals events
 - **Produces:** quality verdict per patient-day (never imputes)
 - **If it fails:** data passes through marked 'quality unchecked'; the day can never be NORMAL
 - **Never:** fill in missing values

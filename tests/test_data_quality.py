@@ -31,39 +31,32 @@ def test_schema_error():
         dq.clean_physiology(pd.DataFrame({"patient_id": ["p"]}))
 
 
-def act(counts, start="2019-05-01", pid="p1"):
-    rows = []
-    for i, n in enumerate(counts):
-        d = pd.Timestamp(start) + pd.Timedelta(days=i)
-        rows += [(pid, "Kitchen", d + pd.Timedelta(minutes=k)) for k in range(n)]
-    a = pd.DataFrame(rows, columns=["patient_id", "location_name", "date"])
-    a["day"] = a.date.dt.normalize()
-    return a
+def test_completeness_counts_only_vitals_and_validity():
+    assert dq.completeness(True, 0) == 1.0 and dq.completeness(False, 0) == 0.2 and dq.completeness(True, 2) == 0.8 and dq.completeness(False, 1) == 0.0
 
 
-def test_sensor_gap_is_not_zero_activity():
-    t = dq.sensor_gap_table(act([100, 110, 90, 105, 0, 3, 100]), frac=0.05, min_hist=3).set_index("day")
-    assert t.loc["2019-05-05", "sensor_gap"] and t.loc["2019-05-05", "sensor_gap_reason"] == "zero_events"  # in-window silent day
-    assert t.loc["2019-05-06", "sensor_gap"] and t.loc["2019-05-06", "sensor_gap_reason"] == "low_events"   # 3 < 5% of 102
-    assert not t.loc["2019-05-07", "sensor_gap"]  # gap days did not lower the bar
+def test_room_sensor_activity_is_not_part_of_the_quality_gate():
+    import inspect
+    assert not hasattr(dq, "sensor_gap_table") and not hasattr(dq, "clean_activity")
+    from echos.schemas import DataQualityResult
+    assert "sensor_gap" not in DataQualityResult.model_fields and "sensor_gap" not in inspect.getsource(dq.check_day)
 
 
-def test_patient_day_gap_days_have_nan_event_counts():
+def test_patient_day_calendar_is_continuous_between_first_and_last_record():
+    from echos.data.patient_day import _calendar
+    raw = pd.DataFrame({"patient_id": ["p1", "p1", "p2"], "day": pd.to_datetime(["2019-05-01", "2019-05-05", "2019-05-03"]), "sys": [120.0, 130.0, 110.0]})
+    out = _calendar(raw, ["patient_id", "day"])
+    p1 = out[out.patient_id == "p1"]
+    assert list(p1.day.dt.strftime("%m-%d")) == ["05-01", "05-02", "05-03", "05-04", "05-05"] and p1.sys.isna().sum() == 3     # the silent days are rows, not holes
+    assert len(out[out.patient_id == "p2"]) == 1
+
+
+def test_built_patient_day_table_has_no_room_sensor_columns():
     from echos.data.patient_day import load_patient_day
     d = load_patient_day()
-    g = d[d.sensor_gap]
-    assert len(g) and not g.has_activity.any()
-    assert g.total_events.isna().all()      # NaN, not 0
-    ok = d[d.has_activity]
-    assert ok.total_events.notna().all() and not ok.sensor_gap.any()
-
-
-def test_sensor_gap_rule_uses_only_past_data():
-    base = [100, 100, 100, 100, 4, 100]
-    a = dq.sensor_gap_table(act(base), 0.05, 3)
-    b = dq.sensor_gap_table(act(base[:5] + [9999]), 0.05, 3)  # change the FUTURE only
-    assert np.allclose(a.past_median.values[:5], b.past_median.values[:5], equal_nan=True)
-    assert a.sensor_gap.values[:5].tolist() == b.sensor_gap.values[:5].tolist()
+    assert not ({"sensor_gap", "sensor_gap_reason", "has_activity", "total_events"} & set(d.columns))
+    g = d.sort_values(["patient_id", "day"]).groupby("patient_id").day.diff().dropna()
+    assert (g == pd.Timedelta(days=1)).all()                    # one row per calendar day inside each patient's span
 
 
 def test_days_since_last_reading_never_uses_future():

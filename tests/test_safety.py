@@ -26,7 +26,7 @@ def rnd_health(rng):
 
 
 def rnd_quality(rng):
-    return qual(sensor_gap=rng.random() < 0.3, days_since_last_reading=rng.randint(0, 12), quality_checked=rng.random() < 0.9)
+    return qual(days_since_last_reading=rng.randint(0, 12), quality_checked=rng.random() < 0.9)
 
 
 def test_confirmed_fall_forces_urgent_random():
@@ -60,10 +60,9 @@ def test_critical_vitals_force_urgent_random():
 def test_data_gap_never_normal_random():
     rng = random.Random(3)
     for _ in range(N):
-        kind = rng.choice(["sensor", "unchecked", "q_missing", "h_missing", "degraded", "stale"])
+        kind = rng.choice(["unchecked", "q_missing", "h_missing", "degraded", "stale"])
         q, hm = qual(), health()
         dsv = 0
-        if kind == "sensor": q = qual(sensor_gap=True, sensor_gap_reason="zero_events")
         if kind == "unchecked": q = qual(quality_checked=False)
         if kind == "q_missing": q = None
         if kind == "h_missing": hm = None

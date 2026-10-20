@@ -37,7 +37,7 @@ def train_replay_fall_model(force: bool = False) -> Path:
 
 
 def pick_patients(pdy: pd.DataFrame, n: int) -> list:
-    ok = pdy[pdy.has_activity].groupby("patient_id").has_reading.sum().sort_values(ascending=False, kind="stable")
+    ok = pdy.groupby("patient_id").has_reading.sum().sort_values(ascending=False, kind="stable")
     return sorted(ok.index[:n].tolist())
 
 

@@ -168,7 +168,7 @@ def test_confirmed_fall_is_strong_and_leaves_a_trace(eng):
 
 
 def test_single_weak_flag_with_a_data_caveat_is_limited_and_never_medical_advice(eng):
-    r = results(vitals={"available": True, "flag": True}, quality={"sensor_gap": True})
+    r = results(vitals={"available": True, "flag": True}, quality={"quality_checked": False})
     f = Investigator(eng).investigate("p1", "2019-05-05", {"status": "MONITOR", "data_gap": True, "reasons": ["vitals alert p=0.30"], "urgent_types": []}, r)
     assert f["evidence_level"] == "LIMITED" and f["caveats"]
     text = json.dumps(f).lower()
