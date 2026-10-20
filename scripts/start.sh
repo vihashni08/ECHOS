@@ -58,6 +58,9 @@ FLAGS=(--dry)                                   # never real mail
 [ "$LLM" = 0 ] && [ "$PUBMED" = 1 ] && FLAGS=(--dry)   # PubMed only: the LLM stays off through the environment below
 [ "$REAL" = 1 ] && { LLM=1; PUBMED=1; FLAGS=(); export ECHOS_SEND_REAL=1 ECHOS_WEEKLY_LLM=1; }
 [ "$REAL" = 0 ] && export ECHOS_DRY_RUN=1
+if [ "$REAL" = 1 ]; then   # "I have seen this" link in the mails: random secret per run, base URL = this API (it opens on this machine); both can be preset in the environment
+  export ECHOS_LINK_SECRET="${ECHOS_LINK_SECRET:-$(.venv/bin/python -c 'import secrets;print(secrets.token_urlsafe(24))')}" ECHOS_PUBLIC_URL="${ECHOS_PUBLIC_URL:-$API}"
+fi
 [ "$LLM" = 0 ] && export ECHOS_REPORT_LLM=off
 if [ "$MODE" = live ]; then
   DB=data/echos_live_dev.db
