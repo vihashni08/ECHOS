@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # One command: API + watchdog + runtime (scripts/run_api.sh) and the web app (Vite), wait until both answer, print the URLs, stop everything on Ctrl-C.
-#   scripts/start.sh [--replay | --live | --week-demo] [--auth] [--fresh] [--llm] [--pubmed] [--real --yes] [--check]
+#   scripts/start.sh [--replay | --live | --week-demo | --live-week] [--auth] [--fresh] [--llm] [--pubmed] [--real --yes] [--check]
 #   --replay   (default) TIHM replayed day by day on a COPY of the database (data/echos_ui_dev.db, made from data/echos.db when missing)
 #   --live     live / emulator mode on data/echos_live_dev.db (kept between runs: a restart recovers; add --fresh to start empty)
 #   --week-demo  one person, one week (46286, Mon 2019-05-27 .. Sun 2019-06-02: low-BP critical readings + one injected fall), fresh database data/echos_week_demo.db
 #              every start; press Play in Demo tools: 7 daily reports, the alerts and the weekly PDF (Sunday close) appear. Dummy dry-run addresses, nothing is sent
-#   --real     with --week-demo: REAL services: alert/weekly e-mails ARE sent (SMTP), Gemini and PubMed ARE called; needs --yes and the .env names
+#   --live-week  LIVE (emulator) mode on the same person and week as --week-demo, fresh database data/echos_live_week.db: raw readings arrive one by one in wall-clock
+#              time (one data day ~ 24 s, the week ~ 3.5 min); press Start in Demo tools, then 'Inject a fall now' when you want the fall
+#   --real     with --week-demo or --live-week: REAL services: alert/weekly e-mails ARE sent (SMTP), Gemini and PubMed ARE called; needs --yes and the .env names
 #              (README / .env.example); a preflight lists missing names (values are never printed)
 #   --auth     authentication on; tokens go to data/auth_tokens.txt (git-ignored); they are NEVER printed
 #   --fresh    live only: delete the live dev database first
@@ -21,6 +23,7 @@ for a in "$@"; do
     --replay) MODE=replay ;;
     --live) MODE=live ;;
     --week-demo) MODE=replay; WEEK=1 ;;
+    --live-week) MODE=live; WEEK=2 ;;
     --auth) AUTH=(--auth) ;;
     --fresh) FRESH=1 ;;
     --llm) LLM=1 ;;
@@ -40,7 +43,7 @@ done
 [ -d web/node_modules ] || { echo "web/node_modules is missing: run 'cd web && npm ci' first"; exit 1; }
 mkdir -p data/logs
 if [ "$REAL" = 1 ]; then   # real-services demo: e-mail, Gemini and PubMed on; only together with --week-demo and --yes
-  [ "$WEEK" = 1 ] || { echo "--real is only for --week-demo"; exit 2; }
+  [ "$WEEK" != 0 ] || { echo "--real is only for --week-demo / --live-week"; exit 2; }
   [ "$YES" = 1 ] || { echo "--real sends REAL e-mails and calls Gemini / PubMed: add --yes to confirm"; exit 2; }
   PYTHONPATH="$PWD" .venv/bin/python - <<'PY' || exit 1
 import os, sys
@@ -64,6 +67,11 @@ fi
 [ "$LLM" = 0 ] && export ECHOS_REPORT_LLM=off
 if [ "$MODE" = live ]; then
   DB=data/echos_live_dev.db
+  if [ "$WEEK" = 2 ]; then
+    DB=data/echos_live_week.db; FRESH=1
+    export ECHOS_DEMO_PATIENTS=46286
+    [ "$REAL" = 1 ] || export ECHOS_CAREGIVER_EMAIL=caregiver@example.org ECHOS_CLINICIAN_EMAIL=clinician@example.org ECHOS_ESCALATION_EMAIL=escalation@example.org   # dry run: never sent
+  fi
   [ "$FRESH" = 1 ] && rm -rf "$DB" "$DB-wal" "$DB-shm" "${DB%.db}.cp.sqlite"* "${DB%.db}_files"
   FLAGS+=(--demo --mode live)
 elif [ "$WEEK" = 1 ]; then
@@ -105,6 +113,9 @@ for i in $(seq 1 150); do
   sleep 1
 done
 ok "$API/api/auth/me" && ok "http://127.0.0.1:$WEB_PORT/" && rt_ok || { echo "not healthy after 150 s: see data/logs/api.log and data/logs/web.log"; exit 1; }
+if [ "$WEEK" = 2 ]; then   # load the demo week into the emulator (Mon 2019-05-27 + 8 data days: Monday 2019-06-03 only closes Sunday); Start in Demo tools plays it
+  curl -fs --max-time 20 -X POST "$API/api/live/emulator" -H 'content-type: application/json' -d '{"action":"load","start_day":"2019-05-27","n_days":8}' >/dev/null || { echo "could not load the demo week into the emulator"; exit 1; }
+fi
 echo "ECHOS is running ($MODE mode, $([ "$REAL" = 1 ] && echo 'REAL e-mail' || echo 'dry-run mail')$([ "$LLM" = 0 ] && echo ', no LLM')$([ "$PUBMED" = 0 ] && echo ', no PubMed'))"
 echo "  web: $WEB"
 echo "  api: $API  (docs: $API/docs)"

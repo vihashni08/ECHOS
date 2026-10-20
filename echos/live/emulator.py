@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import threading
 import time
 from typing import Optional
@@ -56,7 +57,8 @@ class Emulator:
         n_days = int(n_days or self.ec.get("n_days", 14))
         end = start + pd.Timedelta(days=n_days)
         pdy = load_patient_day()
-        pats = list(patients) if patients else pick_patients(pdy[pdy.day < start], int(n_patients or self.ec.get("n_patients", 4)))
+        demo = [x for x in os.environ.get("ECHOS_DEMO_PATIENTS", "").split(",") if x]   # demo: scripts/start.sh --live-week
+        pats = list(patients) if patients else (demo or pick_patients(pdy[pdy.day < start], int(n_patients or self.ec.get("n_patients", 4))))
         phys = loaders.load_physiology()
         phys = phys[phys.patient_id.isin(pats) & phys.device_type.isin(VITAL_TYPES) & (phys.date >= start) & (phys.date < end)]
         ev = [(r.date, r.patient_id, {"kind": "vitals", "device_type": r.device_type, "value": float(r.value), "unit": getattr(r, "unit", None)}) for r in phys.itertuples()]
