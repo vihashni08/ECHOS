@@ -11,7 +11,7 @@ from echos.data import patient_day as pdm
 from echos.data.guard import assert_real_source
 
 PD = ROOT / load_config()["paths"]["processed"]
-LABELS = ["bp_alert", "pulse_alert", "water_alert", "agitation"]
+LABELS = ["bp_alert", "pulse_alert", "water_alert"]
 
 
 def summary(df, kind):

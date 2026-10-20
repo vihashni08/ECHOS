@@ -45,7 +45,7 @@ def main():
         while proc.step():
             pass
     # live scores of each CLOSED day, rebuilt exactly as the processor did
-    from echos.agents.health import behaviour as bm, vitals as vm
+    from echos.agents.health import vitals as vm
     from echos.live import features as LF, store as LS
     rows = []
     for p in pats:
@@ -58,13 +58,11 @@ def main():
             for col in ("has_activity", "has_reading", "sensor_gap"):
                 full[col] = full[col].fillna(False).astype(bool)
             lv, _ = vm.predict_live(p, d, full)
-            lb, _ = bm.predict_live(p, d, full)
             ref = HM.predict(p, d)
-            rows.append({"patient": p, "day": str(d.date()), "vit_live": lv.score if "current_vs_baseline" in lv.evidence else None, "vit_ref": ref.vitals.probability if ref.vitals.available else None,
-                         "beh_live": lb.score if "reason" not in lb.evidence else None, "beh_ref": ref.behaviour.probability if ref.behaviour.available else None})
+            rows.append({"patient": p, "day": str(d.date()), "vit_live": lv.score if "current_vs_baseline" in lv.evidence else None, "vit_ref": ref.vitals.probability if ref.vitals.available else None})
     df = pd.DataFrame(rows)
     out = {"patient_days": int(len(df))}
-    for k in ("vit", "beh"):
+    for k in ("vit",):
         both = df.dropna(subset=[f"{k}_live", f"{k}_ref"])
         diff = (both[f"{k}_live"] - both[f"{k}_ref"]).abs()
         out[k] = {"compared": int(len(both)), "max_abs_diff": float(diff.max()) if len(diff) else None, "mean_abs_diff": float(diff.mean()) if len(diff) else None,

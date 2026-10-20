@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SHEET_COLS = ["item_id", "rater_id", "clarity_1_5", "usefulness_1_5", "safe_wording_1_5", "would_act_yes_no", "comment"]
 KIND_TITLE = {"daily": "Daily report for the caregiver", "weekly": "Weekly summary for the clinician", "alert": "Immediate alert e-mail"}
-SECTIONS = ["Key findings", "Vitals vs personal baseline", "Daily routine vs personal baseline", "Alerts", "Findings and supporting sources",
+SECTIONS = ["Key findings", "Vitals vs personal baseline", "Alerts", "Findings and supporting sources",
             "Considerations for clinician review", "Data quality"]
 FORBIDDEN = ("template", "llm", "gemini", "validator", "provenance", "wording:", "cache", "fallback")
 
@@ -29,7 +29,7 @@ def scrub(text: str) -> str:
 
 
 STATUS = ("NORMAL", "MONITOR", "URGENT", "no result")
-TYPES = ("Possible fall", "Vitals alert", "Critical vitals", "Unusual activity pattern")
+TYPES = ("Possible fall", "Vitals alert", "Critical vitals")
 
 
 def _alert_row(cells: list[str]) -> str:
@@ -56,7 +56,7 @@ def weekly_text(pdf_path: str) -> str:
     out = ["Weekly clinician report", head, ""]
     for name in SECTIONS:
         body = sec.get(name)
-        if not body or name in ("Vitals vs personal baseline", "Daily routine vs personal baseline"):
+        if not body or name in ("Vitals vs personal baseline",):
             continue
         if name == "Alerts":     # the table is extracted one cell per line: regroup by the date that starts each row
             rows, cell = [], None

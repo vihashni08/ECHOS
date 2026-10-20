@@ -48,7 +48,7 @@ def test_case_file_and_message_bus(api):
     c, ctx = api
     assert c.get(f"/api/patients/{PID}/case").json() is None
     Investigator(ctx.eng).investigate(PID, "2019-05-09", {"status": "URGENT", "urgent_types": ["fall"], "reasons": ["fall p=0.99"]},
-                                      {"quality": {"evidence": {"quality_checked": True}}, "health": {"vitals": {}, "behaviour": {}},
+                                      {"quality": {"evidence": {"quality_checked": True}}, "health": {"vitals": {}},
                                        "fall": {"score": 0.99, "flag": True, "evidence": {"post_fall_inactive": True}}})
     assert c.get(f"/api/patients/{PID}/case").json() is None            # the latest processed day of the fixture has no case file (not investigated)
     f = M.CaseFileOut.model_validate(c.get(f"/api/patients/{PID}/case?day=2019-05-09").json())

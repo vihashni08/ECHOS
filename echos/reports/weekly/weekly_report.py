@@ -21,13 +21,12 @@ MAX_SOURCES = 6
 
 
 def email_parts(d: dict) -> tuple[str, str, str]:
-    """(subject, plain text, html): five short lines."""
+    """(subject, plain text, html): four short lines."""
     c, comp = d["status_counts"], d["completeness"]
     rng = f"{d['week_start']} to {d['week_end']}"
     lines = [f"Days by status: Normal {c['NORMAL']}, Monitor {c['MONITOR']}, Urgent {c['URGENT']} (data gap {c['DATA_GAP']}).",
              f"Vitals alerts: {len(d['vitals_alerts'])}.",
              f"Falls: {len(d['falls'])}.",
-             f"Unusual-pattern days: {len(d['unusual_days'])}.",
              f"Data completeness: vitals on {comp['days_with_vitals']} of 7 days, activity on {comp['days_with_activity']} of 7 days. "
              "Full report attached (decision support, not a diagnosis)."]
     subject = f"[ECHOS Weekly] {d['patient_id']} - {rng}"

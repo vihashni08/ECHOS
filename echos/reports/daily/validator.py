@@ -1,7 +1,7 @@
 """Non-LLM validator. Checks a report-writer output (JSON of {section: [{text, cites}]}) against its input payload.
 
 Rules: (1) every number in the text appears in the input (citation ids like [KB-65], [PM-123], F1 are not numbers); (2) no diagnostic wording,
-no medication advice, no quoting of the agitation score; (3) every item cites known evidence ids and every required flag is cited by at least one
+no medication advice, (3) every item cites known evidence ids and every required flag is cited by at least one
 item; (4) when `expected_status` is given, the output's `status` must equal the arbiter's status text exactly; (5) every guidance statement cites
 at least one source that was actually retrieved, and paraphrases it.
 """
@@ -14,9 +14,7 @@ BANNED = [r"diagnos", r"\byou have\b", r"\bsuffer(s|ing)? from\b", r"\bis suffer
           r"\bconfirm(s|ed)? (that )?(he|she|they|the patient) has\b",
           # medication advice: ECHOS never tells anyone to start / stop / change a medicine
           r"\b(take|taking|start|stop|skip|increase|decrease|reduce|adjust|change|double|restart)\b[^.]{0,40}\b(medication|medicine|medicines|medications|dose|doses|dosage|tablets?|pills?|drugs?|antihypertensives?|sedatives?)\b",
-          r"\bprescri(be|bed|ption)\b", r"\bdosage\b", r"\b\d+\s?(mg|mcg|ml)\b",
-          # the agitation score has modest skill and is not a probability: never quote it
-          r"\bagitation (probability|risk|score|likelihood)\b", r"\bprobability of agitation\b"]
+          r"\bprescri(be|bed|ption)\b", r"\bdosage\b", r"\b\d+\s?(mg|mcg|ml)\b"]
 CITE_TOKEN = re.compile(r"\[?\b(?:KB|PM)-\d+\b\]?|\b[FE]\d+\b")
 
 
@@ -82,7 +80,7 @@ QUOTE_WORDS = 10  # a run of this many consecutive words copied from a retrieved
 def _rule(msg: str) -> str:
     """Stable rule code for an error string (provenance / live-check output)."""
     for pat, code in ((r"^number ", "number_not_in_input"), (r"^diagnostic wording: /.*(diagnos|you have|suffer|developed|confirm)", "diagnostic_wording"),
-                      (r"^diagnostic wording: /.*(agitation|probability)", "score_quoted"), (r"^diagnostic wording", "medication_advice"),
+                      (r"^diagnostic wording", "medication_advice"),
                       (r"without a citation", "guidance_uncited"), (r"was not retrieved", "guidance_not_retrieved"),
                       (r"verbatim", "guidance_quoted"), (r"unknown evidence id", "unknown_cite_id"), (r"cites no evidence", "item_uncited"),
                       (r"item without text", "item_without_text"), (r"quotes none of its recorded values", "not_specific"), (r"^flag .* not cited", "flag_not_cited"), (r"status text", "status_mismatch"),
@@ -117,8 +115,8 @@ def check_guidance(output: dict, guidance: dict, errors: list):
 
 
 def check_specific(output: dict, flags: list, errors: list, where: dict):
-    """A `changes` sentence about a flag that carries recorded values (evidence.specifics: which vital / routine measure, its value, the person's own usual)
-    must quote at least one of those numbers. 'The activity pattern differs from usual.' with no value is vague, not wrong, and is rejected so the one
+    """A `changes` sentence about a flag that carries recorded values (evidence.specifics: which vital, its value, the person's own usual)
+    must quote at least one of those numbers. 'The blood pressure differs from usual.' with no value is vague, not wrong, and is rejected so the one
     retry (or the template, which always quotes them) produces a specific sentence."""
     import re
     nums = {}

@@ -2,7 +2,7 @@
   - reading level (Flesch-Kincaid grade and Flesch reading ease, own syllable heuristic: roughly right for English, not exact),
   - length (words per report, words per sentence),
   - named next steps (every status: >= 1 Plan action (v2) or >= 2 'What to monitor today' items (v1), each opening with or containing an action verb; URGENT: an Alerts section),
-  - banned wording (the validator's diagnostic / medication / agitation-score rules plus model jargon: SHAP, XGBoost, z-score, CUSUM, p-value, ...),
+  - banned wording (the validator's diagnostic / medication rules plus model jargon: SHAP, XGBoost, z-score, CUSUM, p-value, ...),
   - no leftover template syntax or empty sections.
 It says nothing about whether a real reader understands or finds a report useful (the rating kit for that is unused), and it checks template wording only (no LLM text).
 Writes reports/metrics/report_text_check.json (aggregates only: no patient ids, no report text).

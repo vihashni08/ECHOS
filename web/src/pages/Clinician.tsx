@@ -21,10 +21,6 @@ function alertRows(d: any): Row[] {
     const parts = [["sys", "Systolic BP"], ["dia", "Diastolic BP"], ["hr", "Heart rate"]].flatMap(([k, n]) => a[`${k}_now`] != null && a[`${k}_baseline`] != null ? [`${n} ${a[`${k}_now`]} ${a[`${k}_now`] > a[`${k}_baseline`] ? "above" : "below"} usual ${a[`${k}_baseline`]}`] : [])
     rows.push({ date: a.day, time: "", type: a.kind === "critical" ? "Critical vitals" : "Vitals alert", detail: a.kind === "critical" ? `Critical-range reading: sys ${a.sys ?? "n/a"}, dia ${a.dia ?? "n/a"}, hr ${a.hr ?? "n/a"}` : parts.join("; ") || "Vitals differ from usual" })
   }
-  for (const u of d.unusual_days ?? []) {
-    const z = Object.entries(u.z ?? {}).filter(([, v]) => v != null).map(([k, v]) => `${k.replace(/_/g, " ")} z ${(v as number) > 0 ? "+" : ""}${v}`).join(", ")
-    rows.push({ date: u.day, time: "", type: "Unusual activity pattern", detail: `Activity pattern differs from usual${z ? `: ${z}` : ""}` })
-  }
   return rows.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
 }
 
@@ -69,10 +65,10 @@ export default function Clinician() {
         : !w ? (build.isError ? <ErrorNote error={build.error} /> : <div role="status" aria-label="Building the weekly report"><CardSkeleton h="h-64" /><p className="mt-2 text-sm text-muted-foreground">Building the weekly report… (nothing is emailed)</p></div>)
         : (
           <>
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-5" data-testid="tiles">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-4" data-testid="tiles">
               {[
                 ["Days by status", d ? `Normal ${d.status_counts.NORMAL} · Monitor ${d.status_counts.MONITOR} · Urgent ${d.status_counts.URGENT}` : "n/a", d ? `data gap ${d.status_counts.DATA_GAP}${(d.status_counts as Record<string, number>).NOT_PROCESSED ? ` · not yet processed ${(d.status_counts as Record<string, number>).NOT_PROCESSED}` : ""}` : ""],
-                ["Vitals alerts", String(d?.vitals_alerts?.length ?? 0), ""], ["Falls", String(d?.falls?.length ?? 0), ""], ["Unusual-pattern days", String(d?.unusual_days?.length ?? 0), ""],
+                ["Vitals alerts", String(d?.vitals_alerts?.length ?? 0), ""], ["Falls", String(d?.falls?.length ?? 0), ""],
                 ["Completeness", d ? `vitals ${d.completeness.days_with_vitals}/7 · activity ${d.completeness.days_with_activity}/7` : "n/a", d?.partial_week_note ?? ""],
               ].map(([t, v, s]) => (
                 <Card key={t} className="py-3"><CardContent className="flex flex-col gap-0.5 px-3"><div className="text-xs text-muted-foreground">{t}</div><div className="text-sm font-semibold leading-snug">{v}</div>{s && <div className="text-xs text-muted-foreground">{s}</div>}</CardContent></Card>

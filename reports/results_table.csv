@@ -12,30 +12,19 @@ agent1,fixed rule,recall,0.7587301587301587,0.6166717555225149,0.872355113636363
 agent1,fixed rule,false_alerts_per_patient_week,1.5836501901140687,,,
 agent1,XGBoost,pr_auc,0.6968373852091281,0.5712341242145456,0.7824018301016531,
 agent1,prevalence (no-skill PR-AUC),pr_auc,0.1817657241777265,0.12370193318620533,0.2469400912460793,
-agent2,@0.5/wk,recall,0.35454545454545455,0.232191434352518,0.5222602739726027,
-agent2,@0.5/wk,false_alerts_per_patient_week,0.3756708407871198,,,
-agent2,@1.0/wk,recall,0.5818181818181818,0.4241455750688705,0.7360609756097559,
-agent2,@1.0/wk,false_alerts_per_patient_week,0.7983005366726297,,,
-agent2,@2.0/wk,recall,0.8363636363636363,0.6995353982300885,0.9416869227029654,
-agent2,@2.0/wk,false_alerts_per_patient_week,1.7093023255813953,,,
-agent2,pr_auc,pr_auc,0.21593929567370343,0.14344115160336393,0.3122216979179249,
-agent2,roc_auc,roc_auc,0.8590609766526981,0.8091750822652298,0.9043844184602913,
-agent2,drift_only_pr_auc,drift_only_pr_auc,0.043875018725482745,0.026178712416571187,0.07011925941966295,
-agent2,drift_only_roc_auc,drift_only_roc_auc,0.4531813905755581,0.3779598469067113,0.5423846944990756,
-agent2,prevalence,prevalence,0.049194991055456175,0.028362713503493207,0.07876242312082475,
 agent3,adult,sensitivity,0.9181184668989547,0.9042183890051325,0.9301571411709857,
 agent3,adult,specificity,0.9983164983164983,,,
 agent3,adult,false_alarms_per_hour,0.421249461005464,,,
 agent3,elderly,sensitivity,0.56,0.44746569425928456,0.6666872402321515,
 agent3,elderly,specificity,1.0,,,
 agent3,elderly,false_alarms_per_hour,0.0,,,
-e2e,Patients / patient-days / patient-weeks,value,,,,20 / 1266 / 180.9
+e2e,Patients / patient-days / patient-weeks,value,,,,20 / 1265 / 180.7
 e2e,Injected falls,value,,,,60
-e2e,"Fall detection rate (URGENT, fall reason)",value,,,,0.850 (0.739-0.919) (51/60)
-e2e,"Detection delay, simulated (fall -> end of day), median / max",value,,,,13.1 h / 23.8 h
-e2e,False fall alerts per patient-week,value,,,,0.011 (2 alerts)
+e2e,"Fall detection rate (URGENT, fall reason)",value,,,,0.800 (0.682-0.882) (48/60)
+e2e,"Detection delay, simulated (fall -> end of day), median / max",value,,,,13.2 h / 23.8 h
+e2e,False fall alerts per patient-week,value,,,,0.017 (3 alerts)
 e2e,URGENT days from critical vitals (real TIHM readings),value,,,,4
-e2e,All URGENT alerts per patient-week,value,,,,0.315
-e2e,Days Normal / Monitor / Urgent,value,,,,66.7% / 28.8% / 4.5%
-e2e,Days with a data gap (any status),value,,,,4.5%
+e2e,All URGENT alerts per patient-week,value,,,,0.31
+e2e,Days Normal / Monitor / Urgent,value,,,,74.3% / 21.3% / 4.3%
+e2e,Days with a data gap (any status),value,,,,4.4%
 e2e,Duplicate alerts,value,,,,0

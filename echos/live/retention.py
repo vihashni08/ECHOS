@@ -8,8 +8,7 @@ A raw event is archived only when ALL of these hold:
   4. its day is older than `older_than_days` by BOTH clocks: the wall clock (`now`, injectable for tests) and the patient's own newest data day (an emulator replaying 2019 keeps its last days);
   5. no alert and no detector output (agent_output: a fall's waveform) points at the event.
 The archive file is written, flushed and read back (row count + checksum) BEFORE any row is deleted; if that check fails nothing is deleted.
-Consequences, also in docs/DATA_POLICY.md: archived events are no longer deduplicated (a re-sent old event is stored again and, because its day is closed, only logged as late);
-raw routine charts for archived days show the original TIHM CSV rows again in emulator mode and nothing in real mode (the day-level numbers in live_day remain)."""
+Consequences, also in docs/DATA_POLICY.md: archived events are no longer deduplicated (a re-sent old event is stored again and, because its day is closed, only logged as late)."""
 from __future__ import annotations
 
 import gzip

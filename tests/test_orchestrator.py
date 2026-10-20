@@ -27,13 +27,8 @@ def vit(sys=120, dia=80, hr=70, score=0.0):
             {"sys": {"current": sys}, "dia": {"current": dia}, "hr": {"current": hr}}}
 
 
-def beh(prob=0.0, drift_cusum=None):
-    return {"available": True, "probability": prob, "flag": False,
-            "drift": {"note": "explanation_only", "cusum": drift_cusum or {}, "drifted_features": list(drift_cusum or [])}}
-
-
-def health(v=None, b=None, degraded=False):
-    return {"vitals": v or vit(), "behaviour": b or beh(), "degraded": degraded}
+def health(v=None, degraded=False):
+    return {"vitals": v or vit(), "degraded": degraded}
 
 
 def qual(**ev):
@@ -41,8 +36,8 @@ def qual(**ev):
     return R(0.0, **{**base, **ev})
 
 
-def res(v=None, b=None, fall=None, quality=None):
-    return {"quality": quality or qual(), "health": health(v, b), "fall": fall or R(0.0, post_fall_inactive=False)}
+def res(v=None, fall=None, quality=None):
+    return {"quality": quality or qual(), "health": health(v), "fall": fall or R(0.0, post_fall_inactive=False)}
 
 
 # ------------------------------------------------------------------ triage branches
@@ -53,8 +48,6 @@ def res(v=None, b=None, fall=None, quality=None):
     (res(v=vit(sys=190)), "URGENT", False),                             # critical vitals
     (res(v=vit(hr=35)), "URGENT", False),
     (res(v=vit(score=0.7)), "MONITOR", False),
-    (res(b=beh(0.1, {"night_events": 11.0})), "NORMAL", False),                                  # drift is evidence only, not a trigger
-    (res(b=beh(0.8)), "MONITOR", False),
     (res(), "NORMAL", False),
 ])
 def test_triage_branches(r, status, gap):

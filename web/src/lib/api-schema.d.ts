@@ -72,23 +72,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/patients/{pid}/routine": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Routine */
-        get: operations["routine_api_patients__pid__routine_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/patients/{pid}/reports/daily": {
         parameters: {
             query?: never;
@@ -1674,51 +1657,6 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** RoutineDay */
-        RoutineDay: {
-            /** Day */
-            day: string;
-            /** Has Activity */
-            has_activity: boolean;
-            /** Metrics */
-            metrics: {
-                [key: string]: components["schemas"]["RoutineMetric"];
-            };
-        };
-        /** RoutineMetric */
-        RoutineMetric: {
-            /** Value */
-            value?: number | null;
-            /** Lo */
-            lo?: number | null;
-            /** Hi */
-            hi?: number | null;
-            /** Base */
-            base?: number | null;
-            /** Z */
-            z?: number | null;
-        };
-        /** RoutineOut */
-        RoutineOut: {
-            /** Patient Id */
-            patient_id: string;
-            /** Start */
-            start: string;
-            /** End */
-            end: string;
-            /** Rooms */
-            rooms: string[];
-            /** Hours */
-            hours: number[];
-            /** Counts */
-            counts: number[][];
-            /** Days */
-            days: components["schemas"]["RoutineDay"][];
-            /** Min History Days */
-            min_history_days: number;
-            /** Baseline Note */
-            baseline_note: string;
-        };
         /** SimControlIn */
         SimControlIn: {
             /**
@@ -2238,67 +2176,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VitalsOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    routine_api_patients__pid__routine_get: {
-        parameters: {
-            query?: {
-                from?: string | null;
-                to?: string | null;
-            };
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoutineOut"];
                 };
             };
             /** @description Forbidden */

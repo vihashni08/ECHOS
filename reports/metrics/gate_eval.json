@@ -1,59 +1,59 @@
 {
- "patient_days": 1266,
+ "patient_days": 1265,
  "days_by_status": {
-  "NORMAL": 845,
-  "MONITOR": 364,
-  "URGENT": 57
+  "NORMAL": 940,
+  "MONITOR": 270,
+  "URGENT": 55
  },
  "reports_routed_to_llm": {
-  "gate_on": 421,
-  "always_llm": 1266,
-  "avoided": 845,
-  "avoided_share": 0.667
+  "gate_on": 325,
+  "always_llm": 1265,
+  "avoided": 940,
+  "avoided_share": 0.743
  },
  "llm_requests_counting_fake": {
-  "gate_on": 1684,
-  "always_llm": 5064,
-  "avoided": 3380
+  "gate_on": 975,
+  "always_llm": 3795,
+  "avoided": 2820
  },
  "llm_requests_lower_bound_2_per_report": {
-  "gate_on": 842,
-  "always_llm": 2532,
-  "avoided": 1690
+  "gate_on": 650,
+  "always_llm": 2530,
+  "avoided": 1880
  },
  "retrieval_calls": {
   "gate_on": {
-   "retrieve_calls_MONITOR": 728,
-   "retrieve_calls_URGENT": 114
+   "retrieve_calls_MONITOR": 720,
+   "retrieve_calls_URGENT": 191
   },
   "always_llm": {
-   "retrieve_calls_NORMAL": 1690,
-   "retrieve_calls_MONITOR": 728,
-   "retrieve_calls_URGENT": 114
+   "retrieve_calls_NORMAL": 940,
+   "retrieve_calls_MONITOR": 720,
+   "retrieve_calls_URGENT": 191
   }
  },
  "retrievals_executed": {
-  "gate_on": 842,
-  "always_llm": 842
+  "gate_on": 911,
+  "always_llm": 911
  },
  "retrieval_requests_blocked_by_guard": {
   "gate_on": 0,
-  "always_llm": 1690
+  "always_llm": 940
  },
  "pubmed_search_calls": {
-  "gate_on": 842,
-  "always_llm": 842
+  "gate_on": 618,
+  "always_llm": 618
  },
  "triage_identical": true,
  "alerts_identical": true,
  "outbox_identical": true,
  "alerts_missed_due_to_gating": 0,
- "alerts_gate_on": 57,
- "alerts_always_llm": 57,
+ "alerts_gate_on": 56,
+ "alerts_always_llm": 56,
  "notes": [
   "count only: counting FakeLLM, stub PubMed, no real call; the orchestrator was re-run on the stored agent outputs of the replay",
   "the fake model asks for context + guidance, then returns an answer the validator rejects (retry once): 4 requests per LLM-routed report; the 2-per-report lower bound assumes a first-time valid answer after one tool round; a real model may use up to 5 per attempt",
-  "retrieval is ALSO gated by status inside GatedRetriever (NORMAL days never retrieve): an always-LLM policy would still execute the same retrievals, and would attempt 1690 more that the guard blocks; without that guard they would all execute",
-  "the avoided share depends on the data mix: it is the NORMAL share of patient-days (here 66.7%); a cohort with more Monitor days avoids less"
+  "retrieval is ALSO gated by status inside GatedRetriever (NORMAL days never retrieve): an always-LLM policy would still execute the same retrievals, and would attempt 940 more that the guard blocks; without that guard they would all execute",
+  "the avoided share depends on the data mix: it is the NORMAL share of patient-days (here 74.3%); a cohort with more Monitor days avoids less"
  ]
 }

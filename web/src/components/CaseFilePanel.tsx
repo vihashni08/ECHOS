@@ -12,8 +12,8 @@ const LEVEL: Record<string, { text: string; cls: string; hint: string }> = {
   WATCH: { text: "Watch only", cls: "bg-gap-bg text-gap-fg border-gap-line", hint: "No rule fired; a detector is close to its own alert threshold." },
   LIMITED: { text: "Limited evidence", cls: "bg-gap-bg text-gap-fg border-gap-line", hint: "A single flag, or the data has caveats. Not a probability." },
 }
-const TOOL: Record<string, string> = { nearest_threshold: "Found the detector closest to its alert threshold", read_detectors: "Read what the detectors found", check_history: "Compared with the last days", check_agreement: "Checked whether sources agree", check_data_caveats: "Looked for data problems", check_trend: "Checked the trend of the readings", check_personal_history: "Looked at this person's earlier deviations", check_corroboration: "Checked the routine against the vitals" }
-const DET: Record<string, string> = { vitals: "Vitals detector", behaviour: "Behaviour detector", fall: "Fall detector" }
+const TOOL: Record<string, string> = { nearest_threshold: "Found the detector closest to its alert threshold", read_detectors: "Read what the detectors found", check_history: "Compared with the last days", check_agreement: "Checked whether sources agree", check_data_caveats: "Looked for data problems", check_trend: "Checked the trend of the readings", check_personal_history: "Looked at this person's earlier deviations" }
+const DET: Record<string, string> = { vitals: "Vitals detector", fall: "Fall detector" }
 
 function stepText(t: { tool: string; result: unknown }): string {
   const r = t.result as Record<string, unknown>
@@ -24,7 +24,6 @@ function stepText(t: { tool: string; result: unknown }): string {
   if (t.tool === "check_data_caveats") { const c = (t.result as string[]) ?? []; return c.length ? c.join(" ") : "No data problems found" }
   if (t.tool === "check_trend") { const c = (r.confirmed as string[]) ?? []; const o = (r.outside_usual as string[]) ?? []; return r.available ? (c.length ? `On a trend away from the usual: ${c.join(", ")}` : o.length ? `Outside the usual (${o.join(", ")}) but not on a trend` : "Readings within the usual") : "Not enough earlier readings" }
   if (t.tool === "check_personal_history") return r.available ? `${r.prior_deviation_days} earlier day(s) outside their usual; ${r.prior_deviation_days_with_event} carried a recorded clinical event` : "Not enough earlier history"
-  if (t.tool === "check_corroboration") { const u = (r.routine_unusual as string[]) ?? []; return r.available ? (u.length ? `Activity also outside the usual: ${u.map((x) => x.replace("_", " ")).join(", ")}` : "Activity within the usual") : "No activity data to compare" }
   return ""
 }
 

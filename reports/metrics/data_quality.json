@@ -18,11 +18,11 @@
     "exact_duplicates_dropped": 0,
     "out_of_order_rows_resorted": 0
   },
-  "patient_days": 2797,
-  "sensor_gap_days": 132,
+  "patient_days": 2796,
+  "sensor_gap_days": 131,
   "sensor_gap_by_reason": {
     "low_events": 57,
-    "zero_events": 53,
+    "zero_events": 52,
     "no_activity_record": 22
   }
 }

@@ -1,5 +1,5 @@
 """Why is the MONITOR share what it is? Re-runs the (pure) triage rules over the stored replay agent outputs (data/e2e_replay/echos.db) with alternative
-vitals_prob / agitation_prob thresholds. PROPOSES, never applies: config.yaml is not touched. Adds the out-of-fold recall cost from the ablation numbers.
+vitals_prob threshold. PROPOSES, never applies: config.yaml is not touched. Adds the out-of-fold recall cost from the ablation numbers.
 Writes reports/metrics/monitor_driver.json and the block <!-- monitor_driver:start/end --> in reports/RESULTS.md.
 Usage: PYTHONPATH=. python scripts/demo/monitor_driver.py   (after scripts/evaluation/e2e.py and scripts/evaluation/ablation.py)"""
 from __future__ import annotations
@@ -41,23 +41,21 @@ def main():
     mism = sum(b != cs.status for b, (cs, _) in zip(base, days))
     n = len(days)
 
-    def share(vp, ap):
-        tt = {**t, "vitals_prob": vp, "agitation_prob": ap}
+    def share(vp):
+        tt = {**t, "vitals_prob": vp}
         st = Counter(triage(r, cs.days_since_vitals, tt).status.value for cs, r in days)
         return st["MONITOR"] / n, st["URGENT"] / n
     # driver attribution: MONITOR days that disappear when one trigger is switched off
-    no_v, _ = share(2.0, t["agitation_prob"])
-    no_a, _ = share(t["vitals_prob"], 2.0)
-    none_, _ = share(2.0, 2.0)
-    cur, _ = share(t["vitals_prob"], t["agitation_prob"])
-    drivers = {"current_monitor_share": cur, "without_vitals_trigger": no_v, "without_agitation_trigger": no_a, "neither_trigger (data gap + possible fall only)": none_}
+    no_v, _ = share(2.0)
+    cur, _ = share(t["vitals_prob"])
+    drivers = {"current_monitor_share": cur, "without_vitals_trigger (data gap + possible fall only)": no_v}
     vit = np.array([(r["health"] or {}).get("vitals", {}).get("probability") for _, r in days if (r["health"] or {}).get("vitals", {}).get("available")])
     grid = []
     for vp in (t["vitals_prob"], 0.35, 0.40, 0.45, 0.50, 0.60):
-        m, u = share(vp, t["agitation_prob"])
+        m, u = share(vp)
         grid.append({"vitals_prob": vp, "monitor_share": m, "vitals_alert_days": int((vit >= vp).sum()), "vitals_alerts_per_patient_week": float((vit >= vp).sum() / (n / 7))})
     abl = json.loads((ROOT / "reports/metrics/ablation.json").read_text())["tables"]["vitals_labelled_days"]
-    rec = {k: v["B vitals sub-model only"]["recall"] for k, v in abl.items() if "/ pt-wk" in k}
+    rec = {k: v["B vitals model only"]["recall"] for k, v in abl.items() if "/ pt-wk" in k}
     target = next((g for g in grid[1:] if g["monitor_share"] <= 0.25), None)
     res = {"patient_days": n, "triage_reconstruction_mismatches": mism, "monitor_share_current": cur, "drivers": drivers, "vitals_grid": grid,
            "oof_vitals_recall_by_budget": rec, "proposal_not_applied": target,
@@ -66,7 +64,7 @@ def main():
     md = [START, "## MONITOR share driver and threshold proposal (written by scripts/demo/monitor_driver.py; NOT applied)", "",
           f"Current replay MONITOR share {cur:.1%} of {n} days (limit I set myself: 25%). Triage re-run over stored agent outputs ({mism} mismatches vs the stored statuses).", "",
           "| Trigger switched off | MONITOR share |", "|---|---|"]
-    md += [f"| none (current) | {cur:.1%} |", f"| vitals trigger | {no_v:.1%} |", f"| agitation trigger | {no_a:.1%} |", f"| both (only data gaps / possible falls remain) | {none_:.1%} |", "",
+    md += [f"| none (current) | {cur:.1%} |", f"| vitals trigger (only data gaps / possible falls remain) | {no_v:.1%} |", "",
            "| vitals_prob | MONITOR share | vitals alert days | vitals alerts / patient-week |", "|---|---|---|---|"]
     md += [f"| {g['vitals_prob']} | {g['monitor_share']:.1%} | {g['vitals_alert_days']} | {g['vitals_alerts_per_patient_week']:.2f} |" for g in grid]
     md += ["", "Out-of-fold vitals recall at fixed budgets (ablation, B): " + ", ".join(f"{k} -> {v:.2f}" for k, v in rec.items()) + ".",

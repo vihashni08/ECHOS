@@ -28,13 +28,13 @@ def render() -> str:
     rec = {k: v["timing"].get("recover_s") for k, v in fault.items() if v["timing"].get("recover_s") is not None}
     ia = [s["queued_s"] for s in ref["injected_alerts_all"] if s["queued_s"] is not None]
     lines = [START,
-             f"- **End-to-end (template mode, DryRun mail, out-of-fold vitals and behaviour scores):** {e['falls_detected_as_urgent']}/{e['injected_falls']} injected held-out-subject falls raised an URGENT alert "
+             f"- **End-to-end (template mode, DryRun mail, out-of-fold vitals scores):** {e['falls_detected_as_urgent']}/{e['injected_falls']} injected held-out-subject falls raised an URGENT alert "
              f"({e['fall_detection_rate']:.1%}, Wilson 95% CI {ci[0]:.3f}-{ci[1]:.3f}); {e['false_fall_alerts']} false fall alerts ({e['false_fall_alerts_per_patient_week']} per patient-week). "
              f"Alerts are decided at day close, so the simulated delay is {e['detection_delay_sim_hours_median']} h median (max {e['detection_delay_sim_hours_max']} h): the orchestrator is a daily batch, "
              f"not real-time; a fall injected through the live controller (which closes the day at once) is queued in about {sum(ia) / len(ia):.2f} s on average. "
              f"{sh['MONITOR']:.1%} of patient-days are Monitor ({e['data_gap_share_any_status']:.1%} carry a data gap), "
              + ("above the 25% I consider usable for caregivers; " if sh["MONITOR"] > 0.25 else "within the 25% I consider usable for caregivers; ")
-             + f"switching the vitals trigger off would leave {mon['without_vitals_trigger']:.1%}, the agitation trigger {mon['without_agitation_trigger']:.1%} (see the MONITOR driver section; a threshold change is proposed, not applied).",
+             + f"switching the vitals trigger off would leave {mon['without_vitals_trigger (data gap + possible fall only)']:.1%} (see the MONITOR driver section; a threshold change is proposed, not applied).",
              f"- **Fault injection (fakes, {fi['config']['patients']} patients x {fi['config']['days']} days, compared with a clean run):** no alert lost and no duplicate in {len(clean_ok)} of {len(fault)} fault cases"
              + (f"; the exception is the SMTP outage longer than the retry window, where alerts were queued but {sum(failed.values())} outbox rows ended FAILED (undelivered, visible; measured before the 15-minute retry window and 2-hour sweeper were added, see Limitations)" if failed else "")
              + f". Worker kills were detected in {min(v['timing']['detect_s'] for v in fault.values() if v['timing'].get('detect_s') is not None):.1f}-{max(v['timing']['detect_s'] for v in fault.values() if v['timing'].get('detect_s') is not None):.1f} s "

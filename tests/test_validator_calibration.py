@@ -4,7 +4,7 @@ import pytest
 from echos.reports.daily.validator import validate_report
 
 PAYLOAD = {"facts": {"day": "2019-05-15", "vitals": {"sys": {"value": 143.4, "baseline": 128.0, "delta": 9.3, "pct": 0.104}, "hr": {"value": 71, "baseline": 66.25}},
-                     "routine": {"night_events": {"value": 24, "baseline": 12}}, "flags": [{"id": "F1"}]}}
+                     "flags": [{"id": "F1"}]}}
 G = {"section": "guidance", "ids": ["KB-7"], "texts": {"KB-7": "Check blood pressure again later and review medicines with the clinician."}}
 
 
@@ -21,7 +21,6 @@ def check(text, section="changes", cites=("F1",), **kw):
     "On May 15 the reading was higher than usual.",                 # date parts come from 2019-05-15
     "On 15 May the reading was higher than usual.",
     "The reading on 15/05 was higher than usual.",
-    "Night-time activity was 24 events against a usual 12, twice the usual.",
     "Heart rate was 71 against its usual 66.",                      # 66.25 rounded
     "The reading was about 10% higher than usual.",                 # 0.104 as a percentage
     "Pressure was roughly 10 percent above usual.",
@@ -34,7 +33,7 @@ def test_natural_phrasings_pass(text):
 @pytest.mark.parametrize("text", [
     "Systolic pressure was 171 against usual 128.",                 # number not in the input
     "Systolic pressure rose by 40 points.",
-    "Night-time activity was 35 events.",
+    "Body weight was 35 kg.",
     "Heart rate was about 40% above usual.",                         # a percentage that matches no stored fraction
 ])
 def test_numbers_not_in_input_fail(text):
@@ -67,11 +66,6 @@ def test_diagnostic_wording_fails(text):
 ])
 def test_medication_advice_fails(text):
     assert not check(text)["ok"], text
-
-
-def test_score_wording_fails():
-    r = check("The agitation probability was high.")
-    assert not r["ok"] and "score_quoted" in r["codes"]
 
 
 def test_failure_report_names_rule_and_location_not_the_text():

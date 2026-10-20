@@ -2,7 +2,7 @@
 
 Stage 1 (echos/orchestrator/triage.py) classifies the status with if-then rules. Stage 2 (this file) routes the case with one score and one cutoff:
 
-  NEAREST-THRESHOLD RATIO   r = max_k ( p_k / tau_k )      p_k = score of detector k (vitals, behaviour, fall), tau_k = that detector's own alert
+  NEAREST-THRESHOLD RATIO   r = max_k ( p_k / tau_k )      p_k = score of detector k (vitals, fall), tau_k = that detector's own alert
                             threshold (config `triage`). r = 1 means "exactly at its alert threshold"; a fixed vitals rule that fired while monitoring is degraded counts r = 1.
   ROUTING RULE              rule fired (status MONITOR / URGENT)  ->  Investigator + Care Coordinator (hard evidence, no cutoff involved)
                             no rule fired and  r > theta          ->  Investigator writes a short WATCH file (a near miss); nobody else is called
@@ -69,7 +69,7 @@ def theta(cfg: Optional[dict] = None) -> float:
 def detector_scores(results: Optional[dict], t: dict) -> dict:
     """k -> {p, tau, r} for the detectors that produced a score, r = p / tau. A fixed vitals rule that fired while monitoring was degraded counts as r = 1."""
     h = (results or {}).get("health") or {}
-    v, b, f = h.get("vitals") or {}, h.get("behaviour") or {}, (results or {}).get("fall") or {}
+    v, f = h.get("vitals") or {}, (results or {}).get("fall") or {}
     out = {}
 
     def add(k, p, tau):
@@ -81,8 +81,6 @@ def detector_scores(results: Optional[dict], t: dict) -> dict:
     else:
         if v.get("available") and "probability" in v:
             add("vitals", v["probability"], t["vitals_prob"])
-        if b.get("available") and "probability" in b:
-            add("behaviour", b["probability"], t["agitation_prob"])
     if f and f.get("score") is not None:
         add("fall", f["score"], t["fall_prob"])
     return out

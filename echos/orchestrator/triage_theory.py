@@ -44,11 +44,10 @@ def union_rate(rates: Sequence[float]) -> float:
     return 1.0 - float(np.prod([1.0 - a for a in rates]))
 
 
-def _results(vit=0.0, beh=0.0, fall=0.0, inactive=False, gap=False, critical=False, vit_available=True):
+def _results(vit=0.0, fall=0.0, inactive=False, gap=False, critical=False, vit_available=True):
     cur = {"sys": {"current": 200.0 if critical else 120.0}, "dia": {"current": 80.0}, "hr": {"current": 70.0}}
     return {"quality": {"evidence": {"quality_checked": True, "sensor_gap": gap, "days_since_last_reading": 0}},
-            "health": {"degraded": False, "vitals": {"available": vit_available, "probability": vit, "current_vs_baseline": cur},
-                       "behaviour": {"available": True, "probability": beh}},
+            "health": {"degraded": False, "vitals": {"available": vit_available, "probability": vit, "current_vs_baseline": cur}},
             "fall": {"score": fall, "evidence": {"post_fall_inactive": inactive}}}
 
 
@@ -63,16 +62,16 @@ def check_properties(cfg: dict | None = None) -> dict:
     flags = (False, True)
     rank = lambda **k: RANK[triage(_results(**k), 0, cfg).status.value]       # noqa: E731
     mono = grid = 0
-    for v, b, f, ina, gap, crit in itertools.product(levels, levels, levels, flags, flags, flags):
-        base = dict(vit=v, beh=b, fall=f, inactive=ina, gap=gap, critical=crit)
+    for v, f, ina, gap, crit in itertools.product(levels, levels, flags, flags, flags):
+        base = dict(vit=v, fall=f, inactive=ina, gap=gap, critical=crit)
         r0 = rank(**base)
         grid += 1
-        for k in ("vit", "beh", "fall"):
+        for k in ("vit", "fall"):
             nxt = levels[min(levels.index(base[k]) + 1, len(levels) - 1)]
             mono += rank(**{**base, k: nxt}) < r0
         for k in ("inactive", "gap", "critical"):
             mono += rank(**{**base, k: True}) < r0
-    gap_v = sum(rank(vit=v, beh=b, fall=f, gap=True) < RANK["MONITOR"] for v, b, f in itertools.product(levels, levels, levels))
+    gap_v = sum(rank(vit=v, fall=f, gap=True) < RANK["MONITOR"] for v, f in itertools.product(levels, levels))
     crit_v = sum(rank(vit=v, critical=True) != RANK["URGENT"] for v in levels)
     miss = {"no_quality": {**_results(), "quality": None}, "no_health": {**_results(), "health": None}}
     miss_v = sum(RANK[triage(r, 0, cfg).status.value] == 0 for r in miss.values())

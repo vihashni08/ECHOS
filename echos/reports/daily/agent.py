@@ -50,9 +50,6 @@ LABEL = {"NORMAL": "Normal", "MONITOR": "Changes noticed", "URGENT": "Needs atte
 VITAL_NAME = {"sys": "Systolic blood pressure", "dia": "Diastolic blood pressure", "hr": "Heart rate",
               "temp": "Body temperature", "weight": "Body weight"}
 UNIT = {"sys": "mmHg", "dia": "mmHg", "hr": "bpm", "temp": "°C", "weight": "kg"}
-FEAT_NAME = {"total_events": "overall activity", "night_events": "night-time activity",
-             "night_bathroom": "night-time bathroom visits", "night_door": "night-time door use",
-             "room_transitions": "moving between rooms"}
 
 SYSTEM = ("You write short, plain-language notes for a home-care report. Use ONLY the facts in the JSON the user "
           "sends. Never invent or alter a number; copy numbers exactly as they appear. Never state or imply a medical "
@@ -63,7 +60,7 @@ DAILY_ASK = ('Write for a family caregiver. Return {"changes":[{"text":str,"cite
              '(one item per flag; if there are no flags write one item saying everything looked normal, cites []). '
              '"monitor": 2 or 3 simple things to watch today. Every flag id in the JSON must be cited at least once.')
 WEEKLY_ASK = ('Write for a clinician. Return {"highlights":[{"text":str,"cites":[evidence ids]}],"guidance":[{"text":str,"cites":[KB ids]}]}. '
-              '"highlights": 3 to 6 factual highlights of the week (vitals vs baseline, alerts, routine, data completeness); each about a vital must name the measure (for example "systolic blood pressure"), its value or range for the week and the days; when an evidence item has "specifics" quote at least one of its numbers; each must cite at '
+              '"highlights": 3 to 6 factual highlights of the week (vitals vs baseline, alerts, data completeness); each about a vital must name the measure (for example "systolic blood pressure"), its value or range for the week and the days; when an evidence item has "specifics" quote at least one of its numbers; each must cite at '
               'least one evidence id (E..) and every evidence id must be cited at least once. "guidance": at most one short statement per '
               'finding type, using ONLY the retrieved chunks in "guidelines" (ids like KB-3). PARAPHRASE them in your own words (never copy '
               'more than a few words in a row), cite the KB id(s) used in every guidance statement, and give no diagnosis. '
@@ -77,18 +74,18 @@ MAX_TOOL_STEPS = 3     # tool calls in the one tool loop; the next request is th
                        # worst case = MAX_TOOL_STEPS tool requests + 1 final + 1 validator retry (no tools).
 DAILY_SYSTEM = ("You write the narrative parts of a home-care daily report for a family caregiver, in the style of a clinical handover (SBAR). The structured facts are in the message; "
                 "the tools can fetch more. Use ONLY facts in the message or returned by the tools. Never invent or alter a number; copy numbers exactly. Describe vitals as above or below "
-                "this person's usual range. Never quote any probability or score; for activity name the measure (for example night-time bathroom visits) with its number and the person's usual, never just 'the activity pattern differs'. Never state or "
+                "this person's usual range. Never quote any probability or score. Never state or "
                 "imply a medical diagnosis (do not use 'diagnosis', 'you have', 'suffering from'). Never give advice about medicines or doses. "
                 "Any guidance statement must paraphrase a source in `sources` (or returned by retrieve_guidance) and cite its id (like KB-65 or PM-12345678). Reply "
                 "with JSON only.")
 DAILY_ASK = ('Today is {day}; the rules decided status {status} (never change it). Flag ids to cover: {flags}. The PATIENT CONTEXT below holds the vitals against the '
-             'person\'s own baseline, the routine, the flags, "proposed_plan" (the rule-based starting plan), "escalation_limits" (the only limits you may quote), "sources" (guideline and PubMed items already retrieved for these findings) and "recent_days". '
+             'person\'s own baseline, the flags, "proposed_plan" (the rule-based starting plan), "escalation_limits" (the only limits you may quote), "sources" (guideline and PubMed items already retrieved for these findings) and "recent_days". '
              'You may call retrieve_guidance(finding_type, details) for another finding (finding_type one of {types}), but usually the sources are enough. Then reply with ONE JSON object that follows exactly this JSON Schema '
              '(every list item is an object, never a bare string; no other keys): {shape}. "status" must be exactly "{status}".\n'
              '"assessment": 1 or 2 short paragraphs in plain words for a family caregiver: how the day looks overall, which finding matters most and why, and what is NOT a concern (for example the other measures that stayed within the usual range). Cite the flag ids. '
              '"changes": one item per flag, each 2 to 4 sentences like a clinical handover note: name the exact measure (for example "systolic blood pressure", never just "a vital sign" or "the activity pattern"), give its recorded value and the time/date, how far it is from the person\'s own usual and in which direction (above or below), and what that could mean for today in plain words, without diagnosing. Each flag has "specifics" (sentences with the recorded numbers): restate at least one of those numbers in your own words. Cite its id (every flag id must be cited at least once). '
              '"actions": 1 to 5 items, most urgent first, built on "proposed_plan": keep each action\'s owner and keep priority NOW only where the plan has NOW (a fall or a critical reading); you may adapt the wording to the recorded values and add one practical detail, but do not drop an action that has an "escalate_if". '
-             'Each action says WHAT to do, HOW and WHEN, naming the exact measure or behaviour; "escalate_if" gives the sign or limit and the step to take (quote limits only from "escalation_limits"); include at least one CAREGIVER action. No generic items such as "watch for signs of discomfort". '
+             'Each action says WHAT to do, HOW and WHEN, naming the exact measure; "escalate_if" gives the sign or limit and the step to take (quote limits only from "escalation_limits"); include at least one CAREGIVER action. No generic items such as "watch for signs of discomfort". '
              '"guidance": 0 to 2 items, each a 1 to 2 sentence PARAPHRASE of a source that supports the finding, citing its id; [] if no source fits.\n\n'
              'PATIENT CONTEXT:\n{context}')
 RETRY_ASK = ('Your previous reply was rejected by the checker for these reasons: {errors}. Write the reply again, fixing exactly these points. No tools are available now; '
@@ -100,12 +97,12 @@ TOOLS = [
      "parameters": {"type": "object", "properties": {}}},
     {"name": "retrieve_guidance", "description": "Guideline chunks / PubMed abstracts for one finding type, each with a citable id. Only for MONITOR or URGENT days.",
      "parameters": {"type": "object", "properties": {
-         "finding_type": {"type": "string", "enum": ["fall", "fall_inactivity", "bp_high", "bp_low", "hr_high", "hr_low", "temperature", "weight_change", "blood_pressure", "vitals_news2", "agitation", "routine_change"]},
+         "finding_type": {"type": "string", "enum": ["fall", "fall_inactivity", "bp_high", "bp_low", "hr_high", "hr_low", "temperature", "weight_change", "blood_pressure", "vitals_news2"]},
          "details": {"type": "object", "properties": {"kind": {"type": "string"}, "post_fall_inactive": {"type": "boolean"}}}},
          "required": ["finding_type"]}},
 ]
 FINDING_TYPES = TOOLS[1]["parameters"]["properties"]["finding_type"]["enum"]
-_HIDDEN = {"risk", "drift_score"}      # model scores are never shown to the LLM (and so can never be quoted)
+_HIDDEN = {"risk"}      # model scores are never shown to the LLM (and so can never be quoted)
 
 
 def llm_view(facts: dict) -> dict:
@@ -114,7 +111,7 @@ def llm_view(facts: dict) -> dict:
         if isinstance(x, dict):
             return {k: strip(v) for k, v in x.items() if k not in _HIDDEN}
         return [strip(v) for v in x] if isinstance(x, list) else x
-    v = strip({k: facts[k] for k in ("patient_id", "day", "status", "vitals", "routine", "falls", "flags", "quality", "has_reading", "has_activity") if k in facts})
+    v = strip({k: facts[k] for k in ("patient_id", "day", "status", "vitals", "falls", "flags", "quality", "has_reading", "has_activity") if k in facts})
     return v
 
 
@@ -170,7 +167,7 @@ def _fmt(x):
 
 # ------------------------------------------------------------------ daily
 def _spec(e: dict) -> str:
-    """' ' + the finding's number-bearing sentences (which vital / routine measure, its value, the usual, the difference), or ''."""
+    """' ' + the finding's number-bearing sentences (which vital, its value, the usual, the difference), or ''."""
     return (" " + " ".join(e["specifics"])) if e.get("specifics") else ""
 
 
@@ -203,20 +200,10 @@ def _flag_items(facts: dict):
                 txt += " Why it fired: " + e["why"] + "."
             ch.append({"text": txt + _spec(e), "cites": i})
             mon.extend({"text": a, "cites": i} for a in (e.get("action_hints") or ["Repeat the blood pressure and pulse later today, sitting and rested, and write the numbers down."]))
-        elif t == "agitation":
-            nb = e.get("night_events_baseline")
-            extra = f" Night-time movements: {_fmt(e['night_events'])} against usual {_fmt(nb)}." if e.get("night_events") is not None and nb is not None else ""
-            ch.append({"text": "The activity pattern differs from usual." + (_spec(e) or extra), "cites": i})
-            mon.extend({"text": a, "cites": i} for a in (e.get("action_hints") or ["Watch for restlessness or distress, especially in the evening and at night, and note what seems to trigger it."]))
-        elif t == "routine_change":
-            feats = ", ".join(FEAT_NAME.get(x, x.replace("_", " ")) for x in e.get("features", [])) or "daily activity"
-            ch.append({"text": f"The activity pattern differs from usual ({feats})." + _spec(e), "cites": i})
-            mon.extend({"text": a, "cites": i} for a in (e.get("action_hints") or ["Notice how often they get up at night or move between rooms, and whether meals and drinks are taken."]))
     return ch, mon
 
 
 VNAME = {"sys": "Systolic blood pressure", "dia": "Diastolic blood pressure", "hr": "Heart rate", "temp": "Body temperature", "weight": "Body weight"}
-RNAME = {"total_events": "daily room-sensor events", "night_events": "night-time room-sensor events", "night_bathroom": "night-time bathroom visits"}
 
 
 def daily_situation(facts: dict, alerts: list) -> str:
@@ -303,10 +290,9 @@ def daily_data_note(facts: dict):
     if "quality" in facts and not q.get("checked", False):
         notes.append("The data-quality check did not run today, so today's data was used unchecked.")
     if q.get("sensor_gap"):
-        notes.append("The room sensors were silent or unusually quiet today (sensor gap), so the routine could not be checked; "
-                     "this is not treated as no movement.")
+        notes.append("The room sensors were silent or unusually quiet today (sensor gap).")
     elif not facts["has_activity"]:
-        notes.append("No room-sensor activity was recorded today, so the daily routine could not be checked.")
+        notes.append("No room-sensor activity was recorded today.")
     if not facts["has_reading"]:
         notes.append("No blood pressure or heart rate reading was recorded today, so vitals could not be compared with the usual level.")
     dsl = q.get("days_since_last_reading")
@@ -333,8 +319,6 @@ def _series_stats(vals: list, bases: list):
 def weekly_stats(days: list, patient_id: str, end_day: str) -> dict:
     vit = {v: _series_stats([d["vitals"][v]["value"] for d in days], [d["vitals"][v]["baseline"] for d in days])
            for v in F.VITAL_VARS}
-    rou = {v: _series_stats([d["routine"][v]["value"] for d in days], [d["routine"][v]["baseline"] for d in days])
-           for v in F.ROUTINE_VARS}
     groups: dict = {}
     for d in days:
         for f in d["flags"]:
@@ -362,10 +346,8 @@ def weekly_stats(days: list, patient_id: str, end_day: str) -> dict:
     series = {"days": [d["day"] for d in days],
               **{v: [d["vitals"][v]["value"] for d in days] for v in F.VITAL_VARS},
               **{v + "_base": [d["vitals"][v]["baseline"] for d in days] for v in F.VITAL_VARS},
-              **{v: [d["routine"][v]["value"] for d in days] for v in F.ROUTINE_VARS},
-              **{v + "_base": [d["routine"][v]["baseline"] for d in days] for v in F.ROUTINE_VARS},
               "alert_days": [d["day"] for d in days if d["status"] != "NORMAL"]}
-    return {"patient_id": patient_id, "week_ending": end_day, "vitals": vit, "routine": rou, "evidence": evidence,
+    return {"patient_id": patient_id, "week_ending": end_day, "vitals": vit, "evidence": evidence,
             "falls": falls, "completeness": comp, "status_counts": status, "guidelines": guides, "series": series}
 
 
@@ -387,7 +369,6 @@ def weekly_template_items(stats: dict) -> dict:
                                                                               if e["type"] in VITALS_TYPES] if v in ("sys", "dia", "hr") else []})
     for e in stats["evidence"]:
         label = {**{t: "Vitals differed from baseline" for t in VITALS_TYPES},
-                 "agitation": "Agitation flagged", "routine_change": "Routine drift flagged",
                  "fall": "Possible fall detected", "fall_inactivity": "Possible fall with inactivity detected"}.get(e["type"], e["type"])
         extra = " (critical range)" if e["kind"] == "critical" else ""
         occ = sorted((x for x in e["detail"] if x.get("specifics")), key=lambda x: x["day"])
@@ -396,12 +377,6 @@ def weekly_template_items(stats: dict) -> dict:
             out.append({"text": f"{label}{extra} on {e['count']} occasion(s). {shown}.", "cites": [e["id"]]})
         else:
             out.append({"text": f"{label}{extra} on {e['count']} occasion(s): {', '.join(e['days'])}.", "cites": [e["id"]]})
-    r = stats["routine"]
-    if r["night_events"]["n"]:
-        out.append({"text": f"Night-time activity averaged {_fmt(r['night_events']['mean'])} events per night"
-                            + (f" against a baseline of {_fmt(r['night_events']['baseline'])}" if r["night_events"]["baseline"] is not None else "")
-                            + f"; night-time bathroom visits averaged {_fmt(r['night_bathroom']['mean'])}.",
-                    "cites": [i for i in ev_ids if any(e["id"] == i and e["type"] in ("agitation", "routine_change") for e in stats["evidence"])]})
     out.append({"text": f"Data completeness: vitals on {c['days_with_vitals']} of {c['days_covered']} days, "
                         f"room-sensor activity on {c['days_with_activity']} of {c['days_covered']} days.", "cites": []})
     if not stats["evidence"]:
@@ -410,8 +385,7 @@ def weekly_template_items(stats: dict) -> dict:
 
 
 GUIDE_LABEL = {"blood_pressure": "blood pressure changes", "vitals_news2": "vital-sign changes", "bp_high": "high blood pressure", "bp_low": "low blood pressure",
-               "hr_high": "high heart rate", "hr_low": "low heart rate", "temperature": "temperature change", "weight_change": "weight change", "agitation": "agitation or restlessness",
-               "routine_change": "routine changes", "fall": "a possible fall", "fall_inactivity": "a possible fall with inactivity"}
+               "hr_high": "high heart rate", "hr_low": "low heart rate", "temperature": "temperature change", "weight_change": "weight change", "fall": "a possible fall", "fall_inactivity": "a possible fall with inactivity"}
 
 
 def guidance_template_items(stats: dict) -> list:
@@ -463,17 +437,7 @@ def weekly_charts(series: dict) -> dict:
     panel(axs[0, 1], "hr", ["hr"], "Heart rate", "bpm")
     panel(axs[1, 0], "temp", ["temp"], "Body temperature", "°C")
     panel(axs[1, 1], "weight", ["weight"], "Body weight", "kg")
-    f2, axr = plt.subplots(1, 3, figsize=(9, 2.8), constrained_layout=True)
-    for ax, k, t in zip(axr, ["total_events", "night_events", "night_bathroom"],
-                        ["Total activity", "Night-time activity", "Night bathroom visits"]):
-        ax.bar(x, [0 if v is None else v for v in series[k]], color="#64748b")
-        if any(b is not None for b in series[k + "_base"]):
-            ax.plot(x, nn(series[k + "_base"]), "--", color="#d97706", label="usual (baseline)")
-            ax.legend(fontsize=7, frameon=False)
-        ax.set_title(t, fontsize=10, loc="left")
-        ax.tick_params(labelsize=7)
-        ax.spines[["top", "right"]].set_visible(False)
-    return {"vitals": _png64(f1), "routine": _png64(f2)}
+    return {"vitals": _png64(f1)}
 
 
 # ------------------------------------------------------------------ generic LLM-with-validation loop
@@ -744,7 +708,7 @@ class ReportAgent:
             res = r.retrieve(facts["status"], ft, det)
             out["events"] += [f"{topic}: {x}" for x in res["events"]]
             out["pubmed_failure"] = res["pubmed_failure"] or out["pubmed_failure"]
-            key = "falls" if topic == "fall" else "routine" if ft in ("agitation", "routine_change") else ft
+            key = "falls" if topic == "fall" else ft
             picked = EV.pick_sources(key, res["sources"], c) if key in EV.FINDINGS else res["sources"][:2]
             for s in picked:
                 if s["id"] not in seen:

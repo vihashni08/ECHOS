@@ -7,13 +7,5 @@
     "live_only": 0,
     "ref_only": 0,
     "days_differing_more_than_0.01": 0
-  },
-  "beh": {
-    "compared": 56,
-    "max_abs_diff": 0.035294967840219134,
-    "mean_abs_diff": 0.0009486704051168494,
-    "live_only": 0,
-    "ref_only": 0,
-    "days_differing_more_than_0.01": 2
   }
 }

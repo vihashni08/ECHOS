@@ -2,17 +2,17 @@
 
 It is an agent (not a detector): it chooses which check to run next from what it has seen so far, calls bounded tools, keeps a trace of every
 step, and posts its result on the bus. It uses NO LLM and trains NO model; it never changes the triage status and never gives medical advice.
-Tools: read_detectors, check_history, check_agreement, check_data_caveats (rules over today's detector output and the case history) and three that
+Tools: read_detectors, check_history, check_agreement, check_data_caveats (rules over today's detector output and the case history) and two that
 COMPUTE on the person's own past data (echos/team/evidence_tools.py, past-only): check_trend (robust z-score against the personal baseline,
-slope and direction of the last readings), check_personal_history (how often this person was outside their usual before and how many of those
-days carried a recorded clinical event) and check_corroboration (does the routine stream, e.g. night-time activity, agree with a vitals flag).
+slope and direction of the last readings) and check_personal_history (how often this person was outside their usual before and how many of those
+days carried a recorded clinical event).
 At most investigator.max_steps tool calls per case.
 
 Evidence level (not a probability): STRONG = an absolute rule fired (critical vitals / confirmed fall) or >= 2 independent sources agree;
 MODERATE = one model flag with persistence or a repeat; LIMITED = a single model flag, or the data has caveats that weaken it.
 Of the computed checks only one may move the level, and only upward (LIMITED -> MODERATE): the person's own earlier deviation days carried a
-recorded event. It is the one signal that separated event days from non-event days in scripts/evaluation/investigator_eval.py (CI barely above zero). Trend,
-routine agreement and an event-free history did NOT separate them there, so they are listed as context and never change the level."""
+recorded event. It is the one signal that separated event days from non-event days in scripts/evaluation/investigator_eval.py (CI barely above zero). Trend
+and an event-free history did NOT separate them there, so they are listed as context and never change the level."""
 from __future__ import annotations
 
 import json
@@ -32,10 +32,6 @@ def _vit(results):
     return ((results.get("health") or {}).get("vitals")) or {}
 
 
-def _beh(results):
-    return ((results.get("health") or {}).get("behaviour")) or {}
-
-
 class Investigator:
     def __init__(self, eng):
         self.eng = eng
@@ -43,11 +39,11 @@ class Investigator:
 
     # ---------------------------------------------------------------- tools
     def read_detectors(self, results: dict, decision: dict) -> dict:
-        """Which detectors raised this case, by the SAME thresholds triage uses (config triage.vitals_prob / agitation_prob; the fixed vitals rule only when
+        """Which detectors raised this case, by the SAME thresholds triage uses (config triage.vitals_prob; the fixed vitals rule only when
         monitoring is degraded). A detector that merely produced evidence below those thresholds is NOT flagged, so it can neither add an independent source
         nor raise the evidence level."""
         t = load_config()["triage"]
-        v, b, f, q = _vit(results), _beh(results), results.get("fall") or {}, (results.get("quality") or {}).get("evidence", {})
+        v, f, q = _vit(results), results.get("fall") or {}, (results.get("quality") or {}).get("evidence", {})
         degraded = bool((results.get("health") or {}).get("degraded"))
         flagged = []
         if "critical_vitals" in (decision.get("urgent_types") or []):
@@ -60,11 +56,9 @@ class Investigator:
             vit = bool(v.get("flag"))
         if vit:
             flagged.append("vitals")
-        if not degraded and ((b.get("available") and float(b["probability"]) >= t["agitation_prob"]) if "probability" in b else b.get("flag")):
-            flagged.append("behaviour")
         if f.get("flag") or (f.get("score") or 0) >= t["fall_prob"]:
             flagged.append("fall")
-        return {"flagged": flagged, "vitals_available": bool(v.get("available")), "behaviour_available": bool(b.get("available")),
+        return {"flagged": flagged, "vitals_available": bool(v.get("available")),
                 "persistent": bool((v.get("persistence") or {}).get("persistent")), "post_fall_inactive": bool((f.get("evidence") or {}).get("post_fall_inactive")),
                 "sensor_gap": bool(q.get("sensor_gap")), "unchecked": q.get("quality_checked") is False, "degraded": degraded,
                 "urgent_types": decision.get("urgent_types") or []}
@@ -72,7 +66,7 @@ class Investigator:
     @staticmethod
     def specifics(results: dict, det: dict) -> dict:
         """The numbers behind the flags, as plain sentences: per vital its value, the person's own usual and the difference (echos/reports/daily/specifics.py), and
-        the routine measures furthest from usual. Returns {"vitals": [...], "routine": [...], "types": [...], "values": {...}}."""
+        Returns {"vitals": [...], "types": [...], "values": {...}}."""
         from echos.reports.daily import specifics as SP
         from echos.reports.daily import vitals_why as VW
         cv = _vit(results).get("current_vs_baseline") or {}
@@ -81,17 +75,7 @@ class Investigator:
         zs = {k: x.get("z") for k, x in cv.items()}
         vit = SP.vital_sentences(values, bases, zs) if values and ("vitals" in det["flagged"] or det["urgent_types"]) else []
         types = VW.classify(values, bases, zs=zs, critical="critical_vitals" in det["urgent_types"])["types"] if values else []
-        zb = _beh(results).get("z") or {}
-        names = {"total_events": "overall activity", "night_events": "night-time activity", "night_bathroom": "night-time bathroom visits", "night_door": "night-time door use",
-                 "kitchen": "kitchen activity", "fridge": "fridge use", "room_transitions": "moving between rooms"}
-        rout = []
-        if "behaviour" in det["flagged"]:
-            for k, z in sorted(zb.items(), key=lambda kv: -abs(kv[1] or 0)):
-                if z is not None and abs(z) >= 1.5 and k in names:
-                    rout.append(f"{names[k][0].upper() + names[k][1:]} is {abs(round(z, 1)):g} standard deviations {'above' if z > 0 else 'below'} this person's own usual.")
-                if len(rout) == 3:
-                    break
-        return {"vitals": vit, "routine": rout, "types": types, "values": values}
+        return {"vitals": vit, "types": types, "values": values}
 
     def check_history(self, patient_id: str, day: str, n: int = 7) -> dict:
         with self.eng.begin() as c:
@@ -108,7 +92,7 @@ class Investigator:
 
     @staticmethod
     def check_agreement(det: dict) -> dict:
-        independent = [x for x in det["flagged"] if x in ("vitals", "behaviour", "fall")]
+        independent = [x for x in det["flagged"] if x in ("vitals", "fall")]
         return {"independent_sources": len(independent), "sources": independent}
 
     @staticmethod
@@ -117,7 +101,7 @@ class Investigator:
         if det["unchecked"]:
             out.append("The data-quality check did not run; treat the values with care.")
         if det["sensor_gap"]:
-            out.append("An activity sensor was silent, so routine findings are not reliable for this day.")
+            out.append("The room sensors were silent today (sensor gap).")
         if det["degraded"]:
             out.append("Monitoring was degraded: only fixed vitals thresholds were used.")
         return out
@@ -156,12 +140,6 @@ class Investigator:
             return {"available": False, "reason": "no history table"}
         h = ET.personal_history(pdy, patient_id, day)
         return {"available": h["prior_reading_days"] >= 5, **h}
-
-    def check_corroboration(self, patient_id: str, day: str, det: dict) -> dict:
-        pdy = self._history_table()
-        if pdy is None:
-            return {"available": False, "reason": "no history table"}
-        return ET.corroboration(pdy, patient_id, day, "vitals" in det["flagged"], "behaviour" in det["flagged"])
 
     # ---------------------------------------------------------------- near miss
     def watch(self, patient_id: str, day: str, decision: dict, results: dict) -> Optional[dict]:
@@ -204,14 +182,12 @@ class Investigator:
         caveats = []
         if steps < self.max_steps:
             caveats = step("check_data_caveats", self.check_data_caveats(det), "is there anything that weakens the evidence?")
-        trend = hist_p = corr = None
+        trend = hist_p = None
         vit_involved = "vitals" in det["flagged"] or "critical_vitals" in det["urgent_types"]
         if steps < self.max_steps and vit_involved:
             trend = step("check_trend", self.check_trend(patient_id, day, results), "is the reading on a trend away from this person's usual, or a single outlier?")
         if steps < self.max_steps and det["flagged"]:
             hist_p = step("check_personal_history", self.check_personal_history(patient_id, day), "has this person deviated before, and did those days carry a recorded event?")
-        if steps < self.max_steps and det["flagged"] and not det["sensor_gap"]:
-            corr = step("check_corroboration", self.check_corroboration(patient_id, day, det), "does the routine stream (night-time activity) agree?")
 
         absolute = bool(det["urgent_types"])
         n_src = (agree or {}).get("independent_sources", 0)
@@ -225,7 +201,7 @@ class Investigator:
         if caveats and level == "STRONG" and not absolute:
             level = "MODERATE"
         # Only the signal that separated event days from non-event days in scripts/evaluation/investigator_eval.py (the person's own earlier deviation days that
-        # carried an event) may move the level. Trend, routine agreement and "never had an event" did NOT separate them there: they are shown as
+        # carried an event) may move the level. Trend and "never had an event" did NOT separate them there: they are shown as
         # context for the reader and never change the level.
         supports, weakens, context = [], [], []
         if hist_p and hist_p.get("available") and hist_p["prior_deviation_days"] >= 2 and \
@@ -236,8 +212,6 @@ class Investigator:
             context.append(f"{trend['confirmed'][0]} is on a trend away from the usual (z {m['z']}, last three readings moving the same way)")
         elif trend and trend.get("outside_usual") and not absolute:
             context.append("the reading is outside the usual but not on a trend (a single outlier so far)")
-        if corr and corr.get("agrees"):
-            context.append("night-time or overall activity is also outside this person's usual")
         if hist_p and hist_p.get("available") and hist_p["prior_deviation_days"] >= 3 and hist_p["prior_deviation_days_with_event"] == 0:
             context.append(f"this person was outside their usual on {hist_p['prior_deviation_days']} earlier days with no recorded clinical event")
         if supports and level == "LIMITED" and not caveats and not absolute:
@@ -253,8 +227,6 @@ class Investigator:
             parts[-1] += ": " + sp["vitals"][0].rstrip(".")
         if not parts and "vitals" in det["flagged"]:
             parts.append((sp["vitals"][0].rstrip(".") if sp["vitals"] else "A vital-sign reading differs from this person's usual") + (", and has done so on several readings" if det["persistent"] else ""))
-        if "behaviour" in det["flagged"]:
-            parts.append(sp["routine"][0].rstrip(".") if sp["routine"] else "Daily routine differs from this person's usual pattern")
         if "fall" in det["flagged"] and "fall" not in det["urgent_types"]:
             parts.append("A possible fall was seen but not confirmed by inactivity")
         if not parts:
@@ -267,8 +239,6 @@ class Investigator:
             from echos.reports.daily import specifics as SP
             nxt.extend(SP.vital_actions(sp["types"], sp["values"], critical="critical_vitals" in det["urgent_types"]) or ["Ask for a repeat measurement and share it with the clinician."])
             nxt.append("Share the readings with the clinician.")
-        if "behaviour" in det["flagged"]:
-            nxt.append("Check in with the person about sleep, appetite and mood today.")
         if caveats and not nxt:
             nxt.append("Check that the sensors are working and the readings are being sent.")
         if trend and trend.get("confirmed"):
@@ -277,7 +247,7 @@ class Investigator:
             nxt.append(f"This is day {hist['streak_before_today'] + 1} in a row of changes: consider a clinician review.")
         file = {"patient_id": patient_id, "day": day, "status": status, "headline": headline, "evidence_level": level,
                 "reasons": decision.get("reasons") or [], "detectors": det, "history": hist, "agreement": agree, "caveats": caveats,
-                "specifics": sp["vitals"] + sp["routine"], "trend": trend, "personal_history": hist_p, "corroboration": corr, "supports": supports, "context": context, "context_note": "trend, routine agreement and event-free history are context only: they did not separate event days in scripts/evaluation/investigator_eval.py",
+                "specifics": sp["vitals"], "trend": trend, "personal_history": hist_p, "supports": supports, "context": context, "context_note": "trend and event-free history are context only: they did not separate event days in scripts/evaluation/investigator_eval.py",
                 "next_checks": nxt, "trace": trace, "disclaimer": "Decision support, not a diagnosis."}
         with self.eng.begin() as c:
             S.upsert(c, S.case_file, ["patient_id", "day"], patient_id=patient_id, day=day, file=json.dumps(file), created_ts=S.now())

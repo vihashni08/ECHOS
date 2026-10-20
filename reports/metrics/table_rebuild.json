@@ -6,33 +6,17 @@
       "bp_alert": 251,
       "pulse_alert": 76,
       "water_alert": 63,
-      "agitation": 115,
       "has_reading": 1733,
       "has_activity": 2665
     },
     "new": {
-      "rows": 2797,
+      "rows": 2796,
       "patients": 56,
       "bp_alert": 251,
       "pulse_alert": 76,
       "water_alert": 63,
-      "agitation": 115,
       "has_reading": 1733,
       "has_activity": 2665
-    }
-  },
-  "sisfall": {
-    "old": {
-      "rows": 42241,
-      "subjects": 38,
-      "falls": 1797,
-      "adl_windows": 40444
-    },
-    "new": {
-      "rows": 42241,
-      "subjects": 38,
-      "falls": 1797,
-      "adl_windows": 40444
     }
   }
 }

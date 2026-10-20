@@ -8,39 +8,22 @@ from echos.config import ROOT, load_config
 from echos.agents import data_quality as dq
 from echos.data import loaders
 
-ROOMS = ["Kitchen", "Hallway", "Lounge", "Bedroom", "Fridge Door", "Bathroom", "Front Door", "Back Door"]
 PHYS = {"Systolic blood pressure": "sys", "Diastolic blood pressure": "dia", "Heart rate": "hr",
         "Body Temperature": "temp", "Body weight": "weight"}
-LABELS = {"Blood pressure": "bp_alert", "Pulse": "pulse_alert", "Body water": "water_alert",
-          "Agitation": "agitation"}
+LABELS = {"Blood pressure": "bp_alert", "Pulse": "pulse_alert", "Body water": "water_alert"}
+UNUSED_LABELS = ("Agitation",)      # present in Labels.csv, not modelled (no behaviour detector)
 
 
-def _activity_features(act: pd.DataFrame, night_start: int, night_end: int) -> pd.DataFrame:
-    act = act.sort_values(["patient_id", "date"]).copy()
-    hr = act["date"].dt.hour
-    act["night"] = (hr >= night_start) | (hr < night_end)
-    act["moved"] = (act["location_name"] != act.groupby(["patient_id", "day"])["location_name"].shift()) \
-        & act.groupby(["patient_id", "day"])["location_name"].shift().notna()
-    g = ["patient_id", "day"]
-    counts = act.pivot_table(index=g, columns="location_name", values="date", aggfunc="size", fill_value=0)
-    counts = counts.reindex(columns=ROOMS, fill_value=0)
-    counts.columns = ["n_" + c.lower().replace(" ", "_") for c in counts.columns]
-    out = counts.copy()
-    out["total_events"] = counts.sum(axis=1)
-    out["night_events"] = act[act.night].groupby(g).size().reindex(out.index, fill_value=0)
-    out["night_bathroom"] = act[act.night & (act.location_name == "Bathroom")].groupby(g).size() \
-        .reindex(out.index, fill_value=0)
-    out["night_door"] = act[act.night & act.location_name.isin(["Front Door", "Back Door"])].groupby(g).size() \
-        .reindex(out.index, fill_value=0)
-    out["room_transitions"] = act.groupby(g)["moved"].sum().reindex(out.index, fill_value=0).astype(int)
+def _activity_features(act: pd.DataFrame) -> pd.DataFrame:
+    """Daily room-sensor event count per patient: the only thing the Data Quality gate needs (sensor-gap rule). Rooms and times are not interpreted."""
+    out = act.groupby(["patient_id", "day"]).size().rename("total_events").reset_index()
     out["has_activity"] = True
-    return out.reset_index()
+    return out
 
 
 def build_patient_day(return_stats: bool = False):
     """Patient-day table built from Agent 0's cleaned data (docs/DATA_POLICY.md)."""
     cfg = load_config()
-    nh = cfg["night_hours"]
     act, act_stats = dq.clean_activity(loaders.load_activity())
     phys, invalid, phys_stats = dq.clean_physiology(loaders.load_physiology())
     gaps = dq.sensor_gap_table(act)
@@ -48,7 +31,7 @@ def build_patient_day(return_stats: bool = False):
     demo = loaders.load_demographics()
     keys = ["patient_id", "day"]
 
-    feats = _activity_features(act, nh["start"], nh["end"])
+    feats = _activity_features(act)
 
     p = phys[phys.device_type.isin(PHYS)].copy()
     p["var"] = p.device_type.map(PHYS)
@@ -61,12 +44,11 @@ def build_patient_day(return_stats: bool = False):
     pd_lab = l.assign(v=1).pivot_table(index=keys, columns="flag", values="v", aggfunc="max", fill_value=0)
     pd_lab = pd_lab.reindex(columns=list(LABELS.values()), fill_value=0).reset_index()
     # Weight / body-temperature labels are too rare to model; kept for completeness
-    other = lab[~lab.type.isin(LABELS)][keys].drop_duplicates().assign(other_label=1)
+    other = lab[~lab.type.isin(list(LABELS) + list(UNUSED_LABELS))][keys].drop_duplicates().assign(other_label=1)
 
     df = feats.merge(pd_phys, on=keys, how="outer").merge(pd_lab, on=keys, how="outer") \
         .merge(other, on=keys, how="outer")
-    act_cols = [c for c in feats.columns if c not in keys + ["has_activity"]]
-    df[act_cols] = df[act_cols].fillna(0)
+    df["total_events"] = df["total_events"].fillna(0)
     df["has_activity"] = df["has_activity"].eq(True)
     df["has_reading"] = df[["sys", "dia", "hr"]].notna().any(axis=1)  # vitals reading that day
     flag_cols = list(LABELS.values()) + ["other_label"]
@@ -75,14 +57,14 @@ def build_patient_day(return_stats: bool = False):
     df = df.sort_values(keys).reset_index(drop=True)
     df["source"] = "tihm"  # training-table provenance (echos/data/guard.py)
 
-    # ---- Agent 0 columns. SENSOR_GAP days keep NaN behaviour features (not zero) and are not usable activity days.
+    # ---- Agent 0 columns. SENSOR_GAP days keep NaN event counts (not zero) and are not usable activity days.
     df = df.merge(gaps[["patient_id", "day", "sensor_gap", "sensor_gap_reason"]], on=keys, how="left")
     no_rec = df["sensor_gap"].isna()  # day outside the patient's activity window (or no activity record at all)
     df["sensor_gap"] = df["sensor_gap"].fillna(True).astype(bool)
     df["sensor_gap_reason"] = df["sensor_gap_reason"].where(~no_rec, "no_activity_record")
     df.loc[df.sensor_gap & df.has_activity, "sensor_gap_reason"] = df.loc[df.sensor_gap & df.has_activity, "sensor_gap_reason"].fillna("low_events")
     df["has_activity"] = df["has_activity"] & ~df["sensor_gap"]
-    df.loc[~df.has_activity, act_cols] = float("nan")
+    df.loc[~df.has_activity, "total_events"] = float("nan")
     df["days_since_last_reading"] = dq.days_since_reading(df)
     inv = invalid.assign(day=pd.to_datetime(invalid["day"]))
     inv_json = inv.groupby(["patient_id", "day"]).apply(
@@ -117,4 +99,4 @@ def load_patient_day() -> pd.DataFrame:
 if __name__ == "__main__":
     d = save_patient_day()
     print(d.shape, d.patient_id.nunique(), int(d.has_reading.sum()),
-          d[["bp_alert", "pulse_alert", "water_alert", "agitation"]].sum().to_dict())
+          d[["bp_alert", "pulse_alert", "water_alert"]].sum().to_dict())

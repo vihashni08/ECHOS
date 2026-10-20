@@ -64,6 +64,7 @@ def run_policy(gate: bool, tmp: Path) -> dict:
     with eng.begin() as cn:
         for t in (S.case_state, S.alerts, S.outbox, S.reports, S.daily_facts):
             cn.execute(delete(t))
+        cn.execute(delete(S.agent_checkpoint).where(S.agent_checkpoint.c.agent_id.like("case:%")))      # per-case progress: a copied finished run would resume as 'already done'
         cn.execute(S.agent_heartbeat.update().values(ts=time.time()))
     fake = FakeLLM([script], model="counting-fake")
     pm, mailer, calls = StubPubMed(), FakeMailer(), Counter()

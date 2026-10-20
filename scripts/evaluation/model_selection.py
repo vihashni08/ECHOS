@@ -2,7 +2,7 @@
 Fixed small grids chosen by inner CV on the training part of each outer fold; bootstrap 95% CIs resample patients/subjects;
 paired bootstrap of the difference vs the CURRENT model decides whether to switch (CI of the difference must be above zero).
 Does not save or overwrite any model. Writes reports/metrics/model_selection.json and a section of reports/RESULTS.md.
-Usage: PYTHONPATH=. python scripts/evaluation/model_selection.py [vitals|behaviour|fall ...]"""
+Usage: PYTHONPATH=. python scripts/evaluation/model_selection.py [vitals|fall ...]"""
 import json
 import sys
 import warnings
@@ -17,7 +17,6 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from echos.agents import fall as F
-from echos.agents.health import behaviour as B
 from echos.agents.health import vitals as V
 from echos.config import ROOT, load_config
 from echos.data.guard import assert_real_source
@@ -44,7 +43,7 @@ def make(name, p, pos_w, seed=SEED):
         return make_pipeline(SimpleImputer(strategy="median"), cls(n_estimators=200, max_depth=p["max_depth"], min_samples_leaf=p["leaf"],
                                                                   class_weight="balanced_subsample", random_state=seed, n_jobs=2))
     if name == "xgboost":     # the CURRENT configuration (single grid point)
-        return V._model(seed, pos_w) if p.get("which") == "vitals" else B._model(seed, pos_w)
+        return V._model(seed, pos_w)
     if name == "lightgbm":
         return lgb.LGBMClassifier(n_estimators=200, max_depth=p["max_depth"], learning_rate=0.05, subsample=0.8, subsample_freq=1, colsample_bytree=0.8,
                                   min_child_samples=5, scale_pos_weight=pos_w, random_state=seed, n_jobs=2, verbose=-1)
@@ -82,29 +81,16 @@ def ci(a):
     return [float(np.nanpercentile(a, 2.5)), float(np.nanpercentile(a, 97.5))]
 
 
-def within_patient(df, s):
-    r = []
-    for _, g in df.assign(s=s).groupby("patient_id"):
-        if 0 < g.y.sum() < len(g):
-            r.append(roc_auc_score(g.y, g.s))
-    return {"median": float(np.median(r)), "q1": float(np.quantile(r, .25)), "q3": float(np.quantile(r, .75)), "n_patients": len(r)}
-
-
 def tihm_table(which):
     pdy = load_patient_day()
-    if which == "vitals":
-        df, feats = V.build_features(pdy), V.FEATURES
-    else:
-        df = B.build_features(pdy)
-        df, feats = df[df.has_activity & df.total_events_delta.notna() & df.total_events_z.notna()].reset_index(drop=True), B.CLF_FEATURES
+    df, feats = V.build_features(pdy), V.FEATURES
     assert_real_source(df, "tihm")
     y, pids = df.y.values, df.patient_id.values
-    # monitored patient-weeks per patient: vitals = all patient-days of the patient / 7 (as evaluate()); behaviour = scored rows / 7
-    pwk = (pdy.groupby("patient_id").size() if which == "vitals" else df.groupby("patient_id").size()) / 7.0
+    # monitored patient-weeks per patient: vitals = all patient-days of the patient / 7 (as evaluate())
+    pwk = pdy.groupby("patient_id").size() / 7.0
     names = ["logreg", "random_forest", "extra_trees", "xgboost"] + (["lightgbm"] if lgb else [])
     scores = {}
-    if which == "vitals":
-        scores["fixed_rule"] = V.fixed_rule(df).astype(float)
+    scores["fixed_rule"] = V.fixed_rule(df).astype(float)
     folds = list(patient_folds(df, NF, SEED))
     for n in names:
         o = np.zeros(len(df))
@@ -139,8 +125,6 @@ def tihm_table(which):
         pt = met(full, pw_all, n)
         b = [m for m in bs[n] if m]
         res[n] = {k: {"value": float(pt[k]), "ci95": ci([m[k] for m in b])} for k in ("pr_auc", "recall", "fa_pw")}
-        if which == "behaviour":
-            res[n]["within_patient_roc_auc"] = within_patient(df, scores[n])
     cur = "xgboost"
     for n in scores:
         if n == cur:
@@ -260,19 +244,14 @@ def markdown(r):
            "Calibration is monotone and does not change these rank-based numbers much; models are compared on raw scores.", ""]
     if LGB_NOTE:
         out += [f"Note: {LGB_NOTE}.", ""]
-    for w, title in (("vitals", "Vitals"), ("behaviour", "Behaviour (agitation)")):
+    for w, title in (("vitals", "Vitals"),):
         if w not in r:
             continue
         t = r[w]
         out += [f"### {title}: {t['n_rows']} rows, {t['n_patients']} patients, prevalence {t['prevalence']:.3f}; alert budget: {t['alert_budget']}", ""]
-        hdr = "| Model | PR-AUC | Recall @ budget | False alerts / patient-week |" + (" Within-patient ROC-AUC median (IQR) |" if w == "behaviour" else "")
-        out += [hdr, "|---|---|---|---|" + ("---|" if w == "behaviour" else "")]
+        out += ["| Model | PR-AUC | Recall @ budget | False alerts / patient-week |", "|---|---|---|---|"]
         for n, m in t["models"].items():
-            row = f"| {n} | {fmt(m['pr_auc'])} | {fmt(m['recall'])} | {fmt(m['fa_pw'], 2)} |"
-            if w == "behaviour":
-                a = m["within_patient_roc_auc"]
-                row += f" {a['median']:.3f} ({a['q1']:.3f}-{a['q3']:.3f}) |"
-            out.append(row)
+            out.append(f"| {n} | {fmt(m['pr_auc'])} | {fmt(m['recall'])} | {fmt(m['fa_pw'], 2)} |")
         dec = t["decision"]
         out += ["", "Paired difference vs current XGBoost (PR-AUC, 95% CI): " + "; ".join(
             f"{n} {m['paired_vs_current_xgboost']['pr_auc']['diff_vs_current']:+.3f} ({m['paired_vs_current_xgboost']['pr_auc']['ci95'][0]:+.3f} to {m['paired_vs_current_xgboost']['pr_auc']['ci95'][1]:+.3f})"
@@ -319,4 +298,4 @@ def main(which):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:] or ["vitals", "behaviour", "fall"])
+    main(sys.argv[1:] or ["vitals", "fall"])

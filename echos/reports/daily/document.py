@@ -16,7 +16,6 @@ from echos.reports.daily import actions as ACT
 
 VNAME = {"sys": "Systolic blood pressure", "dia": "Diastolic blood pressure", "hr": "Heart rate", "temp": "Body temperature", "weight": "Body weight"}
 UNIT = {"sys": "mmHg", "dia": "mmHg", "hr": "bpm", "temp": "°C", "weight": "kg"}
-RNAME = {"total_events": "Room-sensor events (whole day)", "night_events": "Room-sensor events (night)", "night_bathroom": "Bathroom visits (night)"}
 LABEL = {"NORMAL": "Normal", "MONITOR": "Changes noticed", "URGENT": "Needs attention"}
 STATUS_TEXT = {"above": "Above usual", "below": "Below usual", "at": "At usual", "within": "Within usual range"}
 DISCLAIMER = "Decision support for a caregiver and clinician, not a medical assessment or a diagnosis. Alerts for a fall or a critical reading are sent separately and immediately."
@@ -45,20 +44,6 @@ def vitals_rows(facts: dict) -> list[dict]:
         if val is None and base is None:
             continue
         out.append(row)
-    return out
-
-
-def routine_rows(facts: dict) -> list[dict]:
-    out = []
-    for k, nm in RNAME.items():
-        v = (facts.get("routine") or {}).get(k) or {}
-        val, base = v.get("value"), v.get("baseline")
-        if val is None and base is None:
-            continue
-        d = None if val is None or base is None else round(float(val) - float(base), 1)
-        out.append({"key": k, "name": nm, "value": val, "usual": base, "diff": d,
-                    "note": "No activity data today" if val is None else "Usual not yet established" if base is None else
-                    ("More than usual" if d > 0 else "Fewer than usual" if d < 0 else "Same as usual")})
     return out
 
 
@@ -107,7 +92,7 @@ def build_doc(facts: dict, *, alerts: list, situation: str, background: list, it
         "header": {"patient_id": facts["patient_id"], "day": facts["day"], "status": facts["status"], "status_label": LABEL[facts["status"]], "mode": mode, "model": model,
                    "generated": datetime.now().strftime("%Y-%m-%d %H:%M")},
         "situation": situation, "background": background, "alerts": alerts, "trend": trend_days,
-        "vitals": vitals_rows(facts), "routine": routine_rows(facts), "case": case,
+        "vitals": vitals_rows(facts), "case": case,
         "assessment": with_refs(items.get("assessment", [])), "changes": with_refs(items.get("changes", [])),
         "actions": acts, "guidance": with_refs(items.get("guidance", [])), "references": refs,
         "data_note": data_note, "disclaimer": DISCLAIMER,
@@ -140,10 +125,6 @@ def render_markdown(d: dict) -> str:
         L.append("\n## Vital signs against this person's own usual\n\n| Measure | Today | Usual | Difference | Status |\n|---|---|---|---|---|")
         for r in d["vitals"]:
             L.append(f"| {r['name']} | {_cell(r['value'], r['unit'])} | {_cell(r['usual'], r['unit'])} | {_sign(r['diff'])} | {r['note']} |")
-    if d["routine"]:
-        L.append("\n## Daily routine against this person's own usual\n\n| Measure | Today | Usual | Difference | Status |\n|---|---|---|---|---|")
-        for r in d["routine"]:
-            L.append(f"| {r['name']} | {_cell(r['value'])} | {_cell(r['usual'])} | {_sign(r['diff'])} | {r['note']} |")
     if d["assessment"]:
         L.append("\n## Assessment\n" + "\n\n".join(i["text"] + _tag(i) for i in d["assessment"]))
     case = d.get("case")

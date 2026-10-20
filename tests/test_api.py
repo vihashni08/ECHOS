@@ -56,16 +56,14 @@ def api(world, tmp_path, monkeypatch):
             c.execute(S.outbox.insert().values(alert_id=f"{PID}|2019-05-09|fall|5", recipient_role=role, address=a, channel="dryrun", subject="[ECHOS URGENT] x", body="b", body_html="h",
                                                status="SENT", attempts=1, error=f"boom for {a}", event_time="2019-05-09T14:02:11", queued_time=1.0, sent_time=2.0))
         S.upsert(c, S.agent_heartbeat, ["agent_id"], agent_id="quality", ts=time.time(), last_event_id=3, status="running", pid=os.getpid())
-    import pandas as pd
-    act = pd.DataFrame({"patient_id": PID, "location_name": ["Kitchen", "Bedroom", "Bathroom"], "date": pd.to_datetime(["2019-05-07 08:00", "2019-05-07 23:00", "2019-05-08 02:00"])})
-    ctx = V.Ctx(eng=eng, root=root, cfg=load_config(), metrics_dir=ROOT / "reports/metrics", activity=act, allow_kill=False, **kw,
+    ctx = V.Ctx(eng=eng, root=root, cfg=load_config(), metrics_dir=ROOT / "reports/metrics", allow_kill=False, **kw,
                 weekly_kwargs={"budget": None, "retriever": NOPM})
     ctx.cfg = {**ctx.cfg, "alerts": {**ctx.cfg["alerts"], "send_real": False}}
     return TestClient(create_app(ctx)), ctx
 
 
 GETS = ["/patients", f"/patients/{PID}/summary?day=2019-05-07", f"/patients/{PID}/summary", f"/patients/{PID}/statuses?days=7", f"/patients/{PID}/vitals?from=2019-05-06&to=2019-05-12",
-        f"/patients/{PID}/routine?from=2019-05-06&to=2019-05-12", f"/patients/{PID}/reports/daily?day=2019-05-07", "/alerts", "/outbox", "/falls", "/falls/5", "/sim/state",
+        f"/patients/{PID}/reports/daily?day=2019-05-07", "/alerts", "/outbox", "/falls", "/falls/5", "/sim/state",
         "/agents/health", "/system/quality", "/system/metrics", "/system/llm-budget", "/system/limitations", "/system/config"]
 
 
@@ -78,12 +76,10 @@ def test_every_endpoint_returns_200_and_validates(api):
     m = M.SummaryOut.model_validate(c.get(f"/api/patients/{PID}/summary?day=2019-05-07").json())
     assert m.status == "MONITOR" and any("above this person's usual range" in x for x in m.reasons) and not any("probab" in x.lower() or "risk" in x.lower() for x in m.reasons)
     s = c.get(f"/api/patients/{PID}/summary?day=2019-05-10").json()
-    assert s["status"] == "MONITOR" and s["reasons"] == ["Activity pattern differs from usual."]          # never the agitation probability
+    assert s["status"] == "MONITOR" and s["reasons"] == []                       # a data-gap-only day carries no 'why it fired' sentence
     assert [d["status"] for d in c.get(f"/api/patients/{PID}/statuses?days=3").json()] == ["URGENT", "MONITOR", "NORMAL"]
     v = M.VitalsOut.model_validate(c.get(f"/api/patients/{PID}/vitals?from=2019-05-06&to=2019-05-12").json())
     assert v.series["sys"].baseline_established and any(p.flagged and p.value == 162 for p in v.series["sys"].points) and len(v.series["sys"].bands) == 7
-    r = M.RoutineOut.model_validate(c.get(f"/api/patients/{PID}/routine?from=2019-05-06&to=2019-05-12").json())
-    assert r.counts[r.rooms.index("Kitchen")][8] == 1 and r.counts[r.rooms.index("Bathroom")][2] == 1 and len(r.days) == 7
     d = M.DailyReportOut.model_validate(c.get(f"/api/patients/{PID}/reports/daily?day=2019-05-07").json())
     assert d.provenance.model == "gemini-x" and d.provenance.tools[0]["name"] == "get_patient_context" and "Status: MONITOR" in d.text
     f = M.FallDetail.model_validate(c.get("/api/falls/5").json())
@@ -101,7 +97,7 @@ def test_every_endpoint_returns_200_and_validates(api):
 
 def test_not_found_and_validation_errors(api):
     c, _ = api
-    for u in (f"/patients/nope/summary", "/patients/nope/statuses", "/patients/nope/vitals", "/patients/nope/routine", "/patients/nope/reports/daily", "/patients/nope/reports/weekly",
+    for u in (f"/patients/nope/summary", "/patients/nope/statuses", "/patients/nope/vitals", "/patients/nope/reports/daily", "/patients/nope/reports/weekly",
               f"/patients/{PID}/summary?day=2000-01-01", f"/patients/{PID}/reports/daily?day=2000-01-01", f"/patients/{PID}/reports/weekly?week=2019-W19", "/falls/999999",
               f"/patients/{PID}/reports/weekly/pdf?week=2019-W19"):
         r = c.get("/api" + u)

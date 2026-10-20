@@ -17,7 +17,7 @@ RAW = ROOT / "echos" / "knowledge" / "raw"
 COLLECTION = "echos_guidelines"
 # filename prefix -> (short doc id, source name). Title comes from the document itself.
 SOURCES = {"STEADI": ("STEADI", "CDC STEADI"), "falls-assessment": ("NICE-NG249", "NICE NG249 (2025)"),
-           "dementia-assessment": ("NICE-NG97", "NICE NG97 (2018)"), "hypertension-in-adults": ("NICE-NG136", "NICE NG136 (2019)"),
+           "hypertension-in-adults": ("NICE-NG136", "NICE NG136 (2019)"),
            "news2": ("RCP-NEWS2", "Royal College of Physicians NEWS2 (2017)")}
 # doc id -> title, where the PDF's own metadata title is unusable
 TITLE_OVERRIDES = {"RCP-NEWS2": "National Early Warning Score (NEWS) 2, Royal College of Physicians (2017)"}

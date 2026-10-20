@@ -65,18 +65,18 @@ function Models() {
   const elder = ms.fall_elderly_by_threshold
   return (
     <div className="flex flex-col gap-4" data-testid="models">
-      {(["vitals", "behaviour"] as const).map((k) => ms[k] && (
-        <Card key={k}><CardHeader><CardTitle>{k === "vitals" ? "Vitals model" : "Behaviour model"} · patient-level cross-validation</CardTitle></CardHeader><CardContent className="flex flex-col gap-2">
+      {(["vitals"] as const).map((k) => ms[k] && (
+        <Card key={k}><CardHeader><CardTitle>Vitals model · patient-level cross-validation</CardTitle></CardHeader><CardContent className="flex flex-col gap-2">
           <Table label={`${k} model selection`} head={["Model", "PR-AUC (95% CI)", "Recall at alert budget (95% CI)", "False alerts / patient-week (95% CI)"]}>
             {Object.entries(ms[k].models as Record<string, any>).map(([name, r]) => (
               <tr key={name}><td className="border-t py-1.5 pr-3 font-medium">{name}</td><Td data-testid={`${k}-${name}-prauc`}>{fmtCI(r.pr_auc)}</Td><Td>{fmtCI(r.recall)}</Td><Td>{fmtCI(r.fa_pw)}</Td></tr>))}
           </Table>
           <p className="text-xs text-muted-foreground">{ms[k].n_patients} patients, {ms[k].n_rows} patient-days, prevalence {fmt3(ms[k].prevalence)}. Alert budget: {ms[k].alert_budget}.</p>
         </CardContent></Card>))}
-      {(cal.vitals || cal.behaviour) && (
+      {cal.vitals && (
         <Card><CardHeader><CardTitle>Calibration (Brier score, lower is better)</CardTitle></CardHeader><CardContent>
           <Table label="Calibration" head={["Model", "Always predict prevalence", "Raw", "Isotonic", "Platt"]}>
-            {(["vitals", "behaviour"] as const).filter((k) => cal[k]).map((k) => <tr key={k}><td className="border-t py-1.5 pr-3 font-medium capitalize">{k}</td><Td>{fmt3(cal[k].brier_baseline_prevalence)}</Td><Td data-testid={`${k}-brier-raw`}>{fmt3(cal[k].brier_raw)}</Td><Td>{fmt3(cal[k].brier?.isotonic)}</Td><Td>{fmt3(cal[k].brier?.platt)}</Td></tr>)}
+            {(["vitals"] as const).filter((k) => cal[k]).map((k) => <tr key={k}><td className="border-t py-1.5 pr-3 font-medium capitalize">{k}</td><Td>{fmt3(cal[k].brier_baseline_prevalence)}</Td><Td data-testid={`${k}-brier-raw`}>{fmt3(cal[k].brier_raw)}</Td><Td>{fmt3(cal[k].brier?.isotonic)}</Td><Td>{fmt3(cal[k].brier?.platt)}</Td></tr>)}
           </Table></CardContent></Card>)}
       {audit.curve && (
         <Card><CardHeader><CardTitle>Fall detector: threshold curve (adult subjects)</CardTitle></CardHeader><CardContent className="flex flex-col gap-3">

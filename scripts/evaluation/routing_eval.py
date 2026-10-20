@@ -1,6 +1,6 @@
 """Does the Triage stage-2 routing (nearest-threshold ratio r + cutoff theta, echos/team/planner.py) behave as designed? Offline, read-only, no LLM / PubMed / e-mail.
 
-Data: the 1266 replayed patient-days (data/e2e_replay/echos.db: stored status + detector outputs; out-of-fold scores, 20 patients).
+Data: the replayed patient-days (data/e2e_replay/echos.db: stored status + detector outputs; out-of-fold scores, 20 patients).
   parity      with the cutoff switched off (theta = 1) the routing equals the previous status-based routing (non-Normal -> Investigator + Coordinator; Urgent -> Coordinator owns
               the alert) on every day; with the configured theta the only change is the near-miss WATCH days (Normal, r > theta): Investigator only, never the Coordinator.
   floor       an Urgent day gets the Investigator and the Coordinator as owner for ANY theta (0, 1, huge).

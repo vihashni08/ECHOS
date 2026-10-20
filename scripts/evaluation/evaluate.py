@@ -65,38 +65,6 @@ def build() -> str:
         out += [f"### Vitals sub-model, out-of-fold, patient-level GroupKFold. {a1['n_reading_days']} reading-days, {a1['n_patients']} patients, "
                 f"prevalence {a1['prevalence']:.3f}", table(["Method", "PR-AUC (95% CI)", "Recall (95% CI)", "False alerts / patient-week", "Alerts"], body),
                 "SHAP top features: " + ", ".join(f"{k} {v:.2f}" for k, v in a1["shap_global_top5"].items())]
-    a2 = load("agent2")
-    if a2:
-        p, ci = a2["point"], a2["bootstrap_95ci"]
-        body = [["PR-AUC (full agent)", f(p["pr_auc"], ci["pr_auc"]), f"{p['pr_auc'] / p['prevalence']:.1f}x base rate"],
-                ["PR-AUC, base rate (no skill)", f(p["prevalence"], ci["prevalence"]), "1.0x"],
-                ["PR-AUC, personal-baseline drift only", f(p["drift_only_pr_auc"], ci["drift_only_pr_auc"]), f"{p['drift_only_pr_auc'] / p['prevalence']:.1f}x"],
-                ["ROC-AUC (full agent)", f(p["roc_auc"], ci["roc_auc"]), "chance = 0.5"],
-                ["ROC-AUC, drift only", f(p["drift_only_roc_auc"], ci["drift_only_roc_auc"]), "chance = 0.5"]]
-        for b in ("0.5", "1.0", "2.0"):
-            t = a2["alert_budget_table"][f"at_{b}_alerts_per_patient_week"]
-            body.append([f"Recall @ {b} alerts/pt-wk", f(t["recall"], ci[f"recall@{b}"]), f"{t['false_alerts_per_patient_week']:.2f} false alerts/pt-wk"])
-            add("agent2", f"@{b}/wk", "recall", t["recall"], ci[f"recall@{b}"])
-            add("agent2", f"@{b}/wk", "false_alerts_per_patient_week", t["false_alerts_per_patient_week"])
-        for k in ("pr_auc", "roc_auc", "drift_only_pr_auc", "drift_only_roc_auc", "prevalence"):
-            add("agent2", k, k, p[k], ci[k])
-        out += [f"### Behaviour sub-model (agitation) vs base rate, out-of-fold; CI = patient bootstrap. {a2['n_days']} days, "
-                f"{a2['n_patients']} patients ({a2['n_patients_with_agitation']} with an agitation day)",
-                table(["Metric", "Value (95% CI)", "Reference"], body), "Ablation (out-of-fold, from scripts/evaluation/audit_agent2.py): " + _ablation(a2)]
-        au = a2.get("within_patient_audit")
-        if au:
-            g = lambda t: f"{t[0]:.3f} (IQR {t[1]:.3f}-{t[2]:.3f})"
-            wrows = [[n, f"{au[k]['pooled_roc_auc']:.3f}", g(au[k]["within_patient"]["roc_auc_median_q1_q3"]),
-                     f"{au[k]['pooled_pr_auc']:.3f}", g(au[k]["within_patient"]["pr_auc_median_q1_q3"])]
-                    for k, n in [("full", "Full feature set"), ("z_only", "Per-patient z-scores only (no absolute levels)"),
-                                 ("drift_score_only", "Drift score only")]]
-            w = au["full"]["within_patient"]
-            out += [f"**Behaviour sub-model headline (within-patient, {w['n_patients']} patients with both classes; median across patients):** "
-                    f"ROC-AUC {g(w['roc_auc_median_q1_q3'])}, PR-AUC {g(w['pr_auc_median_q1_q3'])} "
-                    f"(median per-patient prevalence {w['patient_prevalence_median']:.3f}). Pooled numbers above mix between-patient differences in activity level with within-patient signal.",
-                    table(["Model", "Pooled ROC-AUC", "Within-patient ROC-AUC", "Pooled PR-AUC", "Within-patient PR-AUC"], wrows),
-                    "Leakage audit: every baseline feature (z, CUSUM, drift, deltas) uses shift(1) past-only windows; raw same-day counts are the current observation, as is the same-day label. "
-                    "Top gain importance: " + ", ".join(f"{k} {v:.2f}" for k, v in list(au["top10_gain_importance"].items())[:10]) + ". " + _drop_sentence(au)]
     a3 = load("agent3")
     if a3:
         body = []
@@ -132,42 +100,24 @@ def build() -> str:
     mt = load("monitor_thresholds")
     if mt:
         o, n = mt["old"], mt["new"]
-        out += ["### MONITOR thresholds re-selected from out-of-fold predictions (alert budget)",
-                f"Budgets: vitals <= 1 alert per patient-week; behaviour Monitor days <= 10% of patient-days; agitation_prob is the only behaviour trigger "
-                f"(drift is report evidence only). Score scale: {mt.get('score_scale', 'raw')}; the previous column is the earlier run on the raw score scale.",
-                table(["", "Previous run (raw scale)", "Current"],
-                      [["vitals_prob", o["vitals_prob"], n["vitals_prob"]], ["agitation_prob", o["agitation_prob"], n["agitation_prob"]],
+        out += ["### Vitals MONITOR threshold re-selected from out-of-fold predictions (alert budget)",
+                f"Budget: vitals <= 1 alert per patient-week. Score scale: {mt.get('score_scale', 'raw')}.",
+                table(["", "Previous (config)", "Current"],
+                      [["vitals_prob", o["vitals_prob"], n["vitals_prob"]],
                        ["Vitals alerts / patient-week", f"{o['vitals_alerts_per_patient_week']:.2f}", f"{n['vitals_alerts_per_patient_week']:.2f}"],
-                       ["Vitals recall (BP/pulse/water labels)", f"{o['vitals_recall']:.3f}", f"{n['vitals_recall']:.3f}"],
-                       ["Behaviour Monitor days, share of patient-days", f"{o['behaviour_monitor_share_of_patient_days']:.1%}", f"{n['behaviour_monitor_share_of_patient_days']:.1%}"],
-                       ["Agitation recall of behaviour Monitor", f"{o['behaviour_monitor_recall']:.3f}", f"{n['behaviour_monitor_recall']:.3f}"]])]
+                       ["Vitals recall (BP/pulse/water labels)", f"{o['vitals_recall']:.3f}", f"{n['vitals_recall']:.3f}"]])]
     return "\n\n".join(out) + "\n"
-
-
-def _ablation(a2) -> str:
-    au = a2["within_patient_audit"]
-    return (f"per-patient z-scores only: pooled ROC-AUC {au['z_only']['pooled_roc_auc']:.3f}, PR-AUC {au['z_only']['pooled_pr_auc']:.3f}; "
-            f"drift score only: pooled ROC-AUC {au['drift_score_only']['pooled_roc_auc']:.3f} (chance = 0.5).")
-
-
-def _drop_sentence(au) -> str:
-    fz, zz = au["full"], au["z_only"]
-    return (f"Dropping absolute levels moves pooled ROC {fz['pooled_roc_auc']:.3f} to {zz['pooled_roc_auc']:.3f}, while within-patient ROC "
-            f"moves {fz['within_patient']['roc_auc_median_q1_q3'][0]:.3f} to {zz['within_patient']['roc_auc_median_q1_q3'][0]:.3f}: "
-            "absolute levels mostly separate patients; personal-baseline z-scores carry the within-patient signal.")
 
 
 def sync_results(md: str, path="reports/RESULTS.md") -> int:
     """Replace RESULTS.md lines whose generated counterpart changed (matched on the line's leading text / first table cell).
     Prose lines are left alone; every number in a replaced line comes from a metrics JSON."""
     txt = Path(path).read_text()
-    for head in ("### End-to-end replay",):      # whole sections whose row set changes with the data (reasons / causes): replaced, not patched line by line
+    nxt = lambda s, i: min([j for j in (s.find("\n### ", i + 1), s.find("\n## ", i + 1), s.find("\n<!--", i + 1)) if j > 0] or [len(s)])   # noqa: E731  next heading or block marker
+    for head in ("### End-to-end replay", "### Vitals MONITOR threshold re-selected"):      # whole generated sections: replaced, not patched line by line
         if head in md and head in txt:
-            g0 = md.index(head)
-            g1 = md.find("\n### ", g0 + 1)
-            c0 = txt.index(head)
-            c1 = txt.find("\n### ", c0 + 1)
-            txt = txt[:c0] + md[g0:g1 if g1 > 0 else len(md)].rstrip("\n") + "\n" + (txt[c1:] if c1 > 0 else "")
+            g0, c0 = md.index(head), txt.index(head)
+            txt = txt[:c0] + md[g0:nxt(md, g0)].rstrip("\n") + "\n" + txt[nxt(txt, c0):]
     Path(path).write_text(txt)
     cur = Path(path).read_text().splitlines()
     have, n = set(cur), 0

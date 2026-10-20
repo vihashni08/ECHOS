@@ -31,7 +31,6 @@ def test_tile_counts_sum_to_days_with_data_and_gap_line(world, tmp_path):
 def test_chart_captions_do_not_overlap_plot_areas_and_legend_note_appears_once(world, tmp_path):
     d = data(world)
     d["vitals_summary"]["dia"]["baseline_established"] = False          # force a caption
-    d["routine_baseline_established"]["night_events"] = False
     WP._CHECK = []
     try:
         r = WP.build_pdf(d, "x", [], tmp_path / "c.pdf")
@@ -91,7 +90,7 @@ def test_injected_falls_marked_simulated_and_peak_shown(world, tmp_path):
 def test_peak_stored_for_every_fall_event_including_without_inactivity(tmp_path):
     eng = S.get_engine(tmp_path / "p.db")
     pdy = pd.DataFrame([{"patient_id": "p1", "day": pd.Timestamp("2019-05-05"), "has_activity": True, "has_reading": False, "sys": None, "dia": None, "hr": None,
-                         "temp": None, "weight": None, "night_events": 1, "night_bathroom": 0, "total_events": 5}])
+                         "temp": None, "weight": None, "total_events": 5}])
     with eng.begin() as c:
         for eid, (score, inactive, peak) in enumerate([(0.95, True, 4.7), (0.91, False, 3.2), (0.88, False, None)], 1):
             res = {"score": score, "evidence": {"post_fall_inactive": inactive, "ts": f"2019-05-05T1{eid}:00:00", **({"peak_svm_g": peak} if peak is not None else {})}}
@@ -111,7 +110,6 @@ def src(i, title, text, origin="local", score=0.7):
 
 FALL_KB = src("KB-1", "Falls in older people", "Assess falls and the long lie after a fall.")
 BP_KB = src("KB-2", "Hypertension in adults", "Home blood pressure monitoring.")
-DEM_KB = src("KB-3", "Dementia", "Agitation and distress in dementia; keep a regular routine.")
 PM_FALL = src("PM-9", "Fall detection in older adults: a review", "wearable sensors", "pubmed")
 PM_BP = src("PM-8", "Home blood pressure in older adults", "readings", "pubmed")
 
@@ -127,18 +125,18 @@ class Ret:
 
 
 def week(**kw):
-    d = {"falls": [{"inactivity": True}, {"inactivity": False}], "vitals_alerts": [{"day": "2019-05-07", "types": ["bp_high"]}], "unusual_days": [], "any_monitor_or_urgent": True}
+    d = {"falls": [{"inactivity": True}, {"inactivity": False}], "vitals_alerts": [{"day": "2019-05-07", "types": ["bp_high"]}], "any_monitor_or_urgent": True}
     d.update(kw)
     return d
 
 
 def test_retrieval_is_per_finding_and_sources_are_tied_to_their_finding():
-    r = Ret([FALL_KB, BP_KB, DEM_KB, PM_FALL, PM_BP])
+    r = Ret([FALL_KB, BP_KB, PM_FALL, PM_BP])
     fnd, flat, _ = EV.gather_findings(week(), r, "MONITOR")
-    assert r.calls == ["fall_inactivity", "bp_high"]                  # one call per finding present (no routine finding: no dementia query)
+    assert r.calls == ["fall_inactivity", "bp_high"]                  # one call per finding present
     m = {f["key"]: f["sources"] for f in fnd}
     assert m["falls"] == ["KB-1", "PM-9"] and m["bp_high"] == ["KB-2", "PM-8"]  # each finding got only its own sources; at most 2, PubMed last
-    assert {s["id"] for s in flat} == {"KB-1", "PM-9", "KB-2", "PM-8"} and "KB-3" not in {s["id"] for s in flat}
+    assert {s["id"] for s in flat} == {"KB-1", "PM-9", "KB-2", "PM-8"}
     assert [f["label"] for f in fnd] == ["Possible falls: 2", "Blood pressure above usual: 1"]
 
 
@@ -154,12 +152,9 @@ def test_mismatching_and_low_score_sources_are_dropped_and_limits_hold():
     assert EV.cfg()["local_min_score"] == 0.5                                  # the cut-off is in config.yaml
 
 
-def test_routine_finding_only_when_such_days_exist():
-    r = Ret([DEM_KB])
-    fnd, _, _ = EV.gather_findings(week(falls=[], vitals_alerts=[], unusual_days=[{"day": "d"}]), r, "MONITOR")
-    assert r.calls == ["routine_change"] and fnd[0]["sources"] == ["KB-3"] and fnd[0]["label"] == "Unusual activity pattern days: 1"
-    r2 = Ret([DEM_KB])
-    assert EV.gather_findings(week(falls=[], vitals_alerts=[], unusual_days=[]), r2, "MONITOR")[0] == [] and r2.calls == []
+def test_no_finding_no_retrieval_and_none_without_a_monitor_or_urgent_day():
+    r2 = Ret([FALL_KB])
+    assert EV.gather_findings(week(falls=[], vitals_alerts=[]), r2, "MONITOR")[0] == [] and r2.calls == []
     r3 = Ret([FALL_KB])
     fnd, flat, _ = EV.gather_findings(week(any_monitor_or_urgent=False), r3, "MONITOR")
     assert r3.calls == [] and flat == []                                       # no Monitor / Urgent day: no retrieval at all
@@ -172,7 +167,6 @@ def test_drop_mismatched_safety_net():
 
 
 WEEK_D = {"falls": [{"day": "2019-05-09", "time": "14:02", "inactivity": True}, {"day": "2019-05-11", "time": "03:10", "inactivity": False}],
-          "unusual_days": [],
           "vitals_alerts": [{"day": "2019-05-15", "kind": "alert", "types": ["bp_low"], "values": {"sys": 118, "dia": 58}, "baselines": {"sys": 119, "dia": 67},
                              "top": {"var": "dia", "value": 58.0, "base": 67.0, "delta": -9.0}}]}
 
@@ -218,5 +212,5 @@ def test_weekly_pdf_lists_each_finding_with_its_sources_and_json_mapping(world, 
     i_f, i_v, i_c = t.index("Possible falls: 1"), t.index("Blood pressure above usual: 1"), t.index("Recommended follow-up")
     assert t.index("[KB-1]", i_f) < i_v < t.index("[KB-2]", i_v) < i_c                 # falls source under falls, vitals source under vitals
     m = {f["key"]: f["sources"] for f in r["provenance"]["findings"]}
-    assert m == {"falls": ["KB-1"], "bp_high": ["KB-2"], "routine": []} and "No supporting source retrieved for this finding" in t
+    assert m == {"falls": ["KB-1"], "bp_high": ["KB-2"]}
     assert all(b["cites"] for b in r["provenance"]["considerations"]) and r["provenance"]["considerations_validation"]["ok"]

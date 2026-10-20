@@ -265,7 +265,6 @@ def test_validator_rejects_each_class_of_error():
         assert not v(base(changes=[{"text": bad, "cites": ["F1"]}]))["ok"]
     for bad in ("Stop taking the medication.", "Increase the dose.", "Ask about a prescription."):                             # medication advice
         assert not v(base(actions=[{"priority": "TODAY", "owner": "CAREGIVER", "text": bad, "escalate_if": "", "cites": []}]))["ok"], bad
-    assert not v(base(changes=[{"text": "The agitation probability was high.", "cites": ["F1"]}]))["ok"]                    # score never quoted
 
 
 def test_citation_ids_are_not_numbers():

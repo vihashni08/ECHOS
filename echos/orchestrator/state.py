@@ -26,7 +26,7 @@ case_state = Table("case_state", md, Column("patient_id", String, primary_key=Tr
                    Column("status", String), Column("data_gap", Boolean), Column("days_since_vitals", Integer),
                    Column("reasons", Text), Column("report", String), Column("updated_ts", Float),
                    Column("as_of", String),            # live mode: data time of the latest decision for this (still open) day
-                   Column("provisional", Boolean))     # live mode: True while the day is open (behaviour is scored when the day closes)
+                   Column("provisional", Boolean))     # live mode: True while the day is open (the sensor-gap rule is applied when the day closes)
 alerts = Table("alerts", md, Column("alert_id", String, primary_key=True),   # unique per event: patient|day|type|event_id
                Column("patient_id", String, index=True), Column("type", String), Column("time", Float),
                Column("payload", Text), Column("status", String, default="PENDING"),   # PENDING / SENT / FAILED: derived from the outbox

@@ -48,7 +48,6 @@ class Ctx:
     pdy: Optional[pd.DataFrame] = None
     phys: Optional[pd.DataFrame] = None
     demo: Optional[pd.DataFrame] = None
-    activity: Optional[pd.DataFrame] = None
     allow_kill: bool = False
     report_root: Optional[Path] = None           # where report files live (default: root); a dev copy of the database has its own
     dispatcher: Any = None                       # AlertDispatcher (created lazily; shared worker pool)
@@ -82,13 +81,6 @@ class Ctx:
             from echos.data.loaders import load_demographics
             self.demo = load_demographics()
         return self.demo
-
-    def act_df(self) -> pd.DataFrame:
-        if self.activity is None:
-            from echos.data.loaders import load_activity
-            self.activity = load_activity()
-        from echos.live import store as LS
-        return LS.merge_live(self.eng, self.activity, "activity")
 
 
 # ------------------------------------------------------------------ helpers
@@ -140,8 +132,6 @@ def plain_reasons(facts: Optional[dict]) -> list[str]:
                 if now is not None and base is not None and now != base:
                     parts.append(f"{n} {now:g} was {'above' if now > base else 'below'} this person's usual range (usual {base:g})")
             out.append(("; ".join(parts) or "Blood pressure or heart rate differed from this person's usual") + ".")
-        elif t in WD.UNUSUAL:
-            out.append("Activity pattern differs from usual.")
         elif t == "data_gap":
             out.append("Data gap: " + str(e.get("note", "some data was missing")) + ".")
     return out
@@ -220,7 +210,7 @@ def _range(ctx: Ctx, pid: str, a: Optional[str], b: Optional[str], default_days:
     return start.normalize(), end.normalize()
 
 
-# ------------------------------------------------------------------ vitals / routine series (past-only personal bands)
+# ------------------------------------------------------------------ vitals series (past-only personal bands)
 def vitals(ctx: Ctx, pid: str, a: Optional[str], b: Optional[str]) -> dict:
     require_patient(ctx, pid)
     start, end = _range(ctx, pid, a, b)
@@ -246,36 +236,6 @@ def vitals(ctx: Ctx, pid: str, a: Optional[str], b: Optional[str]) -> dict:
         series[var] = {"name": name, "unit": unit, "baseline_established": est, "baseline_note": None if est else WD.NOT_ESTABLISHED, "points": pts,
                        "bands": [{"day": d.strftime("%Y-%m-%d"), "lo": WD._r(v[2]), "hi": WD._r(v[3]), "base": WD._r(v[0])} for d, v in bands.items() if v]}
     return {"patient_id": pid, "start": start.strftime("%Y-%m-%d"), "end": end.strftime("%Y-%m-%d"), "min_history_readings": WD.MIN_VITAL_HISTORY, "series": series}
-
-
-ROOMS = ["Kitchen", "Hallway", "Lounge", "Bedroom", "Fridge Door", "Bathroom", "Front Door", "Back Door"]
-
-
-def routine(ctx: Ctx, pid: str, a: Optional[str], b: Optional[str]) -> dict:
-    require_patient(ctx, pid)
-    start, end = _range(ctx, pid, a, b)
-    cfg, pdy = ctx.cfg, ctx.pdy_df()
-    pdf = pdy[pdy.patient_id == pid].sort_values("day")
-    act = ctx.act_df()
-    act = act[(act.patient_id == pid) & (act.date >= start) & (act.date < end + pd.Timedelta(days=1))]
-    counts = [[0] * 24 for _ in ROOMS]
-    for (room, hour), n in act.groupby(["location_name", act.date.dt.hour]).size().items():
-        if room in ROOMS:
-            counts[ROOMS.index(room)][int(hour)] = int(n)
-    days = []
-    for d in pd.date_range(start, end):
-        row = pdf[pdf.day == d]
-        has = bool(len(row) and row.iloc[0].has_activity)
-        m = {}
-        for k in WD.ROUTINE:
-            val = WD._r(row.iloc[0][k], 0) if has else None
-            bs, sd = F._past_baseline(pdf, k, d, cfg["agent2"]["baseline_window_days"], cfg["agent2"]["min_baseline_days"], True)
-            band = bs is not None and sd is not None
-            m[k] = {"value": val, "base": WD._r(bs) if band else None, "lo": WD._r(bs - 2 * sd) if band else None, "hi": WD._r(bs + 2 * sd) if band else None,
-                    "z": WD._r((val - bs) / sd, 1) if band and val is not None and sd > 0 else None}
-        days.append({"day": d.strftime("%Y-%m-%d"), "has_activity": has, "metrics": m})
-    return {"patient_id": pid, "start": start.strftime("%Y-%m-%d"), "end": end.strftime("%Y-%m-%d"), "rooms": ROOMS, "hours": list(range(24)), "counts": counts, "days": days,
-            "min_history_days": cfg["agent2"]["min_baseline_days"], "baseline_note": WD.ROUTINE_NOT_ESTABLISHED}
 
 
 # ------------------------------------------------------------------ reports

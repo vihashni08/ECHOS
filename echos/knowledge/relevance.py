@@ -39,14 +39,13 @@ def _hay(src: dict) -> str:
     return f"{src.get('title', '')} {src.get('text', '')}".lower()
 
 
-POPULATION = re.compile(r"\b(older (adults?|people|persons?)|elderly|aged (65|70|75|80)|ageing|aging|geriatric|frail|dementia|nursing home|community-dwelling|home-dwelling)\b", re.I)
+POPULATION = re.compile(r"\b(older (adults?|people|persons?)|elderly|aged (65|70|75|80)|ageing|aging|geriatric|frail|nursing home|community-dwelling|home-dwelling)\b", re.I)
 # a PubMed article is shown only if it is about older people AND mentions the finding's own subject (a paper on obesity and balance is not a falls-after-inactivity source)
-SUBJECT = {"fall": r"\bfalls?\b|\bfallers?\b|long lie", "fall_inactivity": r"\bfalls?\b|\bfallers?\b|long lie",
-           "agitation": r"agitat|restless|sundown|night-?time|sleep", "routine_change": r"daily (activity|routine)|sensor|activity pattern|sleep|monitoring"}
+SUBJECT = {"fall": r"\bfalls?\b|\bfallers?\b|long lie", "fall_inactivity": r"\bfalls?\b|\bfallers?\b|long lie"}
 
 
 def keep(finding_type: str, src: dict) -> bool:
-    """True when the source may be shown for this finding type. Types without rules (falls, routine, legacy vitals types) are only restricted for PubMed articles
+    """True when the source may be shown for this finding type. Types without rules (falls, legacy vitals types) are only restricted for PubMed articles
     (older-person population + the finding's own subject in the title or abstract)."""
     if src.get("origin") == "pubmed":
         if not POPULATION.search(_hay(src)) or (finding_type in SUBJECT and not re.search(SUBJECT[finding_type], _hay(src), re.I)):

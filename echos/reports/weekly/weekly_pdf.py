@@ -1,8 +1,7 @@
 """Weekly clinician report as a PDF (ReportLab + matplotlib Agg), A4, at most 3 pages, one fixed layout:
-header -> summary tiles -> Key findings -> vitals vs personal baseline -> daily routine -> (one chart legend note) -> alerts table -> findings and supporting sources ->
+header -> summary tiles -> Key findings -> vitals vs personal baseline -> (one chart legend note) -> alerts table -> findings and supporting sources ->
 considerations for clinician review -> data quality; footer on every page.
-Status is never shown by colour alone: tiles and tables carry text labels, flagged points use a different marker shape plus a legend entry, unusual days are
-hatched, and every day tick carries a status letter (N Normal, M Monitor, U Urgent, - no result). No agitation or vitals model score appears anywhere."""
+Status is never shown by colour alone: tiles and tables carry text labels, flagged points use a different marker shape plus a legend entry, and every day tick carries a status letter (N Normal, M Monitor, U Urgent, - no result). No vitals model score appears anywhere."""
 from __future__ import annotations
 
 import io
@@ -22,7 +21,7 @@ from reportlab.lib.units import mm  # noqa: E402
 from reportlab.pdfgen import canvas as rl_canvas  # noqa: E402
 from reportlab.platypus import Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle  # noqa: E402
 
-from echos.reports.weekly.weekly_data import ROUTINE, VARS  # noqa: E402
+from echos.reports.weekly.weekly_data import VARS  # noqa: E402
 
 LETTER = {"NORMAL": "N", "MONITOR": "M", "URGENT": "U", None: "-"}
 INK, MUTED, LINE = colors.HexColor("#1f2937"), colors.HexColor("#6b7280"), colors.HexColor("#d1d5db")
@@ -99,35 +98,6 @@ def vitals_chart(d: dict, h_mm: float) -> bytes:
     return _png(fig)
 
 
-def routine_chart(d: dict, h_mm: float) -> bytes:
-    fig, axs = plt.subplots(3, 1, figsize=(7.2, h_mm / 25.4), constrained_layout=True)
-    handles: dict = {}
-    unusual = {u["day"] for u in d["unusual_days"]}
-    units = {"night_events": "events per night", "night_bathroom": "visits per night", "total_events": "events per day"}
-    for ax, k in zip(axs, ["night_events", "night_bathroom", "total_events"]):
-        r = d["series"]["routine"][k]
-        for day, v in r["values"].items():
-            t = pd.Timestamp(day) + pd.Timedelta(hours=12)
-            b = r["band"][day]
-            if b:
-                ax.fill_between([pd.Timestamp(day), pd.Timestamp(day) + pd.Timedelta(days=1)], max(b[0], 0), b[1], color="#9ca3af", alpha=.3, lw=0, label="personal band (usual +/- 2 SD)")
-                ax.plot([pd.Timestamp(day), pd.Timestamp(day) + pd.Timedelta(days=1)], [b[2], b[2]], color="#6b7280", lw=.8, ls="--", label="personal baseline")
-            if v is not None:
-                ax.bar(t, v, width=.6, color="#1d4ed8", hatch="//" if day in unusual else None, edgecolor="white" if day not in unusual else "black", lw=.5,
-                       label="unusual activity pattern day" if day in unusual else "daily value")
-            else:
-                ax.text(t, 0, "no data", fontsize=5, ha="center", va="bottom", color="#6b7280")
-        ax.set_title(ROUTINE[k], fontsize=8, loc="left", pad=11)
-        if not d["routine_baseline_established"][k]:
-            ax.text(0, 1.02, "personal baseline not yet established (fewer than 7 earlier days)", transform=ax.transAxes, fontsize=5.5, va="bottom", color="#6b7280", gid="caption")
-        _style_ax(ax, d, units[k])
-        h, l = ax.get_legend_handles_labels()
-        handles.update(dict(zip(l, h)))
-    if handles:
-        fig.legend(handles.values(), handles.keys(), fontsize=6.5, frameon=False, loc="outside lower center", ncol=4)
-    return _png(fig)
-
-
 class _Numbered(rl_canvas.Canvas):
     """Two-pass canvas: footer with 'Page x of y' on every page."""
     footer, gen, pid = "", "", ""
@@ -190,9 +160,6 @@ def _alert_rows(d: dict) -> list:
         if a.get("why"):
             det += ". Why it fired: " + a["why"]
         rows.append((a["day"], "", "Vitals alert" if a["kind"] != "critical" else "Critical vitals", det, lab(a["day"])))
-    for u in d["unusual_days"]:
-        z = ", ".join(f"{ROUTINE[k].lower()} z {v:+g}" for k, v in u["z"].items() if v is not None) or "no personal z-scores available"
-        rows.append((u["day"], "", "Unusual activity pattern", f"Activity pattern differs from usual: {z}", lab(u["day"])))
     return sorted(rows)
 
 
@@ -224,9 +191,8 @@ def _build(d, narrative, sources, out_path, gen, scale, findings=None, considera
     tiles = [[f"<b>Days by status</b><br/>({comp['days_with_data']} days with data)<br/>Normal {c['NORMAL']} | Monitor {c['MONITOR']}<br/>Urgent {c['URGENT']}"
               + (f" | Not processed {n_np}" if n_np else "") + f"<br/><font size=6.5 color='#6b7280'>Data-gap days (counted within the above): {c['DATA_GAP']}</font>",
               f"<b>Vitals alerts</b><br/>{len(d['vitals_alerts'])}", f"<b>Falls</b><br/>{len(d['falls'])}",
-              f"<b>Unusual-pattern days</b><br/>{len(d['unusual_days'])}",
               f"<b>Completeness</b><br/>Vitals {comp['days_with_vitals']}/7 days<br/>Activity {comp['days_with_activity']}/7 days"]]
-    t = Table([[Paragraph(x, st["tile"]) for x in tiles[0]]], colWidths=[W_MM / 5 * mm] * 5)
+    t = Table([[Paragraph(x, st["tile"]) for x in tiles[0]]], colWidths=[W_MM / 4 * mm] * 4)
     t.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), .6, LINE), ("INNERGRID", (0, 0), (-1, -1), .6, LINE), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f3f4f6")), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
     story += [Paragraph("Summary", st["h2"]), t]
@@ -238,10 +204,8 @@ def _build(d, narrative, sources, out_path, gen, scale, findings=None, considera
     kf = [i["text"] for i in (narrative_items or {}).get("key_findings", [])]
     story += [h("Key findings")] + ([P("&bull; " + escape(x)) for x in kf] if kf else [P(escape(narrative))])
     story += [KeepTogether([h("Vitals vs personal baseline"), Image(io.BytesIO(vitals_chart(d, 150 * scale)), width=W_MM * mm, height=W_MM * mm * (150 * scale) / 183.0 * 1.0)])]
-    img = Image(io.BytesIO(routine_chart(d, 125 * scale)), width=W_MM * mm, height=W_MM * mm * (125 * scale) / 183.0)
-    story += [KeepTogether([h("Daily routine vs personal baseline"), img]),
-              P(f"Chart legend: under each day [N] Normal, [M] Monitor, [U] Urgent, [-] no result (week of {d['week_start']}). Grey band = this person's usual range; "
-                "dashed line = personal baseline; X = reading outside the band; hatched bar = unusual activity pattern day. Bands appear only where a baseline is established.", "small")]
+    story += [P(f"Chart legend: under each day [N] Normal, [M] Monitor, [U] Urgent, [-] no result (week of {d['week_start']}). Grey band = this person's usual range; "
+                "dashed line = personal baseline; X = reading outside the band. Bands appear only where a baseline is established.", "small")]
     headings.append("Alerts")
     rows = _alert_rows(d)
     shown = rows[:14 if scale == 1.0 else 10]

@@ -8,8 +8,8 @@ from tests.test_weekly import world  # noqa: F401  (fixture)
 from scripts.realservices import live_llm_check as LC
 
 
-def make_fake(behaviour):
-    """behaviour: {model: error or None}. Records every request in `log`."""
+def make_fake(errors):
+    """errors: {model: error or None}. Records every request in `log`."""
     log = []
 
     class Fake:
@@ -18,7 +18,7 @@ def make_fake(behaviour):
 
         def step(self, system, messages, tools=None, schema=None):
             log.append((self.model, bool(tools), len(messages)))
-            err = behaviour.get(self.model)
+            err = errors.get(self.model)
             if err == "timeout":
                 raise L.LLMTimeout("no response within 45s")
             if err:
@@ -37,8 +37,8 @@ def run(monkeypatch, capsys):
     monkeypatch.setattr(LC, "ROOT", LC.ROOT)
     monkeypatch.setattr("dotenv.load_dotenv", lambda *a, **k: False)
 
-    def go(behaviour, *extra):
-        fake, log = make_fake(behaviour)
+    def go(errors, *extra):
+        fake, log = make_fake(errors)
         monkeypatch.setattr(L, "GeminiLLM", fake)
         LC.Capped.used, LC.Capped.cap = 0, 4
         monkeypatch.setattr(sys, "argv", ["x", "--yes", "--skip-list-check", *extra])

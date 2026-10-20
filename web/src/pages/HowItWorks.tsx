@@ -33,7 +33,7 @@ function Card_({ c }: { c: Component }) {
   )
 }
 
-const FLOW = ["Devices / emulator", "Quality gate", "Vitals + Behaviour + Fall detectors", "Triage agent", "Case Investigator", "Care Coordinator", "Report agent"]
+const FLOW = ["Devices / emulator", "Quality gate", "Vitals + Fall detectors", "Triage agent", "Case Investigator", "Care Coordinator", "Report agent"]
 
 export default function HowItWorks() {
   const comps = useComponents()

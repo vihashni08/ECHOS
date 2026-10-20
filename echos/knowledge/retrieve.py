@@ -18,8 +18,6 @@ QUERIES = {
     "fall_inactivity": "older adult fall followed by inactivity, long lie on the floor, checking and getting help after a fall",
     "blood_pressure": "elevated systolic blood pressure above personal baseline in an older adult, home blood pressure monitoring",
     "vitals_news2": "abnormal heart rate and blood pressure, early warning score, clinical deterioration",
-    "agitation": "night-time restlessness and agitation in dementia, non-pharmacological management",
-    "routine_change": "change in daily routine and sleep-wake pattern in a person living with dementia",
 }
 QUERIES.update({t: r["query"] for t, r in RULES.items()})
 _state: dict = {}

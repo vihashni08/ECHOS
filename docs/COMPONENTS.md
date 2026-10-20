@@ -17,11 +17,11 @@ Checks that the data can be trusted before anything is scored: ranges, silent se
 - **If it fails:** data passes through marked 'quality unchecked'; the day can never be NORMAL
 - **Never:** fill in missing values
 
-### Vitals + Behaviour detector (`health_monitoring`)
+### Vitals detector (`health_monitoring`)
 
-Compares blood pressure, heart rate and daily routine with the person's own usual (two separate models, with SHAP explanations).
+Compares blood pressure and heart rate with the person's own usual (with SHAP explanations).
 
-- **Takes in:** cleaned vitals and activity
+- **Takes in:** cleaned vitals
 - **Produces:** flags with evidence (personal baseline, persistence)
 - **If it fails:** fixed vitals thresholds are used and the day is marked 'monitoring degraded'
 - **Never:** decide a status or send anything
@@ -50,10 +50,10 @@ Turns detector outputs into one status (Normal / Changed-monitor / Urgent) with 
 
 ### Case Investigator agent (`investigator`)
 
-For every non-Normal case, plans and runs up to 7 checks (case history, agreement between detectors, data caveats and three computed on the person's own past: trend of the readings, earlier deviation days with recorded events, routine agreement) and writes the case file.
+For every non-Normal case, plans and runs up to 6 checks (case history, agreement between detectors, data caveats and two computed on the person's own past: trend of the readings, earlier deviation days with recorded events) and writes the case file.
 
 - **Takes in:** triage decision + detector outputs + history
-- **Produces:** case file: headline, evidence level, supports, context (trend, routine agreement), caveats, next checks, trace of steps
+- **Produces:** case file: headline, evidence level, supports, context (trend), caveats, next checks, trace of steps
 - **If it fails:** the case still goes on without a case file
 - **Never:** change the status or give medical advice
 

@@ -39,7 +39,6 @@ def test_syllable_and_readability_basics():
 def test_banned_and_jargon_wording_is_caught():
     assert one(GOOD.replace("higher than usual", "a sign of hypertension diagnosis"))["banned"] >= 1
     assert one(GOOD.replace("higher than usual", "a SHAP z-score above the threshold"))["banned"] >= 1
-    assert one(GOOD.replace("higher than usual", "an agitation probability of 0.8"))["banned"] >= 1
     assert one(GOOD.replace("Make sure meals", "Stop taking the medication; make sure meals"))["banned"] >= 1
 
 

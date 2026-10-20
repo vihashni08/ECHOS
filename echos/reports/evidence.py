@@ -1,6 +1,6 @@
 """Weekly report evidence mapping: retrieval PER FINDING TYPE present in the week, a finding -> sources mapping, and 'Considerations for clinician review'.
 
-Findings (only when the week has such days): falls, vitals, routine (unusual activity pattern). For each one:
+Findings (only when the week has such days): falls, vitals. For each one:
   local guideline chunks first (score >= config weekly.evidence.local_min_score), then at most 1 PubMed article (last 15 years; review / guideline /
   meta-analysis / systematic-review types, unfiltered only when nothing returns); a source is kept ONLY if its title or text matches the finding's terms.
   At most weekly.evidence.max_sources_per_finding (2) per finding.
@@ -29,7 +29,6 @@ log = logging.getLogger("echos.evidence")
 FINDINGS = {
     "falls": {"types": ["fall_inactivity", "fall"], "terms": ["fall", "falls", "post-fall", "fall detection"]},
     "vitals_news2": {"types": ["vitals_news2"], "terms": ["blood pressure", "heart rate", "vital sign", "early warning", "pulse"]},
-    "routine": {"types": ["routine_change"], "terms": ["dementia", "agitation", "daily routine", "routine", "sleep", "activity pattern", "restless", "distress"]},
     **{k: {"types": [k], "terms": r["terms"]} for k, r in relevance.RULES.items()},
 }
 VITALS_KEYS = ["bp_high", "bp_low", "hr_high", "hr_low", "temperature", "weight_change", "vitals_news2"]
@@ -41,12 +40,10 @@ NOUN = {"bp_high": "high blood pressure", "bp_low": "low blood pressure", "hr_hi
 CLOSE = {
     "falls": "consider whether a post-fall check or a falls-risk review is appropriate",
     "vitals": "consider whether repeating the reading at rest and comparing it with this person's usual range would be useful",
-    "routine": "consider whether the change in night-time or daily activity warrants a conversation about routine, comfort and possible triggers",
 }
 CLOSE2 = {
     "falls": "consider whether a review of mobility, footwear and the home environment is appropriate",
     "vitals": "consider whether a repeat reading under the same conditions would add information",
-    "routine": "consider asking the caregiver whether anything changed in the person's days, such as sleep, discomfort or new surroundings",
 }
 MONTHS = [m.lower() for m in calendar.month_name[1:]] + [m.lower() for m in calendar.month_abbr[1:]]
 WEEKDAYS = [d.lower() for d in calendar.day_name]
@@ -90,8 +87,6 @@ def present_findings(d: dict) -> list[dict]:
         n = sum(k in entry_types(a) for a in d["vitals_alerts"])
         if n:
             out.append({"key": k, "label": f"{LABELS[k]}: {n}", "n": n})
-    if d["unusual_days"]:
-        out.append({"key": "routine", "label": f"Unusual activity pattern days: {len(d['unusual_days'])}", "n": len(d["unusual_days"])})
     return out
 
 
@@ -176,13 +171,6 @@ def finding_facts(f: dict, d: dict) -> tuple[Optional[str], Optional[str]]:
         c1 = f"{n} possible fall{'' if n == 1 else 's'} this week, the latest on {day_text(last['day'])}" + (f" at {last['time']}" if last.get("time") else "") \
              + (", followed by little movement" if last.get("inactivity") else "")
         return c1, f"{n} possible fall{'' if n == 1 else 's'} this week (latest {day_text(last['day'])})"
-    if k == "routine":
-        u = sorted(x["day"] for x in d["unusual_days"])
-        if not u:
-            return None, None
-        n = len(u)
-        return (f"Activity pattern differed from usual on {n} day{'' if n == 1 else 's'} ({', '.join(day_text(x) for x in u[:4])})",
-                f"Activity pattern differed from usual on {n} day{'' if n == 1 else 's'}, the latest {day_text(u[-1])}")
     rows = sorted((a for a in d["vitals_alerts"] if k in entry_types(a)), key=lambda a: a["day"])
     if not rows:
         return None, None
@@ -199,7 +187,7 @@ def template_considerations(findings: list[dict], d: Optional[dict] = None) -> l
     for f in findings:
         if not f["sources"] or d is None:
             continue
-        grp = "vitals" if f["key"] in VITALS_KEYS else ("falls" if f["key"] == "falls" else "routine")
+        grp = "vitals" if f["key"] in VITALS_KEYS else "falls"
         c1, c2 = finding_facts(f, d)
         if c1:
             close = "consider clarifying with the caregiver how the person was afterwards" if grp == "falls" and f.get("inactivity") else CLOSE[grp]

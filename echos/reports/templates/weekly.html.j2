@@ -26,11 +26,6 @@ th{background:#f1f5f9} img{max-width:100%} .muted{color:#64748b;font-size:.85rem
 <p>Falls: {{ s.falls | length }}. Evidence groups: {{ s.evidence | length }}.</p>
 {% if s.falls %}<ul>{% for f in s.falls %}<li>{{ f.day }} {{ f.time or '' }}: possible fall (likelihood {{ '%.2f' % f.prob }}){% if f.post_fall_inactive %}, inactivity afterwards{% endif %}</li>{% endfor %}</ul>{% endif %}
 
-<h2>Routine trend</h2>
-<table><tr><th>Measure</th><th>Weekly mean</th><th>Baseline</th></tr>
-{% for k, v in s.routine.items() %}<tr><td>{{ k.replace('_', ' ') }}</td><td>{{ v.mean if v.mean is not none else 'n/a' }}</td><td>{{ v.baseline if v.baseline is not none else 'n/a' }}</td></tr>{% endfor %}</table>
-{% if charts.routine %}<p><img alt="Routine trend charts" src="data:image/png;base64,{{ charts.routine }}"></p>{% endif %}
-
 <h2>Evidence behind each flag</h2>
 {% if s.evidence %}<table><tr><th>Id</th><th>Finding</th><th>Count</th><th>Days</th><th>Detail</th></tr>
 {% for e in s.evidence %}<tr><td>{{ e.id }}</td><td>{{ e.type.replace('_', ' ') }}{% if e.kind == 'critical' %} (critical){% endif %}</td><td>{{ e.count }}</td><td>{{ e.days | join(', ') }}</td>

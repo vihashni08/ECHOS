@@ -31,6 +31,6 @@ def test_union_rate_and_brier_skill():
 
 def test_triage_properties_hold_on_the_whole_grid():
     r = TT.check_properties()
-    assert r["grid_points"] > 1000
+    assert r["grid_points"] == 512
     assert {k: v for k, v in r.items() if k.startswith("violations_")} == {"violations_monotone": 0, "violations_gap_is_normal": 0,
                                                                           "violations_critical_not_urgent": 0, "violations_missing_output_is_normal": 0}

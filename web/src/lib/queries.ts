@@ -17,9 +17,6 @@ export const useStatuses = (pid: string, days = 120) =>
 export const useVitals = (pid: string, from?: string, to?: string) =>
   useQuery({ queryKey: ["vitals", pid, from, to], enabled: !!from && !!to, retry: 1,
     queryFn: () => call(client.GET("/api/patients/{pid}/vitals", { params: { path: { pid }, query: { from, to } } })) })
-export const useRoutine = (pid: string, from?: string, to?: string) =>
-  useQuery({ queryKey: ["routine", pid, from, to], enabled: !!from && !!to, retry: 1,
-    queryFn: () => call(client.GET("/api/patients/{pid}/routine", { params: { path: { pid }, query: { from, to } } })) })
 
 export function useSimControl() {
   const qc = useQueryClient()

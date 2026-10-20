@@ -83,13 +83,6 @@ def for_flag(f: dict, th: Optional[dict] = None) -> list[dict]:
         out.append(_a("WITHIN_48H", "CLINICIAN",
                       "Review this week's home readings against the person's own usual range and decide whether a measurement in clinic or a call is needed.", "", i, t))
         return out
-    if t in ("agitation", "routine_change"):
-        text = (e.get("action_hints") or ["Watch for restlessness or distress, especially in the evening and at night, and note what seems to trigger it."])[0]
-        out.append(_a("TODAY", "CAREGIVER", text,
-                      "they seem to be in pain, are distressed for long periods, have fallen, or are eating and drinking much less: contact the care team the same day", i, t))
-        out.append(_a("THIS_WEEK", "CLINICIAN",
-                      "If the change continues over several days, review sleep, pain, continence, infection and the surroundings as possible causes, and discuss non-drug approaches with the caregiver.", "", i, t))
-        return out
     if t == "data_gap":
         out.append(_a("TODAY", "CAREGIVER",
                       "Take a blood pressure and pulse reading today, and check that the monitor and room sensors are switched on, in range and have fresh batteries. "

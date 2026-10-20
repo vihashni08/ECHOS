@@ -1,10 +1,9 @@
 """Rule-based triage. Pure function, no I/O, no model: thresholds come from config.yaml (`triage:`).
 
 Threshold choice (from validation metrics, see scripts/tuning/choose_thresholds.py and reports/metrics/triage_thresholds.json):
-- Inputs: quality (Agent 0), health (HealthResult: vitals + behaviour sub-models), fall.
+- Inputs: quality (Agent 0), health (HealthResult: vitals), fall.
 - MONITOR thresholds come from scripts/tuning/choose_monitor_thresholds.py (out-of-fold alert budget):
-  vitals_prob <= 1 vitals alert per patient-week; agitation_prob alone keeps behaviour Monitor days <= 10% of patient-days; drift is report evidence only.
-- drift_level(): max per-feature CUSUM; used for report evidence (drift_evidence_cusum), never as a trigger.
+  vitals_prob <= 1 vitals alert per patient-week.
 - fall_prob (+ post_fall_inactive) and fall_prob_high come from scripts/evaluation/fall_audit.py (reports/metrics/fall_audit.json: threshold curve
   with and without inactivity confirmation on unbiased v2 windows). fall_prob_high null = no URGENT without inactivity: a flagged
   fall without it is only MONITOR. SisFall ADL trials are short and vigorous, so false alarms per hour overstate daily life.
@@ -33,11 +32,6 @@ def _num(x) -> Optional[float]:
     return None if x is None else float(x)
 
 
-def drift_level(drift: dict) -> float:
-    """Largest per-feature CUSUM in a HealthResult behaviour.drift dict (0 if absent). Evidence only."""
-    return max((float(v) for v in (drift.get("cusum") or {}).values()), default=0.0)
-
-
 def is_urgent_fall(fall: Optional[dict], t: dict) -> bool:
     """One fall-agent output meets the URGENT rule: p >= fall_prob_high, or p >= fall_prob with post-fall inactivity."""
     if not fall:
@@ -53,7 +47,6 @@ def triage(results: dict, days_since_vitals: int = 0, cfg: Optional[dict] = None
     t = cfg or load_config()["triage"]
     health, fall = results.get("health"), results.get("fall")
     vit = (health or {}).get("vitals") or {}
-    beh = (health or {}).get("behaviour") or {}
     urgent, monitor, gap, utypes = [], [], [], []
 
     # ---- URGENT
@@ -73,15 +66,13 @@ def triage(results: dict, days_since_vitals: int = 0, cfg: Optional[dict] = None
             urgent.append(f"critical vitals sys={s} dia={d} hr={h}")
             utypes.append("critical_vitals")
 
-    # ---- MONITOR (model probabilities; persistence and drift are report evidence only)
+    # ---- MONITOR (model probability; persistence is report evidence only)
     if health and health.get("degraded"):
         if vit.get("fixed_rule_triggered"):
             monitor.append("vitals beyond fixed thresholds (monitoring degraded)")
     else:
         if vit.get("available") and vit["probability"] >= t["vitals_prob"]:
             monitor.append(f"vitals alert p={vit['probability']:.2f}")
-        if beh.get("available") and beh["probability"] >= t["agitation_prob"]:
-            monitor.append(f"agitation p={beh['probability']:.2f}")
 
     # ---- data gaps (Agent 0 output): never NORMAL
     q = results.get("quality")
@@ -98,7 +89,7 @@ def triage(results: dict, days_since_vitals: int = 0, cfg: Optional[dict] = None
     if health is None:
         gap.append("health monitoring output missing")
     elif health.get("degraded"):
-        gap.append("monitoring degraded (fixed vitals thresholds only, no behaviour model)")
+        gap.append("monitoring degraded (fixed vitals thresholds only, no vitals model)")
     if days_since_vitals > t["max_vitals_gap_days"]:
         gap.append(f"no vitals reading for {days_since_vitals} days")
 

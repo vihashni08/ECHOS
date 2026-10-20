@@ -8,10 +8,9 @@ outbox, agent_heartbeat). Lists take `limit` (1-500) and `offset`; errors look l
 | Method | Path | Notes |
 |---|---|---|
 | GET | /api/patients | id, age band, sex, latest status/day, last alert, completeness |
-| GET | /api/patients/{id}/summary?day= | status, plain-language reasons (never the agitation probability), data note |
+| GET | /api/patients/{id}/summary?day= | status, plain-language reasons (never a model probability), data note |
 | GET | /api/patients/{id}/statuses?days=7 | day, status, reasons |
 | GET | /api/patients/{id}/vitals?from=&to= | series with past-only personal band (>= 5 earlier readings) and flagged points |
-| GET | /api/patients/{id}/routine?from=&to= | room x hour counts; night/total activity, bathroom, transitions with bands (>= 7 earlier days) |
 | GET | /api/patients/{id}/reports/daily?day= | report text + provenance ("How this report was made") |
 | GET | /api/patients/{id}/reports/weekly?week= | JSON of the stored weekly report |
 | GET | /api/patients/{id}/reports/weekly/pdf?week= | PDF download |

@@ -3,7 +3,7 @@ pipeline -> template reports, DryRun mail, no LLM / PubMed / SMTP). Writes repor
 run's DB in data/e2e_replay/ (git-ignored) for scripts/evaluation/gate_eval.py and scripts/evaluation/fall_eval.py.
 
 Usage: PYTHONPATH=. python scripts/evaluation/e2e.py [n_patients]   (~5 min for 20 patients: run it in the background)
-Vitals and behaviour scores are out-of-fold scores (ECHOS_OOF=1, default); falls come from SisFall subjects held out of the replay fall model."""
+Vitals scores are out-of-fold scores (ECHOS_OOF=1, default); falls come from SisFall subjects held out of the replay fall model."""
 from __future__ import annotations
 
 import json
@@ -62,7 +62,7 @@ def gap_causes(q: dict | None, health: dict | None, dsv: int, max_gap: int) -> l
 
 
 def monitor_class(reasons: list[str]) -> str:
-    parts = sorted({"vitals" if x.startswith("vitals") else "behaviour" if x.startswith("agitation") else
+    parts = sorted({"vitals" if x.startswith("vitals") else
                     "possible fall (no inactivity)" if x.startswith("possible fall") else "data gap" if x.startswith("DATA_GAP") else "other"
                     for x in reasons})
     return " + ".join(parts) + (" only" if len(parts) == 1 else "")
@@ -155,12 +155,12 @@ def main(n=20):
         "data_gap_flag_vs_reconstruction_mismatches": mismatches,
         "duplicate_alerts": len(r["alerts"]) - len(set(r["alerts"])), "oof_scores": os.environ["ECHOS_OOF"] == "1",
         "mail": "DryRun (outbox only)", "report_mode": "template (no LLM, no retrieval)",
-        "thresholds": {k: t[k] for k in ("vitals_prob", "agitation_prob", "fall_prob")},
+        "thresholds": {k: t[k] for k in ("vitals_prob", "fall_prob")},
         "notes": ["detection delay is simulated time from the fall to the end of that patient-day (orchestrator is a daily batch)",
                   "false fall alerts = fall-reason URGENT alerts on days without an injected fall (ADL windows from held-out SisFall subjects)",
                   "critical-vitals URGENT days come from real TIHM readings and are not counted as false",
                   "a day can carry several data-gap causes, so the cause counts can exceed the number of gap days",
-                  "Vitals and behaviour scores are out-of-fold when ECHOS_OOF=1; the fall agent uses a fall model trained without the held-out SisFall subjects"],
+                  "Vitals scores are out-of-fold when ECHOS_OOF=1; the fall agent uses a fall model trained without the held-out SisFall subjects"],
         "days_file": "e2e_days.json (patient-day rows; git-ignored)"}
     OUT.write_text(json.dumps(res, indent=1, default=list))
     OUT.with_name("e2e_days.json").write_text(json.dumps(days, indent=1, default=list))

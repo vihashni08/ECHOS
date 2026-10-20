@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { Info } from "lucide-react"
-import BandBars from "@/charts/BandBars"
-import Heatmap from "@/charts/Heatmap"
 import VitalChart from "@/charts/VitalChart"
 import TeamPlanPanel from "@/components/TeamPlanPanel"
 import CaseFilePanel from "@/components/CaseFilePanel"
@@ -10,8 +8,7 @@ import { CardSkeleton, Empty, ErrorNote } from "@/components/States"
 import Timeline from "@/components/Timeline"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { usePatients, useRoutine, useStatuses, useSummary, useVitals } from "@/lib/queries"
+import { usePatients, useStatuses, useSummary, useVitals } from "@/lib/queries"
 import { StatusBadge } from "@/lib/status"
 import { fmtDay } from "@/lib/format"
 
@@ -52,7 +49,6 @@ export default function PatientPage() {
   useEffect(() => { if (max) { setTo(max); setFrom(min && addDays(max, -13) < min ? min : addDays(max, -13)) } }, [id, min, max])
   const ready = useMemo(() => !!from && !!to && from <= to, [from, to])
   const vit = useVitals(id, ready ? from : undefined, ready ? to : undefined)
-  const rou = useRoutine(id, ready ? from : undefined, ready ? to : undefined)
   if (patients.isSuccess && !me) return <Empty title={`Unknown patient ${id}`} />
   const v = vit.data
   return (
@@ -77,9 +73,7 @@ export default function PatientPage() {
         <label className="flex flex-col gap-1">To<input type="date" value={to} min={from || min} max={max} onChange={(e) => setTo(e.target.value)} className="num h-9 rounded-md border bg-card px-2" aria-label="To date" /></label>
         <span className="text-muted-foreground">Data available {min ? `${min} to ${max}` : "n/a"}</span>
       </div>
-      <Tabs defaultValue="vitals">
-        <TabsList><TabsTrigger value="vitals">Vitals</TabsTrigger><TabsTrigger value="routine">Routine</TabsTrigger></TabsList>
-        <TabsContent value="vitals" className="mt-3">
+      <section aria-label="Vitals" className="mt-1">
           {vit.isLoading || !v ? (vit.isError ? <ErrorNote error={vit.error} /> : <div className="grid gap-3 md:grid-cols-2"><CardSkeleton h="h-60" /><CardSkeleton h="h-60" /></div>) : (
             <div className="grid gap-3 md:grid-cols-2" data-testid="vitals-charts">
               <VitalChart title="Blood pressure" unit="mmHg" start={v.start} end={v.end} series={[{ s: v.series.sys, color: "var(--chart-1)", name: "Systolic" }, { s: v.series.dia, color: "var(--chart-2)", name: "Diastolic" }]} />
@@ -87,20 +81,7 @@ export default function PatientPage() {
               <VitalChart title="Temperature" unit="°C" start={v.start} end={v.end} series={[{ s: v.series.temp, color: "var(--chart-1)", name: "Temperature" }]} />
               <VitalChart title="Weight" unit="kg" start={v.start} end={v.end} series={[{ s: v.series.weight, color: "var(--chart-1)", name: "Weight" }]} />
             </div>)}
-        </TabsContent>
-        <TabsContent value="routine" className="mt-3 flex flex-col gap-3">
-          {!rou.data ? (rou.isError ? <ErrorNote error={rou.error} /> : <CardSkeleton h="h-72" />) : (
-            <>
-              <p className="flex items-start gap-1.5 text-sm text-muted-foreground"><Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />These charts describe unusual patterns against this person's own usual range. They are not a prediction.</p>
-              <Heatmap r={rou.data} />
-              <div className="grid gap-3 md:grid-cols-2" data-testid="routine-charts">
-                <BandBars title="Night activity" unit="events per night" k="night_events" days={rou.data.days} note="personal baseline not yet established" />
-                <BandBars title="Night bathroom visits" unit="visits per night" k="night_bathroom" days={rou.data.days} note="personal baseline not yet established" />
-                <BandBars title="Total activity" unit="events per day" k="total_events" days={rou.data.days} note="personal baseline not yet established" />
-              </div>
-            </>)}
-        </TabsContent>
-      </Tabs>
+      </section>
     </div>
   )
 }

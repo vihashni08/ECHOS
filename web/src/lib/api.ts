@@ -17,7 +17,6 @@ export type FallDetail = Schemas["FallDetail"]
 export type Outbox = Schemas["OutboxOut"]
 export type AlertRow = Schemas["AlertOut"]
 export type Vitals = Schemas["VitalsOut"]
-export type Routine = Schemas["RoutineOut"]
 export type AgentHealth = Schemas["AgentHealth"]
 export type Component = Schemas["ComponentOut"]
 

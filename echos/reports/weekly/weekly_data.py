@@ -1,7 +1,7 @@
 """Weekly clinician report data: a PURE function of saved pipeline outputs for one patient and one ISO week (Mon-Sun).
 Sources: case_state (arbiter status per day), daily_facts (flags, falls, quality, per-day vitals), alerts (fall payloads: probability, peak g,
-inactivity), the patient-day table (routine values; personal baselines use only days BEFORE each day) and raw vitals readings.
-No model score is returned for behaviour or vitals: only values against the personal baseline / personal z-scores.
+inactivity), the patient-day table (personal baselines use only days BEFORE each day) and raw vitals readings.
+No model score is returned for vitals: only values against the personal baseline / personal z-scores.
 Everything in the result except `series` is plain JSON (the narrative's structured input)."""
 from __future__ import annotations
 
@@ -20,8 +20,6 @@ from echos.reports.daily import vitals_why as VW
 VARS = {"sys": ("Systolic BP", "mmHg"), "dia": ("Diastolic BP", "mmHg"), "hr": ("Heart rate", "bpm"), "temp": ("Temperature", "C"),
         "weight": ("Weight", "kg")}
 DEVICE = {"Systolic blood pressure": "sys", "Diastolic blood pressure": "dia", "Heart rate": "hr", "Body Temperature": "temp", "Body weight": "weight"}
-ROUTINE = {"night_events": "Night activity", "night_bathroom": "Night bathroom visits", "total_events": "Total activity", "room_transitions": "Room transitions"}
-UNUSUAL = ("agitation", "routine_change")     # fact flag types: reported as 'unusual activity pattern', never with their score
 
 
 _CACHE: dict = {}
@@ -49,7 +47,6 @@ def _r(x, nd=1):
 
 MIN_VITAL_HISTORY = 5      # earlier readings (patient-days with a reading) needed before a personal vitals baseline exists
 NOT_ESTABLISHED = "personal baseline not yet established (fewer than 5 earlier readings)"
-ROUTINE_NOT_ESTABLISHED = "personal baseline not yet established (fewer than 7 earlier days)"
 
 
 def fmt_prob(p) -> str:
@@ -135,24 +132,8 @@ def build_weekly_data(eng, patient_id: str, week, pdy: Optional[pd.DataFrame] = 
                      "flagged_days": sorted({p["t"][:10] for p in pts if p["flagged"]}),
                      "note": None if est else NOT_ESTABLISHED}
 
-    # ---- routine: values and personal z-scores (past-only baseline, active days only)
-    rw = cfg["agent2"]["baseline_window_days"]
-    routine, rz = {k: {"values": {}, "band": {}} for k in ROUTINE}, {}
-    for d in days:
-        ds = d.strftime("%Y-%m-%d")
-        row = pdf[pdf.day == d]
-        act = bool(len(row) and row.iloc[0].has_activity)
-        z = {}
-        for k in ROUTINE:
-            val = _r(row.iloc[0][k], 0) if act else None
-            b, sd = F._past_baseline(pdf, k, d, rw, cfg["agent2"]["min_baseline_days"], True)
-            routine[k]["values"][ds] = val
-            routine[k]["band"][ds] = [_r(b - 2 * sd), _r(b + 2 * sd), _r(b)] if b is not None and sd is not None else None
-            z[k] = _r((val - b) / sd, 1) if val is not None and b is not None and sd and sd > 0 else None
-        rz[ds] = z
-
     # ---- flags from the saved daily facts
-    vit_alerts, unusual = [], []
+    vit_alerts = []
     for d in dstr:
         for f in (fx.get(d) or {}).get("flags", []):
             e = f["evidence"]
@@ -175,8 +156,6 @@ def build_weekly_data(eng, patient_id: str, week, pdy: Optional[pd.DataFrame] = 
                 else:
                     ent.update({f"{k}_{s}": e.get(f"{k}_{s}") for k in ("sys", "dia", "hr") for s in ("now", "baseline")})
                 vit_alerts.append(ent)
-            elif f["type"] in UNUSUAL and d not in {u["day"] for u in unusual}:
-                unusual.append({"day": d, "z": rz[d]})     # z-scores only: the model score is never carried into this report
     # ---- falls: alert payloads (peak g) plus fall facts without an alert (no peak available)
     falls, seen = [], set()
     fact_peak = {(d, f.get("time")): f.get("peak_g") for d in dstr for f in (fx.get(d) or {}).get("falls", [])}
@@ -207,13 +186,11 @@ def build_weekly_data(eng, patient_id: str, week, pdy: Optional[pd.DataFrame] = 
     return {"patient_id": patient_id, "week": iso_week(mon), "days_in_week": 7, "week_start": dstr[0], "week_end": dstr[-1],
             "age_band": band_label(dm.age_band.iloc[0]) if len(dm) else "unknown", "sex": str(dm.sex.iloc[0]) if len(dm) else "unknown",
             "days": [{"day": d, "status": status[d], "data_gap": bool(d in cs and cs[d].data_gap), "has_data": d in with_data} for d in dstr],
-            "status_counts": counts, "vitals_summary": vsum, "vitals_alerts": vit_alerts, "falls": falls, "unusual_days": unusual,
-            "routine_baseline_established": {k: any(b is not None for b in routine[k]["band"].values()) for k in ROUTINE},
-            "routine_z": {d: z for d, z in rz.items() if d in {u["day"] for u in unusual}}, "completeness": comp,
+            "status_counts": counts, "vitals_summary": vsum, "vitals_alerts": vit_alerts, "falls": falls, "completeness": comp,
             "partial_week_note": (f"Partial week: only {len(with_data)} of 7 days have data." if len(with_data) < 7 else None),
             "any_monitor_or_urgent": bool(counts["MONITOR"] or counts["URGENT"]),
             "finding_types": sorted({f["type"] for d in dstr for f in (fx.get(d) or {}).get("flags", []) if f["type"] != "data_gap"}),
-            "series": {"vitals": series, "routine": routine}}
+            "series": {"vitals": series}}
 
 
 def narrative_payload(data: dict) -> dict:

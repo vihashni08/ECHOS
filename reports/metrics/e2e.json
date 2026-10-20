@@ -1,14 +1,14 @@
 {
  "patients": 20,
- "patient_days": 1266,
- "patient_weeks": 180.9,
- "wall_s": 289,
+ "patient_days": 1265,
+ "patient_weeks": 180.7,
+ "wall_s": 303,
  "injected_falls": 60,
- "falls_detected_as_urgent": 51,
- "fall_detection_rate": 0.85,
+ "falls_detected_as_urgent": 48,
+ "fall_detection_rate": 0.8,
  "falls_detected_pct_ci95_wilson": [
-  0.739,
-  0.919
+  0.682,
+  0.882
  ],
  "missed_injected_falls": [
   {
@@ -54,69 +54,84 @@
    "trial": "F10_SE06_R03"
   },
   {
-   "patient_id": "30a32",
+   "patient_id": "1fbe4",
    "day": "2019-06-12",
-   "subject": "SE06",
-   "trial": "F10_SE06_R05"
+   "subject": "SA19",
+   "trial": "F07_SA19_R03"
   },
   {
-   "patient_id": "a2849",
-   "day": "2019-06-30",
-   "subject": "SA11",
-   "trial": "F11_SA11_R02"
+   "patient_id": "c55f8",
+   "day": "2019-06-13",
+   "subject": "SA03",
+   "trial": "F04_SA03_R04"
+  },
+  {
+   "patient_id": "1fbe4",
+   "day": "2019-06-17",
+   "subject": "SE06",
+   "trial": "F14_SE06_R02"
+  },
+  {
+   "patient_id": "28710",
+   "day": "2019-06-26",
+   "subject": "SE06",
+   "trial": "F10_SE06_R01"
+  },
+  {
+   "patient_id": "e8a78",
+   "day": "2019-06-26",
+   "subject": "SE06",
+   "trial": "F10_SE06_R04"
   }
  ],
- "detection_delay_sim_hours_median": 13.1,
+ "detection_delay_sim_hours_median": 13.2,
  "detection_delay_sim_hours_max": 23.8,
- "urgent_alerts_total": 57,
- "urgent_fall_alerts": 53,
- "false_fall_alerts": 2,
- "false_fall_alerts_per_patient_week": 0.011,
+ "urgent_alerts_total": 56,
+ "urgent_fall_alerts": 51,
+ "false_fall_alerts": 3,
+ "false_fall_alerts_per_patient_week": 0.017,
  "urgent_critical_vitals_days": 4,
- "urgent_alerts_per_patient_week": 0.315,
+ "urgent_alerts_per_patient_week": 0.31,
  "inactivity_confirmation": {
   "injected_events": 60,
-  "injected_p_ge_thr": 55,
-  "injected_urgent_with_confirmation": 51,
-  "adl_events": 2532,
-  "adl_events_p_ge_thr": 19,
-  "adl_events_urgent_with_confirmation": 2,
-  "false_fall_alert_days_with_confirmation": 2,
-  "false_fall_alert_days_without_confirmation": 19,
-  "false_fall_alerts_per_patient_week_with_confirmation": 0.011,
-  "false_fall_alerts_per_patient_week_without_confirmation": 0.105
+  "injected_p_ge_thr": 52,
+  "injected_urgent_with_confirmation": 48,
+  "adl_events": 2530,
+  "adl_events_p_ge_thr": 22,
+  "adl_events_urgent_with_confirmation": 4,
+  "false_fall_alert_days_with_confirmation": 4,
+  "false_fall_alert_days_without_confirmation": 22,
+  "false_fall_alerts_per_patient_week_with_confirmation": 0.022,
+  "false_fall_alerts_per_patient_week_without_confirmation": 0.122
  },
  "status_days": {
-  "NORMAL": 845,
-  "MONITOR": 364,
-  "URGENT": 57
+  "NORMAL": 940,
+  "MONITOR": 270,
+  "URGENT": 55
  },
  "status_share": {
-  "NORMAL": 0.667,
-  "MONITOR": 0.288,
-  "URGENT": 0.045
+  "NORMAL": 0.743,
+  "MONITOR": 0.213,
+  "URGENT": 0.043
  },
  "day_status_exclusive": {
-  "NORMAL": 845,
-  "MONITOR (alerts, no data gap)": 309,
-  "DATA_GAP (MONITOR days with a data gap)": 55,
-  "URGENT": 57
+  "NORMAL": 940,
+  "MONITOR (alerts, no data gap)": 217,
+  "DATA_GAP (MONITOR days with a data gap)": 53,
+  "URGENT": 55
  },
- "data_gap_share_any_status": 0.045,
- "urgent_days_with_data_gap": 2,
+ "data_gap_share_any_status": 0.044,
+ "urgent_days_with_data_gap": 3,
  "monitor_days_by_reason": {
-  "vitals only": 170,
-  "behaviour only": 92,
-  "data gap only": 49,
-  "behaviour + vitals": 29,
-  "possible fall (no inactivity) only": 13,
+  "vitals only": 199,
+  "data gap only": 47,
+  "possible fall (no inactivity) only": 16,
   "data gap + vitals": 4,
-  "behaviour + possible fall (no inactivity)": 3,
   "possible fall (no inactivity) + vitals": 2,
   "data gap + possible fall (no inactivity)": 2
  },
  "data_gap_days_by_cause": {
-  "sensor gap": 56,
+  "sensor gap": 55,
   "vitals gap > 7 days": 2
  },
  "data_gap_flag_vs_reconstruction_mismatches": 0,
@@ -126,7 +141,6 @@
  "report_mode": "template (no LLM, no retrieval)",
  "thresholds": {
   "vitals_prob": 0.278,
-  "agitation_prob": 0.129,
   "fall_prob": 0.8
  },
  "notes": [
@@ -134,6 +148,7 @@
   "false fall alerts = fall-reason URGENT alerts on days without an injected fall (ADL windows from held-out SisFall subjects)",
   "critical-vitals URGENT days come from real TIHM readings and are not counted as false",
   "a day can carry several data-gap causes, so the cause counts can exceed the number of gap days",
-  "Agents 1-2 scores are out-of-fold when ECHOS_OOF=1; Agent 3 uses a fall model trained without the held-out SisFall subjects"
- ]
+  "Vitals scores are out-of-fold when ECHOS_OOF=1; the fall agent uses a fall model trained without the held-out SisFall subjects"
+ ],
+ "days_file": "e2e_days.json (patient-day rows; git-ignored)"
 }

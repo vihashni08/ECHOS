@@ -10,7 +10,7 @@ export interface DocRef { n: number; id: string; origin?: string | null; title?:
 export interface Doc {
   header: { patient_id: string; day: string; status: string; status_label: string; mode: string; generated: string; model?: string | null }
   situation: string; background: string[]; alerts: string[]; trend: { day: string; status: string }[]
-  vitals: DocRow[]; routine: DocRow[]; case?: { headline: string; evidence_level: string; next_checks: string[] } | null
+  vitals: DocRow[]; case?: { headline: string; evidence_level: string; next_checks: string[] } | null
   assessment: DocItem[]; changes: DocItem[]; actions: DocAction[]; guidance: DocItem[]; references: DocRef[]
   data_note?: string | null; disclaimer: string
 }
@@ -85,7 +85,6 @@ export default function DailyDoc({ doc, onSource }: { doc: Doc; onSource: (id: s
 
       {doc.vitals.length > 0 && <Section id="vit" title="Vital signs against this person's own usual"><Table caption="Vital signs today against this person's usual" rows={doc.vitals} first="Measure" />
         <p className="text-xs text-muted-foreground">{doc.background[0]}</p></Section>}
-      {doc.routine.length > 0 && <Section id="rtn" title="Daily routine against this person's own usual"><Table caption="Daily routine today against this person's usual" rows={doc.routine} first="Measure" /></Section>}
 
       {doc.assessment.length > 0 && <Section id="ass" title="Assessment">
         {doc.assessment.map((a, i) => <p key={i}>{a.text}<Cites nums={a.ref_numbers} onRef={openRef} /></p>)}

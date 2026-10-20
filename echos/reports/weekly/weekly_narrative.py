@@ -25,12 +25,12 @@ SCHEMA = {"type": "object", "required": ["impression", "key_findings", "guidance
         "cites": {"type": "array", "items": {"type": "string"}}}}}}}
 SYSTEM = ("You write the 'Impression' and 'Key findings' of a weekly report for a clinician, in the style of a clinical handover, plain factual language. Use ONLY the structured data "
           "in the JSON. Copy numbers exactly; never invent one. Describe vitals against this person's own baseline. Never mention any probability or score "
-          "except the fall probability given for a fall. Say 'activity pattern differs from usual', not more. Never state a diagnosis (no 'diagnosis', "
+          "except the fall probability given for a fall. Never state a diagnosis (no 'diagnosis', "
           "'you have', 'suffering from') and never give advice about medicines or doses. Guidance statements must paraphrase a listed source and cite its id. Reply with JSON only.")
 ASK = ('Return {{"impression":[{{"text":str,"cites":[]}}],"key_findings":[{{"text":str,"cites":[]}}],"guidance":[{{"text":str,"cites":[source ids]}}]}} (exactly these three keys, no others). "impression": 1 or 2 items, together 2 to 4 sentences: the overall picture of the week, the most important finding and whether anything reached an urgent limit; use only numbers in the data. '
        'Write in the style of a clinical handover (situation, background, assessment): "key_findings" is 4 to 6 items of 1-2 sentences each, about 120 to 200 words in all. '
        'Cover, in this order: (1) the week at a glance: days with data and Normal / Monitor / Urgent counts; (2) each vital sign: weekly mean, personal baseline, number of readings outside the band, with exact values; '
-       '(3) falls (day, time, whether inactivity followed) or that none were detected; (4) days the activity pattern differed from usual, with dates; (5) data completeness and any gap, stating that missing readings are not evidence of normal values. "guidance": 0 to 2 short paraphrased statements, only from '
+       '(3) falls (day, time, whether inactivity followed) or that none were detected; (4) data completeness and any gap, stating that missing readings are not evidence of normal values. "guidance": 0 to 2 short paraphrased statements, only from '
        'the sources below, each citing its id; [] if there are none.\n\nDATA:\n{data}\n\nSOURCES:\n{sources}')
 
 
@@ -59,10 +59,6 @@ def template_items(d: dict) -> dict:
         s.append(f"{_plural(len(d['falls']), 'possible fall')}: {f}.")
     else:
         s.append("No possible falls were detected.")
-    if d["unusual_days"]:
-        s.append(f"The activity pattern differed from usual on {_plural(len(d['unusual_days']), 'day')}: {', '.join(u['day'] for u in d['unusual_days'])}.")
-    else:
-        s.append("No day had an unusual activity pattern.")
     s.append(f"Vitals readings were recorded on {comp['days_with_vitals']} of {d['days_in_week']} days and room-sensor activity on {comp['days_with_activity']} "
              f"of {d['days_in_week']} days; {_plural(comp['sensor_gap_days'], 'sensor-gap day')}, {comp['invalid_values_removed']} invalid values removed.")
     if d["partial_week_note"]:
@@ -71,7 +67,7 @@ def template_items(d: dict) -> dict:
 
 
 def template_impression(d: dict) -> str:
-    """The overall picture in two or three sentences: the most important finding of the week first (fall > critical reading > vitals alert > routine change), then what was quiet."""
+    """The overall picture in two or three sentences: the most important finding of the week first (fall > critical reading > vitals alert), then what was quiet."""
     c, comp = d["status_counts"], d["completeness"]
     crit = [a for a in d.get("vitals_alerts", []) if a["kind"] == "critical"]
     if d["falls"]:
@@ -82,8 +78,6 @@ def template_impression(d: dict) -> str:
         lead = f"The most important finding is {_plural(len(crit), 'reading')} in the critical range (latest {sorted(a['day'] for a in crit)[-1]})."
     elif d.get("vitals_alerts"):
         lead = f"{_plural(len(d['vitals_alerts']), 'vitals alert')} differed from this person's own usual, none in the critical range."
-    elif d.get("unusual_days"):
-        lead = f"The activity pattern differed from usual on {_plural(len(d['unusual_days']), 'day')}; there were no vitals alerts and no possible falls."
     else:
         lead = "Nothing differed from this person's own usual pattern this week."
     tail = f" {c['MONITOR']} Monitor and {c['URGENT']} Urgent day{'' if c['MONITOR'] + c['URGENT'] == 1 else 's'} of {comp['days_with_data']} with data."

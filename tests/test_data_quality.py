@@ -48,12 +48,12 @@ def test_sensor_gap_is_not_zero_activity():
     assert not t.loc["2019-05-07", "sensor_gap"]  # gap days did not lower the bar
 
 
-def test_patient_day_gap_days_have_nan_behaviour_features():
+def test_patient_day_gap_days_have_nan_event_counts():
     from echos.data.patient_day import load_patient_day
     d = load_patient_day()
     g = d[d.sensor_gap]
     assert len(g) and not g.has_activity.any()
-    assert g.total_events.isna().all() and g.night_events.isna().all()      # NaN, not 0
+    assert g.total_events.isna().all()      # NaN, not 0
     ok = d[d.has_activity]
     assert ok.total_events.notna().all() and not ok.sensor_gap.any()
 

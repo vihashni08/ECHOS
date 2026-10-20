@@ -1,4 +1,4 @@
-"""Specific, number-bearing wording for one finding: WHICH vital (or routine measure), its value, the person's own usual, the difference and its direction.
+"""Specific, number-bearing wording for one finding: WHICH vital, its value, the person's own usual, the difference and its direction.
 Pure functions of stored values / baselines / z-scores (no model score, no I/O). Used by the case file (echos/team/investigator.py), the daily template
 (echos/reports/daily/agent.py) and, as `evidence.specifics`, by the Gemini prompt: the validator then requires an LLM sentence to quote at least one of these values.
 Every number printed here is derived from the inputs by subtraction / rounding, so it is also written into the facts the validator accepts numbers from."""
@@ -11,7 +11,6 @@ from echos.reports.daily import vitals_why as VW
 NAME = {"sys": "Systolic blood pressure", "dia": "Diastolic blood pressure", "hr": "Heart rate", "temp": "Body temperature", "weight": "Body weight"}
 SHORT = {"sys": "systolic", "dia": "diastolic", "hr": "heart rate", "temp": "temperature", "weight": "weight"}
 UNIT = {"sys": "mmHg", "dia": "mmHg", "hr": "bpm", "temp": "°C", "weight": "kg"}
-ROUTINE = {"night_events": "night-time room-sensor events", "night_bathroom": "night-time bathroom visits", "total_events": "daily room-sensor events"}
 
 
 def _g(x) -> str:
@@ -47,20 +46,6 @@ def vital_sentences(values: dict, baselines: dict, zs: Optional[dict] = None, li
     return [vital_sentence(f) for f in sel[:limit]]
 
 
-def routine_sentences(routine: dict, features: Optional[list] = None) -> list[str]:
-    """'Night-time bathroom visits 13 against a usual of 4 (9 more).' for the routine measures with a usual; `features` (drifted) are added to the wording."""
-    out = []
-    for k, nm in ROUTINE.items():
-        v = (routine or {}).get(k) or {}
-        now, base = v.get("value"), v.get("baseline")
-        if now is None or base is None:
-            continue
-        d = round(abs(float(now) - float(base)), 1)
-        rel = "the same as usual" if d == 0 else f"{_g(d)} {'more' if now > base else 'fewer'}"
-        out.append(f"{nm[0].upper() + nm[1:]} {_g(now)} against a usual of {_g(base)} ({rel}).")
-    return out
-
-
 # ---- direction-aware things to do today: each names the vital, quotes today's value and says what to record
 def vital_actions(types: list, values: dict, critical: bool = False) -> list[str]:
     v = values or {}
@@ -79,16 +64,4 @@ def vital_actions(types: list, values: dict, critical: bool = False) -> list[str
     out = [acts[t] for t in types if t in acts]
     if critical:
         out.append("Contact the care team or doctor today about this reading.")
-    return out[:2]
-
-
-def routine_actions(features: Optional[list], routine: dict) -> list[str]:
-    nb, ne = (routine or {}).get("night_bathroom") or {}, (routine or {}).get("night_events") or {}
-    out = []
-    if nb.get("value") is not None and nb.get("baseline") is not None and nb["value"] > nb["baseline"]:
-        out.append(f"Note how many times they get up at night (night-time bathroom visits {_g(nb['value'])} against a usual of {_g(nb['baseline'])}) and ask whether they feel unwell or thirsty.")
-    if ne.get("value") is not None and ne.get("baseline") is not None and ne["value"] > ne["baseline"]:
-        out.append(f"Ask how they slept; night-time room-sensor events were {_g(ne['value'])} against a usual of {_g(ne['baseline'])}. Watch for restlessness in the evening and what seems to set it off.")
-    if not out:
-        out.append("Watch for restlessness or distress, especially in the evening and at night, and note what seems to trigger it.")
     return out[:2]

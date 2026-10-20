@@ -118,7 +118,6 @@ def test_pubmed_articles_must_be_about_older_people_and_the_findings_subject():
     obesity = {"origin": "pubmed", "title": "Origins of balance disorders during a daily living movement in obese people", "text": "Obese people suffer from postural deficits and are more subject to falls."}
     older = {"origin": "pubmed", "title": "Falls and long lie in older adults", "text": "Older adults who fall and cannot get up (a long lie) are at risk."}
     assert not relevance.keep("fall_inactivity", obesity) and relevance.keep("fall_inactivity", older)
-    assert not relevance.keep("agitation", {"origin": "pubmed", "title": "Sleep in children", "text": "Children sleep."})
     assert relevance.keep("fall", {"origin": "local", "title": "Falls", "text": "x"})            # local guideline chunks are not restricted here
 
 

@@ -36,7 +36,7 @@ def world(tmp_path):
     rows = []
     for i, d in enumerate(days):
         rows.append({"patient_id": PID, "day": d, "has_activity": True, "has_reading": True, "sys": 128 + i % 5, "dia": 80 + i % 3, "hr": 70 + i % 4, "temp": 36.5,
-                     "weight": 70.0, "night_events": 10 + i % 4, "night_bathroom": 2 + i % 2, "total_events": 300 + 5 * (i % 6), "room_transitions": 80 + i % 7})
+                     "weight": 70.0, "total_events": 300 + 5 * (i % 6)})
     pdy = pd.DataFrame(rows)
     ph = []
     for d, sy in (("2019-05-06", 129), ("2019-05-07", 162), ("2019-05-08", 130), ("2019-05-09", 128), ("2019-05-10", 131), ("2019-05-11", 129)):
@@ -45,11 +45,10 @@ def world(tmp_path):
     demo = pd.DataFrame([{"patient_id": PID, "age_band": "(80, 90]", "sex": "Female"}])
     fl_bp = {"id": "F1", "type": "blood_pressure", "evidence": {"kind": "vitals_alert", "risk": 0.7, "sys_now": 162.0, "sys_baseline": 130.0, "dia_now": 82.0, "dia_baseline": 81.0,
                                                                 "hr_now": 71.0, "hr_baseline": 71.0}}
-    fl_ag = {"id": "F1", "type": "agitation", "evidence": {"risk": 0.9, "night_events": 20}}
     fall = {"time": "14:02", "prob": 0.93, "post_fall_inactive": True}
     spec = [("2019-05-06", "NORMAL", False, facts("2019-05-06")), ("2019-05-07", "MONITOR", False, facts("2019-05-07", [fl_bp])),
             ("2019-05-08", "NORMAL", False, facts("2019-05-08", invalid=[{"device_type": "Heart rate", "value": 300}])),
-            ("2019-05-09", "URGENT", False, facts("2019-05-09", falls=[fall])), ("2019-05-10", "MONITOR", True, facts("2019-05-10", [fl_ag], reading=False, gap=True)),
+            ("2019-05-09", "URGENT", False, facts("2019-05-09", falls=[fall])), ("2019-05-10", "MONITOR", True, facts("2019-05-10", reading=False, gap=True)),
             ("2019-05-11", "NORMAL", False, facts("2019-05-11"))]
     with eng.begin() as c:
         for d, st, gap, f in spec:
@@ -77,18 +76,17 @@ def test_builder_numbers_match_the_database(world):
     assert (c["NORMAL"], c["MONITOR"], c["URGENT"], c["DATA_GAP"]) == (3, 2, 1, 1)
     assert d["falls"] == [{"day": "2019-05-09", "time": "14:02", "probability": 0.93, "probability_text": "0.93", "peak_g": 2.6, "inactivity": True, "simulated": True}]
     assert [a["day"] for a in d["vitals_alerts"]] == ["2019-05-07"] and d["vitals_alerts"][0]["sys_now"] == 162.0
-    assert [u["day"] for u in d["unusual_days"]] == ["2019-05-10"] and set(d["unusual_days"][0]["z"]) == set(WD.ROUTINE)
     sysv = d["vitals_summary"]["sys"]
     assert sysv["n_readings"] == 6 and sysv["n_flagged"] == 1 and sysv["flagged_days"] == ["2019-05-07"] and 128 < sysv["baseline"] < 132
     comp = d["completeness"]
     assert (comp["days_with_data"], comp["days_with_activity"], comp["days_with_vitals"], comp["sensor_gap_days"], comp["invalid_values_removed"]) == (6, 6, 5, 1, 1)
     assert comp["longest_vitals_gap_days"] == 1 and d["partial_week_note"] == "Partial week: only 6 of 7 days have data."
-    assert d["any_monitor_or_urgent"] and set(d["finding_types"]) == {"blood_pressure", "agitation"}
+    assert d["any_monitor_or_urgent"] and set(d["finding_types"]) == {"blood_pressure"}
 
 
 def test_no_model_scores_in_the_weekly_data(world):
     s = json.dumps(WD.narrative_payload(data(world)))
-    assert "risk" not in s and "0.7" not in s and "0.9\"" not in s and "agitation_prob" not in s and "probability" in s    # only the FALL probability
+    assert "risk" not in s and "0.7" not in s and "0.9\"" not in s and "probability" in s    # only the FALL probability
 
 
 def test_baseline_uses_only_past_days(world):
@@ -101,7 +99,7 @@ def test_baseline_uses_only_past_days(world):
 
 
 # ------------------------------------------------------------------ PDF
-def test_pdf_pages_size_text_footer_and_no_agitation_probability(world, tmp_path):
+def test_pdf_pages_size_text_footer_and_no_model_score(world, tmp_path):
     d = data(world)
     n = WN.make_narrative(d, [])
     fnd = [{"key": "vitals", "label": "Vitals alerts: 1", "n": 1, "sources": ["KB-7"]}]
@@ -115,8 +113,8 @@ def test_pdf_pages_size_text_footer_and_no_agitation_probability(world, tmp_path
                    "Possible fall", "Fall probability 0.93", "pw"):
         assert needle in t, needle
     low = t.lower()
-    assert "agitation" not in low and "risk" not in low and "vitals probability" not in low
-    order = [t.index(h) for h in ("Summary", "Key findings", "Vitals vs personal baseline", "Daily routine vs personal baseline", "Alerts", "Findings and supporting sources", "Recommended follow-up", "Data quality")]
+    assert "risk" not in low and "vitals probability" not in low
+    order = [t.index(h) for h in ("Summary", "Key findings", "Vitals vs personal baseline", "Alerts", "Findings and supporting sources", "Recommended follow-up", "Data quality")]
     assert order == sorted(order) and r["headings"][0] == "Weekly clinician report"
 
 
@@ -190,7 +188,7 @@ def test_one_email_per_patient_week_with_attachment_dedup_and_force(world, tmp_p
     assert len(m.sent) == 1 and m.sent[0]["to"] == TO["clinician"]                      # clinician only
     s = m.sent[0]
     assert s["subject"] == f"[ECHOS Weekly] {PID} - 2019-05-06 to 2019-05-12"
-    assert len(s["body"].splitlines()) == 5 and "Falls: 1." in s["body"] and "<p>" in s["html"]
+    assert len(s["body"].splitlines()) == 4 and "Falls: 1." in s["body"] and "<p>" in s["html"]
     assert s["attachments"][0]["filename"] == f"{PID}_{WEEK}.pdf" and s["attachments"][0]["data"][:4] == b"%PDF"
     assert len(PdfReader(io.BytesIO(s["attachments"][0]["data"])).pages) <= 3
     row = outbox(eng)[0]
@@ -301,7 +299,7 @@ def test_fall_probability_formatting():
     assert [WD.fmt_prob(x) for x in (0.93, 0.994, 0.996, 1.0, 0.5, None)] == ["0.93", "0.99", ">0.99", ">0.99", "0.50", "n/a"]
     d = {"falls": [{"day": "2019-05-09", "time": "14:02", "probability": 0.998, "probability_text": ">0.99", "inactivity": True}], "status_counts": {"NORMAL": 0, "MONITOR": 0, "URGENT": 1, "DATA_GAP": 0},
          "completeness": {"days_with_data": 1, "days_with_vitals": 1, "days_with_activity": 1, "sensor_gap_days": 0, "invalid_values_removed": 0}, "week_start": "a", "week_end": "b",
-         "days_in_week": 7, "unusual_days": [], "partial_week_note": None,
+         "days_in_week": 7, "partial_week_note": None,
          "vitals_summary": {k: {"name": k, "unit": "u", "n_readings": 0, "baseline_established": False} for k in ("sys", "dia", "hr", "temp", "weight")}}
     assert "probability >0.99" in " ".join(i["text"] for i in WN.template_items(d)["key_findings"])
 
@@ -337,15 +335,6 @@ def test_vitals_baseline_needs_5_earlier_readings(world, tmp_path):
     r = WP.build_pdf(d0, WN.make_narrative(d0, [])["text"], [], tmp_path / "nb.pdf")
     t = " ".join(text_of(r["path"]).split())
     assert "not yet established (fewer than 5 earlier readings)" in t and "Only this week's own values are shown" in t and r["pages"] <= 3
-
-
-def test_routine_baseline_needs_7_earlier_days(world):
-    eng, _, kw = world
-    pdy = kw["pdy"]
-    d6 = WD.build_weekly_data(eng, PID, WEEK, **{**kw, "pdy": pdy[pdy.day >= "2019-04-30"]})     # 6 earlier days before Monday 05-06
-    assert d6["series"]["routine"]["night_events"]["band"]["2019-05-06"] is None
-    d7 = WD.build_weekly_data(eng, PID, WEEK, **{**kw, "pdy": pdy[pdy.day >= "2019-04-29"]})
-    assert d7["series"]["routine"]["night_events"]["band"]["2019-05-06"] is not None
 
 
 # ------------------------------------------------------------------ real orchestrator weekly path attaches the retriever
@@ -388,7 +377,7 @@ def test_pdf_has_an_impression_bullet_findings_and_a_follow_up_table(world, tmp_
     d = data(world)
     n = WN.make_narrative(d, [])
     assert n["items"]["impression"] and len(n["items"]["key_findings"]) >= 4            # one bullet per topic, not one paragraph
-    fnd = [{"key": "falls", "label": "Possible falls: 1", "n": 1, "sources": ["KB-7"]}, {"key": "routine", "label": "Unusual activity pattern days: 1", "n": 1, "sources": []}]
+    fnd = [{"key": "falls", "label": "Possible falls: 1", "n": 1, "sources": ["KB-7"]}, {"key": "bp_high", "label": "Blood pressure above usual: 1", "n": 1, "sources": []}]
     cons = [{"finding": "falls", "text": "1 possible fall this week; consider a post-fall check", "cites": ["KB-7"]}]
     r = WP.build_pdf(d, n["text"], [KB | {"origin": "local"}], tmp_path / "w.pdf", findings=fnd, considerations=cons, narrative_items=n["items"])
     t = " ".join(text_of(r["path"]).split())

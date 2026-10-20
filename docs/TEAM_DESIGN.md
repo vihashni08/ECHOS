@@ -36,23 +36,23 @@ Why not six: the validator is plain code that has to run in the same call as the
 
 ## What the Team Planner changes at run time
 
-The planner (`echos/team/planner.py`) was replayed on the 1266 replayed patient-days (20 patients, out-of-fold scores).
+The planner (`echos/team/planner.py`) was replayed on the 1265 replayed patient-days (20 patients, out-of-fold scores).
 
 | Status | Days | Agents on the case |
 |---|---|---|
-| NORMAL | 845 | 2 of 4 |
-| MONITOR | 364 | 4 of 4 |
-| URGENT | 57 | 4 of 4 |
+| NORMAL | 940 | 2 of 4 |
+| MONITOR | 270 | 4 of 4 |
+| URGENT | 55 | 4 of 4 |
 
-- Mean team size 2.665 of 4. Agent runs: 3374 vs 5064 if all four always ran (1690 avoided, 33.4%).
-- Report LLM request ceiling: 2105 vs 6330 if every day could use the LLM (ceilings, not measured usage).
+- Mean team size 2.514 of 4. Agent runs: 3180 vs 5060 if all four always ran (1880 avoided, 37.2%).
+- Report LLM request ceiling: 1625 vs 6325 if every day could use the LLM (ceilings, not measured usage).
 - Without scores (cutoff not applied) the Investigator runs on exactly the non-Normal days = True; near-miss watch days are counted in the routing section below.
 
 ## The routing algorithm (Triage stage 2)
 
 Triage has two stages. Stage 1 (`echos/orchestrator/triage.py`) turns detector outputs into a status with if-then rules. Stage 2 (`echos/team/planner.py`) decides which agents the case needs, with one ratio and one cutoff. It is an algorithm, not a trained model: nothing labels "the right agents", so a learned selector could not be validated.
 
-**Step 1: nearest-threshold ratio.** Each detector k (vitals, behaviour, fall) gives a score p_k and has its own alert threshold tau_k (config `triage`). How close the case is to an alert is the largest ratio:
+**Step 1: nearest-threshold ratio.** Each detector k (vitals, fall) gives a score p_k and has its own alert threshold tau_k (config `triage`). How close the case is to an alert is the largest ratio:
 
 ```
 r = max_k ( p_k / tau_k )          r = 1: exactly at an alert threshold;  r = 0.5: half way
@@ -77,34 +77,34 @@ The URGENT line does not depend on theta (tested for theta = 0, 1 and 10^9), so 
 theta = min { t : #(Normal days with r > t) <= B * patient_weeks }
 ```
 
-theta is in plain units: theta = 0.8594 means "watch a day when any detector is above 86% of its own alert threshold". Budget grid (1266 patient-days, 20 patients, 845 Normal days; default B = 0.25; `scripts/tuning/choose_routing_threshold.py`, `reports/metrics/routing_thresholds.json`):
+theta is in plain units: theta = 0.8181 means "watch a day when any detector is above 82% of its own alert threshold". Budget grid (1265 patient-days, 20 patients, 940 Normal days; default B = 0.25; `scripts/tuning/choose_routing_threshold.py`, `reports/metrics/routing_thresholds.json`):
 
 | B (false calls / patient-week) | allowed calls | theta | achieved / patient-week | labelled days among called |
 |---|---|---|---|---|
-| 0.1 | 18 | 0.9403 | 0.1 | 4 of 18 |
-| 0.25 (default) | 45 | 0.8594 | 0.243 | 11 of 44 |
-| 0.5 | 90 | 0.7421 | 0.498 | 24 of 90 |
-| 1.0 | 180 | 0.5826 | 0.995 | 36 of 180 |
+| 0.1 | 18 | 0.9003 | 0.1 | 5 of 18 |
+| 0.25 (default) | 45 | 0.8181 | 0.249 | 15 of 45 |
+| 0.5 | 90 | 0.6593 | 0.498 | 27 of 90 |
+| 1.0 | 180 | 0.4887 | 0.996 | 31 of 180 |
 
-Patient bootstrap (1000 resamples of 20 patients, seed from config): theta 95% interval 0.8154 to 0.89; with about 20 patients treat even this as rough. Cross-check, not the choice: the last column counts days with a clinical event label (Labels.csv, provenance unverified) among the called Normal days; it is a weak sensitivity check and supports no claim that near-miss days are more often clinically relevant.
+Patient bootstrap (1000 resamples of 20 patients, seed from config): theta 95% interval 0.6978 to 0.8574; with about 20 patients treat even this as rough. Cross-check, not the choice: the last column counts days with a clinical event label (Labels.csv, provenance unverified) among the called Normal days; it is a weak sensitivity check and supports no claim that near-miss days are more often clinically relevant.
 
-**Replay evidence** (`scripts/evaluation/routing_eval.py`, 1266 patient-days, stored out-of-fold detector scores):
+**Replay evidence** (`scripts/evaluation/routing_eval.py`, 1265 patient-days, stored out-of-fold detector scores):
 
-- Parity: with the cutoff switched off the routing equals the previous status-based routing on 1266 of 1266 days.
-- With theta = 0.8594 44 Normal days change: they are the near-miss watch days (0.243 per patient-week, the budget). They add the Investigator only ({'investigator': 44}); the Coordinator is called on 0 of them. Each writes a short watch file (no alert, template report, not counted towards a clinician review).
-- On the 845 Normal days r has median 0.344, 90th percentile 0.761, 99th percentile 0.966, maximum 0.999.
-- Safety floor: all 57 Urgent days have the Investigator and the Coordinator as owner for every tested theta = {'0.0': True, '1.0': True, '1000000000.0': True}.
+- Parity: with the cutoff switched off the routing equals the previous status-based routing on 1265 of 1265 days.
+- With theta = 0.8181 45 Normal days change: they are the near-miss watch days (0.249 per patient-week, the budget). They add the Investigator only ({'investigator': 45}); the Coordinator is called on 0 of them. Each writes a short watch file (no alert, template report, not counted towards a clinician review).
+- On the 940 Normal days r has median 0.209, 90th percentile 0.653, 99th percentile 0.95, maximum 0.994.
+- Safety floor: all 55 Urgent days have the Investigator and the Coordinator as owner for every tested theta = {'0.0': True, '1.0': True, '1000000000.0': True}.
 
 Sensitivity to the cutoff:
 
 | theta | watch days | per patient-week | mean team size |
 |---|---|---|---|
-| 0.5 | 247 | 1.366 | 2.86 |
-| 0.6 | 164 | 0.907 | 2.795 |
-| 0.7 | 108 | 0.597 | 2.75 |
-| 0.8 | 74 | 0.409 | 2.724 |
-| 0.9 | 30 | 0.166 | 2.689 |
-| 1.0 | 0 | 0.0 | 2.665 |
+| 0.5 | 174 | 0.963 | 2.651 |
+| 0.6 | 120 | 0.664 | 2.609 |
+| 0.7 | 74 | 0.409 | 2.572 |
+| 0.8 | 52 | 0.288 | 2.555 |
+| 0.9 | 19 | 0.105 | 2.529 |
+| 1.0 | 0 | 0.0 | 2.514 |
 
 The budget is a stated preference (how many near-miss watch files per patient-week are acceptable), not an estimate of harm. The earlier version used a cost-based Bayes gate whose hand-set loss was not derived; it was removed because it reduced to the same status-based rule.
 

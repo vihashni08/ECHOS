@@ -4,7 +4,7 @@ Part 1  Admission rule: a component is an AGENT only if it differs from every ot
         Checked against the real registry (echos/components.py): every agent's `never` clause must be non-empty and no two agents may share all three.
 Part 2  Alternatives (1 agent, 2 agents, the 4 ECHOS agents, 6 agents) against criteria that can be read from the code and from measurements
         already in reports/metrics/. Where a criterion is an argument by construction, the table says so; only the 4-agent design was built and measured.
-Part 3  What the Team Planner changes at run time: the planner is replayed on the 1266 replayed patient-days (reports/metrics/e2e_days.json) and its team
+Part 3  What the Team Planner changes at run time: the planner is replayed on the replayed patient-days (reports/metrics/e2e_days.json) and its team
         size is compared with "always run all four".
 Writes reports/metrics/team_design.json and docs/TEAM_DESIGN.md (numbers come from the JSONs, nothing typed by hand).
 Usage: PYTHONPATH=. python scripts/tuning/team_design.py"""
@@ -133,7 +133,7 @@ def routing_section(rt: dict, th: dict | None = None) -> list:
     L = ["## The routing algorithm (Triage stage 2)", "",
          "Triage has two stages. Stage 1 (`echos/orchestrator/triage.py`) turns detector outputs into a status with if-then rules. Stage 2 (`echos/team/planner.py`) decides which agents the case needs, "
          "with one ratio and one cutoff. It is an algorithm, not a trained model: nothing labels \"the right agents\", so a learned selector could not be validated.", "",
-         "**Step 1: nearest-threshold ratio.** Each detector k (vitals, behaviour, fall) gives a score p_k and has its own alert threshold tau_k (config `triage`). How close the case is to an alert is the largest ratio:", "",
+         "**Step 1: nearest-threshold ratio.** Each detector k (vitals, fall) gives a score p_k and has its own alert threshold tau_k (config `triage`). How close the case is to an alert is the largest ratio:", "",
          "```", "r = max_k ( p_k / tau_k )          r = 1: exactly at an alert threshold;  r = 0.5: half way", "```", "",
          "A fixed vitals rule that fired while monitoring was degraded counts as r = 1. r is a routing score, not a probability.", "",
          "**Step 2: routing rule.**", "",
@@ -142,7 +142,7 @@ def routing_section(rt: dict, th: dict | None = None) -> list:
          "otherwise                            -> Triage + template report only", "URGENT                               -> the Coordinator owns the alert, whatever theta is", "```", "",
          "The URGENT line does not depend on theta (tested for theta = 0, 1 and 10^9), so no setting of the cutoff can remove the alert owner. It never changes the status or delays an alert.", "",
          *budget_block(th),
-         "**Replay evidence** (`scripts/evaluation/routing_eval.py`, 1266 patient-days, stored out-of-fold detector scores):", "",
+         f"**Replay evidence** (`scripts/evaluation/routing_eval.py`, {rt['patient_days']} patient-days, stored out-of-fold detector scores):", "",
          f"- Parity: with the cutoff switched off the routing equals the previous status-based routing on {pr['days_equal_with_cutoff_off']} of {pr['of']} days.",
          f"- With theta = {rt['theta']} {pr['days_changed_with_configured_theta']} Normal days change: they are the near-miss watch days ({w['per_patient_week']} per patient-week, the budget). "
          f"They add the Investigator only ({pr['agents_added_on_changed_days']}); the Coordinator is called on {w['coordinator_called']} of them. Each writes a short watch file (no alert, template report, not counted towards a clinician review).",

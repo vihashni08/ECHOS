@@ -1,38 +1,21 @@
 {
-  "patient_days": 2797,
-  "patient_weeks": 399.57142857142856,
+  "patient_days": 2796,
+  "patient_weeks": 399.42857142857144,
   "old": {
     "vitals_prob": 0.278,
-    "agitation_prob": 0.129,
-    "drift_evidence_cusum": 10.4,
-    "vitals_alerts_per_patient_week": 0.998569896317483,
+    "vitals_alerts_per_patient_week": 0.9989270386266094,
     "vitals_recall": 0.7206349206349206,
-    "vitals_precision": 0.568922305764411,
-    "agitation_recall": 0.509090909090909,
-    "drift_recall": 0.01818181818181818,
-    "behaviour_monitor_recall": 0.509090909090909,
-    "behaviour_monitor_share_of_patient_days": 0.09939220593493028,
-    "drift_share_of_patient_days": 0.042188058634250986,
-    "config_vitals_prob": 0.278,
-    "config_agitation_prob": 0.129
+    "vitals_precision": 0.568922305764411
   },
   "score_scale": "calibrated",
   "new": {
     "vitals_prob": 0.278,
-    "agitation_prob": 0.129,
-    "drift_evidence_cusum": 10.4,
-    "vitals_alerts_per_patient_week": 0.998569896317483,
+    "vitals_alerts_per_patient_week": 0.9989270386266094,
     "vitals_recall": 0.7206349206349206,
-    "vitals_precision": 0.568922305764411,
-    "agitation_recall": 0.509090909090909,
-    "drift_recall": 0.01818181818181818,
-    "behaviour_monitor_recall": 0.509090909090909,
-    "behaviour_monitor_share_of_patient_days": 0.09939220593493028,
-    "drift_share_of_patient_days": 0.042188058634250986
+    "vitals_precision": 0.568922305764411
   },
   "notes": [
     "OOF scores, patient-level GroupKFold; vitals budget uses all patient-days / 7 (as Agent 1 does)",
-    "old = max CUSUM >= drift_cusum OR agitation_prob (thresholds as in the previous config, re-scored on the cleaned table); new = agitation_prob only, capped at 10% of all patient-days; drift is report evidence only (drift_evidence_cusum)",
-    "agitation recall counts same-day labels on activity days; vitals recall = BP/pulse/water alert labels on reading days"
+    "vitals recall = BP/pulse/water alert labels on reading days"
   ]
 }

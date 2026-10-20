@@ -13,7 +13,7 @@ from echos.orchestrator import state as S
 from echos.reports.llm.fake_llm import FakeLLM
 from echos.orchestrator.pipeline import build_pipeline, process_case
 from echos.orchestrator.triage import triage
-from tests.test_orchestrator import R, beh, health, qual, vit
+from tests.test_orchestrator import R, health, qual, vit
 
 CFG = load_config()["triage"]
 CV = CFG["critical_vitals"]
@@ -22,7 +22,7 @@ N = 300
 
 def rnd_health(rng):
     return health(vit(rng.randint(60, 200), rng.randint(40, 130), rng.randint(30, 150), rng.random()),
-                  beh(rng.random(), {"night_events": rng.random() * 20}), degraded=rng.random() < 0.2)
+                  degraded=rng.random() < 0.2)
 
 
 def rnd_quality(rng):
@@ -51,7 +51,7 @@ def test_critical_vitals_force_urgent_random():
         if which == "dia_high": d_ = rng.randint(CV["dia_high"], 160)
         if which == "hr_high": h = rng.randint(CV["hr_high"], 220)
         if which == "hr_low": h = rng.randint(20, CV["hr_low"] - 1)
-        hm = health(vit(s, d_, h, rng.random()), beh(rng.random()), degraded=rng.random() < 0.3)
+        hm = health(vit(s, d_, h, rng.random()), degraded=rng.random() < 0.3)
         r = {"quality": rnd_quality(rng), "health": hm, "fall": R(rng.random() * 0.4, post_fall_inactive=False)}
         d = triage(r, rng.randint(0, 12), CFG)
         assert d.status.value == "URGENT" and "critical_vitals" in d.urgent_types, which
@@ -171,17 +171,16 @@ def test_guard_rejects_simulated_rows():
 
 def test_training_tables_contain_only_real_rows():
     from echos.agents import fall
-    from echos.agents.health import behaviour, vitals
+    from echos.agents.health import vitals
     from echos.data.patient_day import load_patient_day
     assert_real_source(load_patient_day(), "tihm")
     assert_real_source(vitals.build_features(), "tihm")
-    assert_real_source(behaviour.build_features(), "tihm")
     assert_real_source(fall.build_windows(), "sisfall")
 
 
 def test_trainers_call_the_guard():
     root = Path(__file__).resolve().parents[1]
-    for f in ("echos/agents/fall.py", "echos/agents/health/vitals.py", "echos/agents/health/behaviour.py", "echos/sim/replay.py"):
+    for f in ("echos/agents/fall.py", "echos/agents/health/vitals.py", "echos/sim/replay.py"):
         assert "assert_real_source(" in (root / f).read_text(), f
     for f in (root / "echos/agents").rglob("*.py"):   # models never import the simulator or fixtures
         t = f.read_text()

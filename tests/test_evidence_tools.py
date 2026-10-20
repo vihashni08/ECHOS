@@ -9,8 +9,7 @@ from echos.team.investigator import Investigator
 def table(sys_vals, labels=None, pid="p1", start="2019-04-01"):
     days = pd.date_range(start, periods=len(sys_vals))
     d = pd.DataFrame({"patient_id": pid, "day": days, "sys": [float(x) for x in sys_vals], "dia": 70.0, "hr": 70.0, "has_reading": True,
-                      "has_activity": True, "night_events": 20.0, "total_events": 300.0, "bp_alert": 0, "pulse_alert": 0, "water_alert": 0,
-                      "agitation": 0})
+                      "has_activity": True, "total_events": 300.0, "bp_alert": 0, "pulse_alert": 0, "water_alert": 0})
     for i in (labels or []):
         d.loc[i, "bp_alert"] = 1
     return d
@@ -40,15 +39,6 @@ def test_personal_history_never_reads_today_or_later():
     assert h2["prior_deviation_days"] == 1 and h2["prior_event_labels"] == 1
 
 
-def test_corroboration_flags_unusual_night_activity():
-    t = table([120] * 12)
-    t.loc[11, "night_events"] = 60.0
-    day = str(t.day.iloc[11].date())
-    c = ET.corroboration(t, "p1", day, True, False)
-    assert c["available"] and c["routine_unusual"] == ["night_events"] and c["agrees"]
-    assert not ET.corroboration(t, "p1", day, False, False)["agrees"]
-
-
 def _inv(tmp_path, tbl):
     inv = Investigator(S.get_engine(tmp_path / "i.db"))
     inv._history_table = lambda: tbl
@@ -58,7 +48,7 @@ def _inv(tmp_path, tbl):
 def _results(now):
     return {"health": {"vitals": {"available": True, "flag": True, "persistence": {"persistent": False},
                                   "current_vs_baseline": {"sys": {"current": now, "baseline": 120}, "dia": {"current": 70}, "hr": {"current": 70}}},
-                       "behaviour": {"available": False}}, "quality": {"evidence": {"quality_checked": True}}, "fall": None}
+                       }, "quality": {"evidence": {"quality_checked": True}}, "fall": None}
 
 
 def test_investigator_computes_trend_history_and_uses_them(tmp_path):

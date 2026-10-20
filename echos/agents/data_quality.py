@@ -3,7 +3,7 @@
 1. validate schema/types, drop exact duplicates, sort by (patient, timestamp)
 2. range checks per device_type: implausible values -> NaN and recorded as invalid (never dropped silently, never imputed)
 3. missing data: vitals stay NaN (has_reading, days_since_last_reading); an Activity day with zero events or fewer than
-   5% of the patient's PAST median is a SENSOR_GAP, not 'zero activity': behaviour features are NaN for that day
+   5% of the patient's PAST median is a SENSOR_GAP, not 'zero activity': the day's event count is NaN
 4. one DataQualityResult per patient-day
 Failure of this agent never blocks the pipeline: `check_day` falls back to a pass-through result with quality_checked=False."""
 from __future__ import annotations

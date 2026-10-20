@@ -1,49 +1,47 @@
 {
- "patient_days": 1266,
+ "patient_days": 1265,
  "triage_reconstruction_mismatches": 0,
- "monitor_share_current": 0.28751974723538704,
+ "monitor_share_current": 0.2134387351778656,
  "drivers": {
-  "current_monitor_share": 0.28751974723538704,
-  "without_vitals_trigger": 0.15323854660347552,
-  "without_agitation_trigger": 0.21484992101105846,
-  "neither_trigger (data gap + possible fall only)": 0.05766192733017378
+  "current_monitor_share": 0.2134387351778656,
+  "without_vitals_trigger (data gap + possible fall only)": 0.05612648221343874
  },
  "vitals_grid": [
   {
    "vitals_prob": 0.278,
-   "monitor_share": 0.28751974723538704,
+   "monitor_share": 0.2134387351778656,
    "vitals_alert_days": 220,
-   "vitals_alerts_per_patient_week": 1.216429699842022
+   "vitals_alerts_per_patient_week": 1.217391304347826
   },
   {
    "vitals_prob": 0.35,
-   "monitor_share": 0.2598736176935229,
+   "monitor_share": 0.18181818181818182,
    "vitals_alert_days": 174,
-   "vitals_alerts_per_patient_week": 0.962085308056872
+   "vitals_alerts_per_patient_week": 0.9628458498023715
   },
   {
    "vitals_prob": 0.4,
-   "monitor_share": 0.24091627172195892,
+   "monitor_share": 0.16284584980237155,
    "vitals_alert_days": 148,
-   "vitals_alerts_per_patient_week": 0.8183254344391785
+   "vitals_alerts_per_patient_week": 0.8189723320158102
   },
   {
    "vitals_prob": 0.45,
-   "monitor_share": 0.23064770932069512,
+   "monitor_share": 0.1509881422924901,
    "vitals_alert_days": 133,
-   "vitals_alerts_per_patient_week": 0.735387045813586
+   "vitals_alerts_per_patient_week": 0.7359683794466403
   },
   {
    "vitals_prob": 0.5,
-   "monitor_share": 0.22432859399684044,
+   "monitor_share": 0.14308300395256918,
    "vitals_alert_days": 121,
-   "vitals_alerts_per_patient_week": 0.6690363349131121
+   "vitals_alerts_per_patient_week": 0.6695652173913044
   },
   {
    "vitals_prob": 0.6,
-   "monitor_share": 0.2093206951026856,
+   "monitor_share": 0.12490118577075099,
    "vitals_alert_days": 96,
-   "vitals_alerts_per_patient_week": 0.5308056872037915
+   "vitals_alerts_per_patient_week": 0.5312252964426877
   }
  ],
  "oof_vitals_recall_by_budget": {
@@ -52,10 +50,10 @@
   "2.0 / pt-wk": 0.8825396825396825
  },
  "proposal_not_applied": {
-  "vitals_prob": 0.4,
-  "monitor_share": 0.24091627172195892,
-  "vitals_alert_days": 148,
-  "vitals_alerts_per_patient_week": 0.8183254344391785
+  "vitals_prob": 0.35,
+  "monitor_share": 0.18181818181818182,
+  "vitals_alert_days": 174,
+  "vitals_alerts_per_patient_week": 0.9628458498023715
  },
  "notes": [
   "replay scores are out-of-fold; thresholds were chosen on the same OOF scores",

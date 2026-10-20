@@ -1,4 +1,4 @@
-"""Patient summary, statuses, vitals and routine."""
+"""Patient summary, statuses and vitals."""
 from __future__ import annotations
 
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Query, Request
 
 from echos.api import services as V
-from echos.api.models import DayStatus, Page, PatientOut, RoutineOut, SummaryOut, VitalsOut
+from echos.api.models import DayStatus, Page, PatientOut, SummaryOut, VitalsOut
 
 from echos.api.deps import ERR, Limit, Offset, ctx_of
 
@@ -30,6 +30,3 @@ def statuses(request: Request, pid: str, days: int = Query(7, ge=1, le=120)):
 def vitals(request: Request, pid: str, from_: Optional[str] = Query(None, alias="from"), to: Optional[str] = None):
     return V.vitals(ctx_of(request), pid, from_, to)
 
-@router.get("/patients/{pid}/routine", response_model=RoutineOut, tags=["patients"])
-def routine(request: Request, pid: str, from_: Optional[str] = Query(None, alias="from"), to: Optional[str] = None):
-    return V.routine(ctx_of(request), pid, from_, to)

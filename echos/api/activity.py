@@ -15,7 +15,7 @@ from echos.orchestrator import state as S
 
 DETECTORS = ("quality", "health_monitoring", "fall")
 ORDER = ("quality", "health_monitoring", "fall", "triage", "planner", "dispatcher", "investigator", "coordinator", "report", "supervisor", "watchdog")
-NAMES = {"quality": "Data Quality gate", "health_monitoring": "Vitals + Behaviour detector", "fall": "Fall detector", "triage": "Triage agent", "planner": "Team Planner", "dispatcher": "Alert dispatcher",
+NAMES = {"quality": "Data Quality gate", "health_monitoring": "Vitals detector", "fall": "Fall detector", "triage": "Triage agent", "planner": "Team Planner", "dispatcher": "Alert dispatcher",
          "investigator": "Case Investigator", "coordinator": "Care Coordinator", "report": "Report agent", "supervisor": "Supervisor", "watchdog": "Watchdog"}
 ALERT = {"fall": "possible fall", "critical_vitals": "critical vitals reading"}
 
@@ -39,13 +39,9 @@ def _detector_text(agent: str, res: dict) -> tuple[str, str]:
         ev = res.get("evidence") or {}
         gap = ev.get("sensor_gap")
         return ("flagged" if gap else "checked"), ("data check: " + ("sensor gap" if gap else "data usable") + ("" if ev.get("has_vitals", True) else ", no vitals reading"))
-    v, b = res.get("vitals") or {}, res.get("behaviour") or {}
-    parts = []
-    if v.get("available"):
-        parts.append("vitals " + ("flagged" if v.get("flag") else "as usual"))
-    if b.get("available"):
-        parts.append("behaviour " + ("flagged" if b.get("flag") else "as usual"))
-    return ("flagged" if (v.get("flag") or b.get("flag")) else "checked"), ("health check: " + ", ".join(parts) if parts else "health check: nothing to score")
+    v = res.get("vitals") or {}
+    parts = ["vitals " + ("flagged" if v.get("flag") else "as usual")] if v.get("available") else []
+    return ("flagged" if v.get("flag") else "checked"), ("health check: " + ", ".join(parts) if parts else "health check: nothing to score")
 
 
 def events(ctx: Ctx, limit: int = 100, agent: Optional[str] = None, patient_id: Optional[str] = None, day: Optional[str] = None, asc: bool = False) -> list[dict]:

@@ -25,7 +25,6 @@ const pages = [
   ["person-case-file", `/patients/${pid}`],
   ["falls", `/falls?patient=${pid}`],
   ["patient-vitals", `/patients/${pid}`],
-  ["patient-routine", `/patients/${pid}`, async (p) => p.getByRole("tab", { name: /routine/i }).click()],
   ["caregiver", `/caregiver?patient=${withFall?.patient_id ?? pid}&day=${withFall?.last_alert_time?.slice(0, 10) ?? ""}`],
   ["caregiver-how-made", `/caregiver?patient=${withFall?.patient_id ?? pid}`, async (p) => p.getByTestId("provenance").locator("summary").click()],
   ["clinician", `/clinician?patient=201d8&week=${wk}`, async (p) => p.getByTestId("narrative").waitFor({ timeout: 120000 })],

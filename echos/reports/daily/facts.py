@@ -13,12 +13,10 @@ from sqlalchemy import select
 
 from echos.config import load_config
 from echos.orchestrator import state as S
-from echos.orchestrator.triage import drift_level
 from echos.reports.daily import specifics as SP
 from echos.reports.daily import vitals_why as VW
 
 VITAL_VARS = ["sys", "dia", "hr", "temp", "weight"]
-ROUTINE_VARS = ["total_events", "night_events", "night_bathroom"]
 _PDY: dict = {}
 
 
@@ -115,14 +113,9 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
         vitals[v] = {"value": cur, "baseline": _round(b),
                      "z": _r((cur - b) / sd) if cur is not None and b is not None and sd and sd > 0 else None}
     has_activity = bool(row is not None and row["has_activity"])
-    routine = {}
-    for v in ROUTINE_VARS:
-        cur = _r(row[v], 0) if has_activity else None
-        b, _ = _past_baseline(pdf, v, d, cfg["agent2"]["baseline_window_days"], cfg["agent2"]["min_baseline_days"], True)
-        routine[v] = {"value": cur, "baseline": _round(b)}
 
     health = results.get("health") or {}
-    vit, beh = health.get("vitals") or {}, health.get("behaviour") or {}
+    vit = health.get("vitals") or {}
     flags, n = [], 0
 
     def add(ftype, **ev):
@@ -171,15 +164,6 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
                 **{f"{k}_now": _r(v["current"]) for k, v in cv.items()},
                 **{f"{k}_baseline": _r(v["baseline"]) for k, v in cv.items()}, why=ka["why"], **detail,
                 specifics=SP.vital_sentences(vals_now, bases, zs), action_hints=SP.vital_actions(ka["types"], vals_now))
-    # ---- behaviour
-    if beh.get("available") and not health.get("degraded"):
-        ev = beh.get("drift") or {}
-        if beh["probability"] >= t["agitation_prob"]:
-            add("agitation", risk=round(beh["probability"], 2), night_events=routine["night_events"]["value"],
-                night_events_baseline=routine["night_events"]["baseline"], specifics=SP.routine_sentences(routine), action_hints=SP.routine_actions(None, routine))
-        if drift_level(ev) >= t["drift_evidence_cusum"]:
-            add("routine_change", features=list(ev.get("drifted_features", [])), drift_score=_r(ev.get("drift_score"), 2),
-                specifics=SP.routine_sentences(routine), action_hints=SP.routine_actions(list(ev.get("drifted_features", [])), routine))
     # ---- data gaps
     gaps = [r for r in decision.get("reasons", []) if str(r).startswith("DATA_GAP:")]
     for g in gaps:
@@ -192,7 +176,7 @@ def build_day_facts(eng, patient_id: str, day: str, decision: dict, results: dic
     return {"patient_id": patient_id, "day": day, "status": decision.get("status", "NORMAL"), "data_gap": bool(decision.get("data_gap")),
             "triage_reasons": list(decision.get("reasons", [])),
             "has_reading": bool(row is not None and row["has_reading"]), "has_activity": has_activity,
-            "vitals": vitals, "routine": routine, "falls": falls, "flags": flags, "quality": quality}
+            "vitals": vitals, "falls": falls, "flags": flags, "quality": quality}
 
 
 def save_day_facts(eng, facts: dict) -> None:

@@ -146,9 +146,9 @@ def test_repeated_changes_open_one_clinician_review(eng):
 
 
 # ---------------------------------------------------------------- Case Investigator
-def results(vitals=None, beh=None, fall=None, quality=None):
+def results(vitals=None, fall=None, quality=None):
     return {"quality": {"evidence": {"quality_checked": True, **(quality or {})}},
-            "health": {"vitals": vitals or {"available": True, "flag": False}, "behaviour": beh or {"available": True, "flag": False}, "degraded": False},
+            "health": {"vitals": vitals or {"available": True, "flag": False}, "degraded": False},
             "fall": fall or {"score": 0.0, "flag": False, "evidence": {}}}
 
 
@@ -168,8 +168,8 @@ def test_confirmed_fall_is_strong_and_leaves_a_trace(eng):
 
 
 def test_single_weak_flag_with_a_data_caveat_is_limited_and_never_medical_advice(eng):
-    r = results(beh={"available": True, "flag": True}, quality={"sensor_gap": True})
-    f = Investigator(eng).investigate("p1", "2019-05-05", {"status": "MONITOR", "data_gap": True, "reasons": ["agitation p=0.30"], "urgent_types": []}, r)
+    r = results(vitals={"available": True, "flag": True}, quality={"sensor_gap": True})
+    f = Investigator(eng).investigate("p1", "2019-05-05", {"status": "MONITOR", "data_gap": True, "reasons": ["vitals alert p=0.30"], "urgent_types": []}, r)
     assert f["evidence_level"] == "LIMITED" and f["caveats"]
     text = json.dumps(f).lower()
     assert "diagnos" not in text.replace("not a diagnosis", "") and "medication" not in text and "dose" not in text

@@ -2469,9 +2469,6 @@
   "smtp_outage_s": 8.0,
   "mail": "FakeMailer",
   "llm": "FakeLLM",
-  "pubmed": "fake http",
-  "obsolete": [
-   "fault_injection_pre_agent0.json (v1)"
-  ]
+  "pubmed": "fake http"
  }
 }

@@ -1,4 +1,4 @@
-"""Probability calibration for the vitals / behaviour sub-models (isotonic or Platt), fitted on training folds only.
+"""Probability calibration for the vitals model (isotonic or Platt), fitted on training folds only.
 
 nested_oof(): outer patient-level folds as in evaluate(); inside each outer training set an inner patient-level OOF of the raw
 score fits the calibrator, so the calibrated out-of-fold score never sees its own fold or its labels."""

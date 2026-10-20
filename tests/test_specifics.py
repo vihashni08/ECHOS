@@ -17,12 +17,11 @@ def eng(tmp_path):
     return S.get_engine(tmp_path / "t.db")
 
 
-def _results(prob=0.9, fixed=False, degraded=False, beh_prob=0.0):
+def _results(prob=0.9, fixed=False, degraded=False):
     cvb = {k: {"current": V[k], "baseline": B[k], "z": Z[k]} for k in V}
     return {"quality": {"evidence": {"quality_checked": True}}, "fall": {"score": 0.0, "flag": False, "evidence": {}},
             "health": {"degraded": degraded, "vitals": {"available": True, "probability": prob, "flag": prob > 0.5, "current_vs_baseline": cvb, "fixed_rule_triggered": fixed,
-                                                       "persistence": {"persistent": False}},
-                       "behaviour": {"available": True, "probability": beh_prob, "flag": False, "z": {"night_bathroom": 3.1, "total_events": 0.2}}}}
+                                                       "persistence": {"persistent": False}}}}
 
 
 def test_sentences_name_the_vital_value_usual_and_direction():
@@ -41,10 +40,8 @@ def test_case_file_headline_names_the_vital_and_does_not_count_a_detector_below_
     f = Investigator(eng).investigate("p1", "2019-05-05", {"status": "MONITOR", "reasons": ["vitals alert p=0.90"], "urgent_types": []}, _results(prob=0.9))
     assert "Systolic blood pressure 168 mmHg is 25 mmHg above" in f["headline"] and f["specifics"] and "168/96" in " ".join(f["next_checks"])
     # vitals evidence below triage.vitals_prob and a fixed rule that fires only as a fallback: NOT flagged, so not a second source and not STRONG
-    g = Investigator(eng).investigate("p1", "2019-05-06", {"status": "MONITOR", "reasons": ["agitation p=0.16"], "urgent_types": []},
-                                      _results(prob=0.2, fixed=True, beh_prob=0.9))
-    assert g["detectors"]["flagged"] == ["behaviour"] and g["agreement"]["independent_sources"] == 1 and g["evidence_level"] != "STRONG"
-    assert "night-time bathroom visits is 3.1 standard deviations above" in g["headline"].lower()
+    g = Investigator(eng).investigate("p1", "2019-05-06", {"status": "MONITOR", "reasons": ["vitals alert p=0.20"], "urgent_types": []}, _results(prob=0.2, fixed=True))
+    assert g["detectors"]["flagged"] == [] and g["evidence_level"] != "STRONG"
 
 
 def test_degraded_monitoring_uses_the_fixed_rule(eng):

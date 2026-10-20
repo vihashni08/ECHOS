@@ -34,21 +34,21 @@ def fault_summary(fi) -> str:
 
 
 def build() -> str:
-    a1, a2, e2e, ab, fe = J("agent1"), J("agent2"), J("e2e"), J("ablation"), J("fall_eval")
+    a1, e2e, ab, fe = J("agent1"), J("e2e"), J("ablation"), J("fall_eval")
     fi, gate, dq, lat = J("fault_injection"), J("gate_eval"), J("data_quality"), J("alert_latency")
     r1, c1 = a1["results"], a1["bootstrap_95ci"]
     vit = ab["tables"]["vitals_labelled_days"]
     bud = "A's budget"
-    rule, sub = vit[bud]["A fixed BP rule"], vit[bud]["B vitals sub-model only"]
-    one = vit["1.0 / pt-wk"]["B vitals sub-model only"]
+    rule, sub = vit[bud]["A fixed BP rule"], vit[bud]["B vitals model only"]
+    one = vit["1.0 / pt-wk"]["B vitals model only"]
     rt = J("report_text_check")
     sg_share = dq["sensor_gap_days"] / dq["patient_days"]
     nl, ld = lat["no_load"], lat["load_4_busy_threads"]
     fall_ci = e2e["falls_detected_pct_ci95_wilson"]
     rows = [
         ("Raw alerts without context or explanation",
-         "Every vitals and fall alert is shown with its values against the person's own usual, a plain-words 'why it fired' line, SHAP top features and persistence evidence "
-         "(drift/CUSUM explanation-only); the daily and weekly reports cite guideline sources per finding.",
+         "Every vitals and fall alert is shown with its values against the person's own usual, a plain-words 'why it fired' line, SHAP top features and persistence evidence; "
+         "the daily and weekly reports cite guideline sources per finding.",
          f"Alert burden with context attached: MONITOR days {pct(e2e['status_share']['MONITOR'])}, URGENT {pct(e2e['status_share']['URGENT'])} of {e2e['patient_days']} replayed patient-days; "
          f"vitals sub-model at 1 alert/patient-week: recall {ci(one['recall'], one['recall_ci95'])} vs chance {one['chance_recall']:.2f}. "
          f"Automated text proxy (not a reader study) on {rt['n_reports']} template daily reports: median reading grade {rt['reading_grade']['median']}, median length {rt['words']['median']} words, "
@@ -58,8 +58,7 @@ def build() -> str:
          "Past-only personal baselines (shift(1)); XGBoost on deviation from the person's own usual, not on absolute values alone.",
          f"Vitals PR-AUC {ci(r1['xgboost']['pr_auc'] if 'xgboost' in r1 else a1['results']['at_rule_budget']['pr_auc'], c1['xgb_pr_auc'], 3)} vs fixed BP rule {ci(r1['fixed_rule']['pr_auc'], c1['rule_pr_auc'], 3)}; "
          f"at the rule's own alert count recall {ci(sub['recall'], sub['recall_ci95'])} vs {ci(rule['recall'], rule['recall_ci95'])} (out-of-fold, patient-level folds, patient bootstrap CI; the recall CIs overlap).",
-         "Labels are described as clinician-verified events but we did not verify how they were produced, and 99% of BP-label days have a BP reading, so vitals results are an upper bound on generalisation; 54 patients; agitation score is modest "
-         f"(PR-AUC {a2['point']['pr_auc']:.2f} vs base rate {a2['point']['prevalence']:.2f}) and ranks within patients, it is not a probability."),
+         "Labels are described as clinician-verified events but we did not verify how they were produced, and 99% of BP-label days have a BP reading, so vitals results are an upper bound on generalisation; 54 patients."),
         ("Fragile pipelines and silent sensor failure",
          "Rule-based Data Quality agent (ranges, gaps, completeness; never imputes); a day with a sensor gap / unchecked data / >7 days without vitals is DATA_GAP and never Normal; "
          "supervisor restarts dead workers; documented fallbacks.",

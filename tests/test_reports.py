@@ -19,7 +19,6 @@ def facts(day="2019-05-01", status="MONITOR", sys_now=162.0, with_flag=True):
                                                                  "sys_baseline": 128.0}}] if with_flag else []
     return {"patient_id": "p1", "day": day, "status": status, "data_gap": False, "triage_reasons": [], "has_reading": True,
             "has_activity": True, "vitals": v,
-            "routine": {k: {"value": 10, "baseline": 9.0} for k in ("total_events", "night_events", "night_bathroom")},
             "falls": [], "flags": flags}
 
 

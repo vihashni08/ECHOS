@@ -1,4 +1,4 @@
-"""Calibration of the vitals and behaviour sub-models (isotonic vs Platt), out-of-fold Brier before/after.
+"""Calibration of the vitals model (isotonic vs Platt), out-of-fold Brier before/after.
 Adopts calibration only if the Brier score improves; writes new model files (old ones kept) and reports/metrics/calibration.json.
 Usage: PYTHONPATH=. python scripts/tuning/calibrate.py"""
 import json
@@ -7,7 +7,6 @@ import joblib
 import numpy as np
 from sklearn.metrics import brier_score_loss
 
-from echos.agents.health import behaviour as b
 from echos.agents.health import calibration as C
 from echos.agents.health import vitals as v
 from echos.config import ROOT, load_config
@@ -20,13 +19,8 @@ pdy = load_patient_day()
 out = {"notes": ["Brier on out-of-fold scores; calibrator for each outer fold is fitted on an inner out-of-fold of that fold's TRAINING patients only",
                  "raw scores come from models trained with scale_pos_weight, so they are inflated relative to true probabilities",
                  "final calibrator is fitted on the plain 5-fold OOF raw scores and applied to the final (all-data) model"]}
-for name, mod, feats, path_old, new_name in [("vitals", v, v.FEATURES, v.MODEL_PATH, "physiological_calibrated.joblib"),
-                                             ("behaviour", b, b.CLF_FEATURES, b.MODEL_PATH, "behaviour_calibrated.joblib")]:
-    if name == "vitals":
-        df = v.build_features(pdy)
-    else:
-        df = b.build_features(pdy)
-        df = df[df.has_activity & df.total_events_delta.notna() & df.total_events_z.notna()].reset_index(drop=True)
+for name, mod, feats, path_old, new_name in [("vitals", v, v.FEATURES, v.MODEL_PATH, "physiological_calibrated.joblib")]:
+    df = v.build_features(pdy)
     assert_real_source(df, "tihm")
     y = df.y.values
     raw, cal = C.nested_oof(df, feats, mod._model, seed, nf)
@@ -48,5 +42,5 @@ for name, mod, feats, path_old, new_name in [("vitals", v, v.FEATURES, v.MODEL_P
     out[name] = res
     print(f"{name}: Brier raw {res['brier_raw']:.4f} -> isotonic {res['brier']['isotonic']:.4f} / platt {res['brier']['platt']:.4f} "
           f"(prevalence-only {res['brier_baseline_prevalence']:.4f}); adopted={res['adopted']} ({best})")
-out["use_calibrated"] = bool(all(out[k]["adopted"] for k in ("vitals", "behaviour")))
+out["use_calibrated"] = bool(out["vitals"]["adopted"])
 (ROOT / "reports/metrics/calibration.json").write_text(json.dumps(out, indent=2))

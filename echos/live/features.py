@@ -6,7 +6,7 @@ import pandas as pd
 
 from echos.agents import data_quality as dq
 from echos.config import load_config
-from echos.data.patient_day import PHYS, ROOMS, _activity_features
+from echos.data.patient_day import PHYS
 
 COLS = ["patient_id", "day", "has_activity", "has_reading", "sys", "dia", "hr", "temp", "weight", "sensor_gap", "sensor_gap_reason",
         "days_since_last_reading", "completeness", "n_invalid", "invalid_json", "source"]
@@ -17,18 +17,10 @@ def build_row(patient_id: str, day: pd.Timestamp, act: pd.DataFrame, vit: pd.Dat
     Ranges: out-of-range readings are set to NaN and listed (never imputed), as in Agent 0. The sensor-gap rule needs the whole day: it is only applied
     when `closed`; an open day reports sensor silence through the Quality gate's silent-hours rule instead."""
     cfg = load_config()
-    nh = cfg["night_hours"]
     d = pd.Timestamp(day).normalize()
     row = {c: np.nan for c in COLS}
     row.update(patient_id=patient_id, day=d, source="live")
-    n_cols = ["n_" + r.lower().replace(" ", "_") for r in ROOMS] + ["total_events", "night_events", "night_bathroom", "night_door", "room_transitions"]
-    if len(act):
-        f = _activity_features(act.assign(day=act.date.dt.normalize()), nh["start"], nh["end"]).iloc[0]
-        row.update({c: float(f[c]) for c in n_cols})
-        row["has_activity"] = True
-    else:
-        row.update({c: 0.0 for c in n_cols})
-        row["has_activity"] = False
+    row["total_events"], row["has_activity"] = float(len(act)), bool(len(act))
     invalid = []
     ranges = cfg["data_quality"]["ranges"]
     for dev, var in PHYS.items():
@@ -54,10 +46,8 @@ def build_row(patient_id: str, day: pd.Timestamp, act: pd.DataFrame, vit: pd.Dat
         elif not np.isnan(med) and n < dqc["sensor_gap_frac"] * med:
             gap, why = True, "low_events"
     row["sensor_gap"], row["sensor_gap_reason"] = gap, why
-    if gap:                                  # a gap is not "zero activity": behaviour features stay NaN, as in the training table
-        for c in n_cols:
-            row[c] = np.nan
-        row["has_activity"] = False
+    if gap:                                  # a gap is not "zero activity": the count stays NaN, as in the training table
+        row["total_events"], row["has_activity"] = np.nan, False
     # days since the last reading, counted over history
     last = hist[(hist.day < d) & hist.has_reading].day.max() if len(hist) else pd.NaT
     first = hist.day.min() if len(hist) else d

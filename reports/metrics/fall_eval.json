@@ -558,13 +558,13 @@
  },
  "injected_end_to_end": {
   "patients": 20,
-  "patient_weeks": 180.9,
+  "patient_weeks": 180.7,
   "injected": 60,
-  "detected": 51,
-  "detection_rate": 0.85,
+  "detected": 48,
+  "detection_rate": 0.8,
   "wilson95": [
-   0.7388517410884038,
-   0.9190265075770431
+   0.6821795390818299,
+   0.8817161026314104
   ],
   "missed": [
    {
@@ -610,21 +610,39 @@
     "trial": "F10_SE06_R03"
    },
    {
-    "patient_id": "30a32",
+    "patient_id": "1fbe4",
     "day": "2019-06-12",
-    "subject": "SE06",
-    "trial": "F10_SE06_R05"
+    "subject": "SA19",
+    "trial": "F07_SA19_R03"
    },
    {
-    "patient_id": "a2849",
-    "day": "2019-06-30",
-    "subject": "SA11",
-    "trial": "F11_SA11_R02"
+    "patient_id": "c55f8",
+    "day": "2019-06-13",
+    "subject": "SA03",
+    "trial": "F04_SA03_R04"
+   },
+   {
+    "patient_id": "1fbe4",
+    "day": "2019-06-17",
+    "subject": "SE06",
+    "trial": "F14_SE06_R02"
+   },
+   {
+    "patient_id": "28710",
+    "day": "2019-06-26",
+    "subject": "SE06",
+    "trial": "F10_SE06_R01"
+   },
+   {
+    "patient_id": "e8a78",
+    "day": "2019-06-26",
+    "subject": "SE06",
+    "trial": "F10_SE06_R04"
    }
   ],
-  "false_fall_alerts": 2,
-  "false_fall_alerts_per_patient_week": 0.011,
-  "sim_delay_h_median": 13.1,
+  "false_fall_alerts": 3,
+  "false_fall_alerts_per_patient_week": 0.017,
+  "sim_delay_h_median": 13.2,
   "sim_delay_h_max": 23.8
  },
  "live_latency": {
@@ -644,14 +662,14 @@
  },
  "inactivity_effect_replay": {
   "injected_events": 60,
-  "injected_p_ge_thr": 55,
-  "injected_urgent_with_confirmation": 51,
-  "adl_events": 2532,
-  "adl_events_p_ge_thr": 19,
-  "adl_events_urgent_with_confirmation": 2,
-  "false_fall_alert_days_with_confirmation": 2,
-  "false_fall_alert_days_without_confirmation": 19,
-  "false_fall_alerts_per_patient_week_with_confirmation": 0.011,
-  "false_fall_alerts_per_patient_week_without_confirmation": 0.105
+  "injected_p_ge_thr": 52,
+  "injected_urgent_with_confirmation": 48,
+  "adl_events": 2530,
+  "adl_events_p_ge_thr": 22,
+  "adl_events_urgent_with_confirmation": 4,
+  "false_fall_alert_days_with_confirmation": 4,
+  "false_fall_alert_days_without_confirmation": 22,
+  "false_fall_alerts_per_patient_week_with_confirmation": 0.022,
+  "false_fall_alerts_per_patient_week_without_confirmation": 0.122
  }
 }

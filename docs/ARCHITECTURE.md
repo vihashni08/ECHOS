@@ -10,7 +10,7 @@
 flowchart LR
     SRC["Sources<br/>replay (TIHM days) | emulator (wall-clock) | real device"] -->|POST /api/ingest/events| EV[(event_log)]
     EV --> Q["Quality gate (detector)"]
-    EV --> V["Vitals + Behaviour detector"]
+    EV --> V["Vitals detector"]
     EV --> F["Fall detector"]
     Q --> T
     V --> T
@@ -38,7 +38,7 @@ flowchart LR
 
 Full list with inputs, outputs, failure behaviour and what each must never do: [COMPONENTS.md](COMPONENTS.md) (generated from `echos/components.py`, also served by `GET /api/components` and shown on the *How it works* page).
 
-- **Detectors** (sense, never decide): Data Quality gate (`echos/agents/data_quality.py`), Vitals + Behaviour detector (`echos/agents/health_monitoring.py`, `echos/agents/health/`), Fall detector (`echos/agents/fall.py`, SisFall only, independent of the others).
+- **Detectors** (sense, never decide): Data Quality gate (`echos/agents/data_quality.py`), Vitals detector (`echos/agents/health_monitoring.py`, `echos/agents/health/`), Fall detector (`echos/agents/fall.py`, SisFall only, independent of the others).
 - **Agents** (goal, tools, action, trace): Triage (`echos/orchestrator`, a sequential pipeline in replay; `echos/live/processor.py` in live mode; both call the same pure `triage()`; why its rules are justified: `docs/TRIAGE_ALGORITHM.md`), Case Investigator (`echos/team/investigator.py`), Care Coordinator (`echos/team/coordinator.py`, `lifecycle.py`), Report agent (`echos/reports`).
 - **Team Planner** (`echos/team/planner.py`, infra, not a fifth agent): right after Triage, one ratio r = max_k p_k / tau_k (detector score over its own alert threshold) and one budget-chosen cutoff theta decide which of the four agents the case needs (Normal = Triage + template report; Normal near miss, r > theta = + a short watch file from the Investigator; changed = + Investigator and a passive hand-over to the Coordinator; urgent = Coordinator owns the alert) and record a reason per agent on the bus (`team_plan`, `GET /api/patients/{id}/team-plan`). It never changes a status or delays an alert. Why four agents, and what the planner saves on replayed days: `docs/TEAM_DESIGN.md` (`scripts/tuning/team_design.py`).
 - **Infrastructure:** Supervisor (replay), alert dispatcher (`echos/alerts`), message bus (`echos/team/bus.py`), ingestion + live store (`echos/live`), SQLite state (`echos/orchestrator/state.py`).

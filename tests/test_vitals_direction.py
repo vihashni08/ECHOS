@@ -25,7 +25,7 @@ class Ret:
 
 
 def week_of(*types):
-    return {"falls": [], "unusual_days": [], "any_monitor_or_urgent": True, "vitals_alerts": [{"day": "2019-05-07", "types": list(types)}]}
+    return {"falls": [], "any_monitor_or_urgent": True, "vitals_alerts": [{"day": "2019-05-07", "types": list(types)}]}
 
 
 # ---------------------------------------------------------------- (a) direction-aware retrieval
@@ -111,9 +111,9 @@ def test_daily_flag_has_direction_and_why(tmp_path):
     from echos.reports.daily import facts as F
     eng = S.get_engine(tmp_path / "d.db")
     pdy = pd.DataFrame([{"patient_id": "p", "day": pd.Timestamp("2019-05-05"), "has_activity": True, "has_reading": True, "sys": 118, "dia": 58, "hr": 70, "temp": None,
-                         "weight": None, "night_events": 1, "night_bathroom": 0, "total_events": 5}])
+                         "weight": None, "total_events": 5}])
     cv = {"sys": {"current": 118, "baseline": 119, "z": -0.3}, "dia": {"current": 58, "baseline": 67, "z": -3.0}, "hr": {"current": 70, "baseline": 70, "z": 0.0}}
-    health = {"vitals": {"probability": 0.9, "current_vs_baseline": cv}, "behaviour": {}}
+    health = {"vitals": {"probability": 0.9, "current_vs_baseline": cv}}
     f = F.build_day_facts(eng, "p", "2019-05-05", {"status": "MONITOR", "reasons": []}, {"health": health}, pdy=pdy)
     fl = [x for x in f["flags"] if x["evidence"].get("kind") == "vitals_alert"][0]
     assert fl["type"] == "bp_low" and fl["evidence"]["why"] == "Diastolic 9 mmHg below usual"
@@ -123,7 +123,7 @@ def test_daily_flag_has_direction_and_why(tmp_path):
 def test_combination_bullet_still_names_the_value_that_moved_most():
     a = {"day": "2019-05-15", "kind": "alert", "types": ["vitals_news2"], "values": {"sys": 110, "dia": 58}, "top": None,
          "lead": {"var": "dia", "value": 58.0, "base": 67.3, "delta": -9.3}}
-    b = EV.template_considerations([{"key": "vitals_news2", "label": "x", "sources": ["KB-11"]}], {"falls": [], "unusual_days": [], "vitals_alerts": [a]})
+    b = EV.template_considerations([{"key": "vitals_news2", "label": "x", "sources": ["KB-11"]}], {"falls": [], "vitals_alerts": [a]})
     assert b[0]["text"].startswith("Diastolic 58 mmHg on 15 May, 9.3 below usual, inside the usual range but part of a combination")
 
 

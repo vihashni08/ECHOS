@@ -1,6 +1,6 @@
 """LiveProcessor: turns raw ingested events into decisions, as they arrive.
 
-  events (activity / vitals / accel / heartbeat)  ->  Quality gate, Vitals detector, Fall detector (on arrival), Behaviour detector (when the day closes)
+  events (activity / vitals / accel / heartbeat)  ->  Quality gate, Vitals detector, Fall detector (on arrival)
   -> the SAME rule-based triage as replay (echos/orchestrator/triage.py) -> immediate alert (URGENT) -> Case Investigator -> Report agent.
 A day stays open and PROVISIONAL (case_state.provisional) until an event of a later day arrives; the decision is refreshed on every vitals / fall event and,
 throttled, on activity. Detectors are scored from the events themselves (echos/live/features.py), never from the pre-built training table; the
@@ -27,7 +27,7 @@ from echos.live import store as LS
 from echos.orchestrator import state as S
 from echos.orchestrator.alerts import queue_alerts
 from echos.orchestrator.triage import triage as run_triage
-from echos.schemas import AgentResult, BehaviourPart, DataQualityResult, HealthResult, VitalsPart
+from echos.schemas import AgentResult, DataQualityResult, HealthResult, VitalsPart
 from echos.team.investigator import Investigator, run_investigation
 from echos.team.planner import plan_team, record_plan
 
@@ -191,10 +191,9 @@ class LiveProcessor:
             quality = self._quality(pid, d, row, last_act, clock_ts, closed, "fall_window_unanalysed" if st.fall_failed else None)
         except Exception as ex:  # noqa: BLE001
             quality = self._quality(pid, d, row, last_act, clock_ts, closed, type(ex).__name__)
-        # Vitals + Behaviour (behaviour only on a closed day: it is a day-level model)
-        from echos.agents.health import behaviour as bm
+        # Vitals (scored on arrival)
         from echos.agents.health import vitals as vm
-        degraded, reason, vpart, bpart = False, None, VitalsPart(), BehaviourPart()
+        degraded, reason, vpart = False, None, VitalsPart()
         try:
             vr, pers = vm.predict_live(pid, d, full)
             if "current_vs_baseline" in vr.evidence:
@@ -202,18 +201,11 @@ class LiveProcessor:
                 vpart = VitalsPart(available=True, probability=vr.score, flag=vr.flag, threshold=ev["threshold"], top_features=ev["top_features"],
                                    current_vs_baseline=ev["current_vs_baseline"], persistence=pers, fixed_rule_triggered=ev["fixed_rule_triggered"],
                                    n_prior_readings=ev["n_prior_readings"])
-            if closed:
-                br, top = bm.predict_live(pid, d, full)
-                if "reason" not in br.evidence:
-                    e = br.evidence
-                    bpart = BehaviourPart(available=True, probability=e["agitation_prob"], flag=bool(e["agitation_prob"] >= e["threshold"]), threshold=e["threshold"], top_features=top,
-                                          z=e["z"], drift={"note": "explanation_only: drift/CUSUM never triggers an alert", "drift_score": e["drift_score"], "cusum": e["cusum"],
-                                                           "drifted_features": e["drifted_features"]})
         except Exception as ex:  # noqa: BLE001 - detector down: fixed vitals thresholds, 'monitoring degraded' (same fallback as replay)
             log.exception("health detector failed")
             degraded, reason = True, type(ex).__name__
             vpart = self._fixed_vitals(row, self.cfg["agent1"]["fixed_rule"])
-        health = HealthResult(patient_id=pid, day=d.date(), vitals=vpart, behaviour=bpart, degraded=degraded, degraded_reason=reason).model_dump(mode="json")
+        health = HealthResult(patient_id=pid, day=d.date(), vitals=vpart, degraded=degraded, degraded_reason=reason).model_dump(mode="json")
         fall = max((f for _, _, f in st.falls), key=lambda f: f["score"], default={"score": 0.0, "evidence": {}, "flag": False})
         results = {"quality": quality, "health": health, "fall": fall}
         dsv = int((quality.get("evidence") or {}).get("days_since_last_reading") or 0)

@@ -22,8 +22,7 @@ for t in [0.5, 0.7, 0.8, 0.9, 0.95]:
         rows.append({"T": t, "needs_inactivity": inact, "sensitivity": float(a[y == 1].mean()),
                      "false_alarms_per_hour": fall._alert_events(df[y == 0], a[y == 0]) / hrs})
 out = {"fall_operating_points_oof": rows,
-       "agent1_threshold_1_per_patient_week": json.load(open(ROOT / "reports/metrics/agent1.json"))["threshold_at_1_per_week"],
-       "agent2_threshold_1_per_patient_week": json.load(open(ROOT / "reports/metrics/agent2.json"))["threshold_at_1_per_week"]}
+       "agent1_threshold_1_per_patient_week": json.load(open(ROOT / "reports/metrics/agent1.json"))["threshold_at_1_per_week"]}
 (ROOT / "reports/metrics/triage_thresholds.json").write_text(json.dumps(out, indent=2))
 print(pd.DataFrame(rows).round(3).to_string(index=False)); print({k: v for k, v in out.items() if k.startswith("agent")})
 p = pd.read_parquet(cfg["paths"]["processed"]); print("vitals coverage", p.has_reading.mean().round(2), "activity", p.has_activity.mean().round(2))

@@ -15,7 +15,7 @@ def make_db(tmp_path):
     db = tmp_path / "d.db"
     eng = S.get_engine(db)
     (tmp_path / "reports/daily").mkdir(parents=True)
-    spec = [("p1", "2019-05-01", "NORMAL", False, "[]"), ("p2", "2019-05-02", "MONITOR", False, '["vitals alert"]'), ("p3", "2019-05-03", "MONITOR", False, '["agitation"]'),
+    spec = [("p1", "2019-05-01", "NORMAL", False, "[]"), ("p2", "2019-05-02", "MONITOR", False, '["vitals alert"]'), ("p3", "2019-05-03", "MONITOR", False, '["vitals alert"]'),
             ("p4", "2019-05-04", "MONITOR", True, '["DATA_GAP: sensor gap"]'), ("p5", "2019-05-05", "URGENT", False, '["possible fall"]'),
             ("p6", "2019-05-06", "URGENT", False, '["possible fall"]')]
     with eng.begin() as c:
@@ -73,7 +73,7 @@ def test_weekly_text_has_one_line_per_alert_and_no_stamps(world, tmp_path):  # n
     t = MR.weekly_text(r["path"])
     assert "Key findings" in t and "Generated" not in t and "Page 1" not in t
     alert_lines = [ln for ln in t.splitlines() if ln.startswith("2019-05-")]
-    assert len(alert_lines) == len(d["falls"]) + len(d["vitals_alerts"]) + len(d["unusual_days"]) and all(ln.count(" | ") >= 2 for ln in alert_lines)
+    assert len(alert_lines) == len(d["falls"]) + len(d["vitals_alerts"]) and all(ln.count(" | ") >= 2 for ln in alert_lines)
 
 
 # ---------------------------------------------------------------- analysis

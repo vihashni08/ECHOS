@@ -1,4 +1,4 @@
-"""Response models of the ECHOS API. Nothing here carries an agitation or vitals probability, a full e-mail address or a secret."""
+"""Response models of the ECHOS API. Nothing here carries a vitals probability, a full e-mail address or a secret."""
 from __future__ import annotations
 
 from typing import Any, Generic, Literal, Optional, TypeVar
@@ -90,32 +90,6 @@ class VitalsOut(BaseModel):
     end: str
     min_history_readings: int
     series: dict[str, VitalSeries]
-
-
-class RoutineMetric(BaseModel):
-    value: Optional[float] = None
-    lo: Optional[float] = None
-    hi: Optional[float] = None
-    base: Optional[float] = None
-    z: Optional[float] = None
-
-
-class RoutineDay(BaseModel):
-    day: str
-    has_activity: bool
-    metrics: dict[str, RoutineMetric]
-
-
-class RoutineOut(BaseModel):
-    patient_id: str
-    start: str
-    end: str
-    rooms: list[str]
-    hours: list[int]
-    counts: list[list[int]]          # counts[room][hour]
-    days: list[RoutineDay]
-    min_history_days: int
-    baseline_note: str
 
 
 class Provenance(BaseModel):

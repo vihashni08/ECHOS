@@ -43,7 +43,7 @@ from echos.reports.daily import agent as A  # noqa: E402
 from echos.reports.llm.fake_llm import FakeLLM  # noqa: E402
 from echos.sim.controller import SimController  # noqa: E402
 from echos.sim.replay import train_replay_fall_model  # noqa: E402
-from scripts.evaluation.fault_report import CASES, OBSOLETE_HEADING, OLD_HEADING, LABEL, SMTP_OUTAGE_S, SUP_RESTART_DELAY_S, split_cases, table  # noqa: E402,F401
+from scripts.evaluation.fault_report import CASES, LABEL, SMTP_OUTAGE_S, SUP_RESTART_DELAY_S, split_cases, table  # noqa: E402,F401
 
 OUT = ROOT / "reports/metrics/fault_injection.json"
 RESULTS = ROOT / "reports/RESULTS.md"
@@ -405,8 +405,6 @@ def write_docs(d: dict):
     s = RESULTS.read_text()
     block = "\n".join(md)
     s = s[:s.index(START)] + block + s[s.index(END) + len(END):] if START in s else s.rstrip() + "\n\n" + block + "\n"
-    if OLD_HEADING in s:
-        s = s.replace(OLD_HEADING, OBSOLETE_HEADING)
     RESULTS.write_text(s)
 
 
@@ -423,7 +421,7 @@ def main():
             t0 = time.time()
             d["cases"][name] = run_case(name, pick, model)
             d["config"] = {"patients": PATIENTS, "days": DAYS, "cap_s": CAP_S, "trigger_fraction": TRIGGER_FRAC, "supervisor_restart_delay_s": SUP_RESTART_DELAY_S,
-                           "smtp_outage_s": SMTP_OUTAGE_S, "mail": "FakeMailer", "llm": "FakeLLM", "pubmed": "fake http", "obsolete": ["fault_injection_pre_agent0.json (v1)"]}
+                           "smtp_outage_s": SMTP_OUTAGE_S, "mail": "FakeMailer", "llm": "FakeLLM", "pubmed": "fake http"}
             write_docs(d)
             r = d["cases"][name]
             print(f"{name}: {time.time() - t0:.0f}s alerts={len(r['alerts'])} falls={r['falls_alerted']} timing={r['timing']} inj={r['injected_alert']}", flush=True)
