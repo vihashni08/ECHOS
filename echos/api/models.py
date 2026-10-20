@@ -145,6 +145,7 @@ class DailyReportOut(BaseModel):
     changes: list[str] = []
     monitor: list[str] = []
     data_note: Optional[str] = None
+    doc: Optional[dict[str, Any]] = None         # structured daily report (echos/reports/daily/document.py)
     created_ts: Optional[float] = None
     validation: Optional[dict[str, Any]] = None
     provenance: Optional[Provenance] = None      # 'How this report was made'

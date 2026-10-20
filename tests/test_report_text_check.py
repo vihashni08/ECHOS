@@ -53,7 +53,7 @@ def test_missing_next_steps_empty_sections_and_leftover_syntax_are_caught():
 
 
 def test_long_and_hard_text_fails_the_limits_in_the_aggregate():
-    long_hard = GOOD.replace("Their blood pressure was higher than usual today.", " ".join(["Pharmacological haemodynamic reassessment necessitates multidisciplinary consideration."] * 40))
+    long_hard = GOOD.replace("Their blood pressure was higher than usual today.", " ".join(["Pharmacological haemodynamic reassessment necessitates multidisciplinary consideration."] * 60))
     rows = [one(GOOD), one(long_hard)]
     agg = T.aggregate(rows)
     assert agg["n_reports"] == 2 and agg["pass"]["length_within_limit"] == 1 and agg["pass"]["grade_within_limit"] == 1 and agg["all_checks_pass"] == 1

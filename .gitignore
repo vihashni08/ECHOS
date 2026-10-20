@@ -38,3 +38,6 @@ reports/live_check/
 .venv/
 venv/data/auth_tokens.txt
 data/archive/
+
+# compiled output of tsc must never sit next to the sources (Vite resolves .js before .tsx and would load the stale file)
+web/src/**/*.js

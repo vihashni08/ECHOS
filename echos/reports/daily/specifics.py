@@ -30,14 +30,14 @@ def vital_findings(values: dict, baselines: dict, zs: Optional[dict] = None) -> 
 
 
 def vital_sentence(f: dict) -> str:
-    """'Systolic blood pressure 168 mmHg is 25 mmHg above this person's usual of 143 mmHg (2.4 standard deviations from their own usual: outside their usual range).'"""
+    """'Systolic blood pressure 168 mmHg is 25 mmHg above this person's usual of 143 mmHg (outside their usual range).'"""
     if f["direction"] == "at":
         head = f"{f['name']} {_g(f['value'])} {f['unit']} is at this person's usual of {_g(f['usual'])} {f['unit']}"
     else:
         head = f"{f['name']} {_g(f['value'])} {f['unit']} is {_g(f['diff'])} {f['unit']} {f['direction']} this person's usual of {_g(f['usual'])} {f['unit']}"
     if f["z"] is None:
         return head + "."
-    return head + f" ({_g(f['z'])} standard deviations from their own usual: {'outside' if f['outside'] else 'within'} their usual range)."
+    return head + f" ({'outside' if f['outside'] else 'within'} their usual range)."
 
 
 def vital_sentences(values: dict, baselines: dict, zs: Optional[dict] = None, limit: int = 3) -> list[str]:

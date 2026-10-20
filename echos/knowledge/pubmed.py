@@ -34,12 +34,12 @@ PT_FILTER = '(review[pt] OR guideline[pt] OR "practice guideline"[pt] OR meta-an
 
 # finding type -> PubMed terms (AND-joined). Types without terms (data_gap ...) are never searched.
 TERMS = {
-    "fall": ["older adults", "falls", "fall detection OR post-fall inactivity"],
-    "fall_inactivity": ["older adults", "falls", "fall detection OR post-fall inactivity"],
+    "fall": ["older adults", "accidental falls", "fall detection OR \"remote monitoring\" OR \"fall prevention\""],
+    "fall_inactivity": ["older adults", "accidental falls", "\"long lie\" OR \"fall detection\" OR \"remote monitoring\" OR \"post-fall\""],
     "blood_pressure": ["older adults", "home blood pressure monitoring", "blood pressure variability"],
     "vitals_news2": ["older adults", "early warning score", "vital signs"],
-    "agitation": ["dementia", "agitation", "night-time"],
-    "routine_change": ["dementia", "daily activity pattern", "sensor monitoring"],
+    "agitation": ["dementia", "agitation", "sleep OR night-time OR \"non-pharmacological\""],
+    "routine_change": ["older adults", "daily activity OR \"activity pattern\"", "sensor OR \"remote monitoring\" OR \"smart home\""],
 }
 
 

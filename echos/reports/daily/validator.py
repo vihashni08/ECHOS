@@ -159,7 +159,7 @@ def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=No
         for i, it in enumerate(v):
             if not isinstance(it, dict):
                 continue
-            t = str(it.get("text", ""))
+            t = " ".join(str(it.get(f, "")) for f in ("text", "escalate_if"))      # an action's escalation sentence is checked like its text
             plain = CITE_TOKEN.sub(" ", t)
             for mt in NUM.finditer(plain):
                 m = mt.group()
@@ -169,6 +169,8 @@ def validate_report(output: dict, payload: dict, required_ids=None, valid_ids=No
                     errors.append(f"number {m} not in input")
                     where.setdefault(f"number {m} not in input", f"{k}[{i}]")
             for pat in BANNED:
+                if k == "actions" and pat == r"\byou have\b":       # actions speak to the caregiver ("if you have any doubt"); the diagnosis wording rule is for the findings
+                    continue
                 if re.search(pat, t, re.I):
                     errors.append(f"diagnostic wording: /{pat}/")
                     where.setdefault(f"diagnostic wording: /{pat}/", f"{k}[{i}]")

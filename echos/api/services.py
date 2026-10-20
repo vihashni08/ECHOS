@@ -316,7 +316,13 @@ def daily_report(ctx: Ctx, pid: str, day: Optional[str]) -> dict:
         raise NotFound(f"no daily report for {pid} on {day}")
     p = _inside(ctx, r.path)
     text = p.read_text() if p.exists() else ""
-    return {"patient_id": pid, "day": day, "mode": r.mode, "text": text, **parse_daily(text), "created_ts": r.created_ts,
+    jp = p.with_suffix(".json")
+    doc = json.loads(jp.read_text()) if jp.exists() else None          # the structured report (tables, plan, references); older reports have only the markdown
+    parsed = parse_daily(text)
+    if doc:
+        parsed["changes"] = [i["text"] for i in doc.get("changes", [])]
+        parsed["monitor"] = [a["text"] for a in doc.get("actions", [])]
+    return {"patient_id": pid, "day": day, "mode": r.mode, "text": text, **parsed, "doc": doc, "created_ts": r.created_ts,
             "validation": json.loads(r.validation) if r.validation else None, "provenance": json.loads(r.provenance) if r.provenance else None}
 
 

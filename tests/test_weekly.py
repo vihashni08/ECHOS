@@ -111,12 +111,12 @@ def test_pdf_pages_size_text_footer_and_no_agitation_probability(world, tmp_path
     assert 1 <= len(rd.pages) <= 3 and r["bytes"] < 1_000_000
     t = " ".join(text_of(r["path"]).split())
     for needle in ("Normal 3 | Monitor 2", "Urgent 1", "(6 days with data)", "Data-gap days (counted within the above): 1", "Decision support, not a diagnosis", "Page 1 of", "Key findings",
-                   "Findings and supporting sources", "Considerations for clinician review", "[KB-7]", "simulated signal",
+                   "Findings and supporting sources", "Recommended follow-up", "[KB-7]", "simulated signal",
                    "Possible fall", "Fall probability 0.93", "pw"):
         assert needle in t, needle
     low = t.lower()
     assert "agitation" not in low and "risk" not in low and "vitals probability" not in low
-    order = [t.index(h) for h in ("Summary", "Key findings", "Vitals vs personal baseline", "Daily routine vs personal baseline", "Alerts", "Findings and supporting sources", "Considerations for clinician review", "Data quality")]
+    order = [t.index(h) for h in ("Summary", "Key findings", "Vitals vs personal baseline", "Daily routine vs personal baseline", "Alerts", "Findings and supporting sources", "Recommended follow-up", "Data quality")]
     assert order == sorted(order) and r["headings"][0] == "Weekly clinician report"
 
 
@@ -132,10 +132,10 @@ def test_narrative_validator_rejects_wrong_number(world):
     d = data(world)
     t = WN.template_items(d)
     assert WN._check(t, d, [])["ok"]
-    bad = {"key_findings": [{"text": t["key_findings"][0]["text"].replace("3 Normal", "77 Normal"), "cites": []}], "guidance": []}
+    bad = {"impression": t["impression"], "key_findings": [{"text": " ".join(i["text"] for i in t["key_findings"]).replace("3 Normal", "77 Normal"), "cites": []}], "guidance": []}
     assert any("77" in e for e in WN._check(bad, d, [])["errors"])
     for txt in ("You have hypertension.", "Stop taking the medication."):
-        assert not WN._check({"key_findings": [{"text": t["key_findings"][0]["text"] + " " + txt, "cites": []}], "guidance": []}, d, [])["ok"]
+        assert not WN._check({"impression": t["impression"], "key_findings": [{"text": " ".join(i["text"] for i in t["key_findings"]) + " " + txt, "cites": []}], "guidance": []}, d, [])["ok"]
     g = {"key_findings": t["key_findings"], "guidance": [{"text": "Recheck the pressure later.", "cites": ["PM-1"]}]}
     assert not WN._check(g, d, [KB])["ok"]                                   # cites a source that was not retrieved
     assert not WN._check({"key_findings": t["key_findings"], "guidance": [{"text": "Recheck later.", "cites": []}]}, d, [KB])["ok"]   # uncited
@@ -153,7 +153,7 @@ def test_llm_narrative_valid_wrong_number_and_failure_fall_back_to_template(worl
     ok = WN.template_items(d)
     n = WN.make_narrative(d, [], budget(FakeLLM([{"text": json.dumps(ok)}])), use_llm=True)
     assert n["mode"] == "llm" and n["provenance"]["model"] == "primary"
-    wrong = {"key_findings": [{"text": ok["key_findings"][0]["text"].replace("3 Normal", "77 Normal"), "cites": []}], "guidance": []}
+    wrong = {"impression": ok["impression"], "key_findings": [{"text": " ".join(i["text"] for i in ok["key_findings"]).replace("3 Normal", "77 Normal"), "cites": []}], "guidance": []}
     llm = FakeLLM([{"text": json.dumps(wrong)}])
     n = WN.make_narrative(d, [], budget(llm), use_llm=True)
     assert n["mode"] == "template" and llm.calls == 2 and n["provenance"]["fallback_reason"].startswith("primary: validation_failed")   # one retry, then template
@@ -303,12 +303,12 @@ def test_fall_probability_formatting():
          "completeness": {"days_with_data": 1, "days_with_vitals": 1, "days_with_activity": 1, "sensor_gap_days": 0, "invalid_values_removed": 0}, "week_start": "a", "week_end": "b",
          "days_in_week": 7, "unusual_days": [], "partial_week_note": None,
          "vitals_summary": {k: {"name": k, "unit": "u", "n_readings": 0, "baseline_established": False} for k in ("sys", "dia", "hr", "temp", "weight")}}
-    assert "probability >0.99" in WN.template_items(d)["key_findings"][0]["text"]
+    assert "probability >0.99" in " ".join(i["text"] for i in WN.template_items(d)["key_findings"])
 
 
 def test_flagged_count_grammar(world):
     d = data(world)
-    t = WN.template_items(d)["key_findings"][0]["text"]
+    t = " ".join(i["text"] for i in WN.template_items(d)["key_findings"])
     assert "1 of 6 readings was outside the personal band" in t and "0 of 6 readings were outside" in t       # sys has one flagged reading
 
 
@@ -332,7 +332,7 @@ def test_vitals_baseline_needs_5_earlier_readings(world, tmp_path):
     v = d0["vitals_summary"]["sys"]
     assert v["baseline_established"] is False and v["baseline"] is None and v["n_flagged"] is None and v["note"] == WD.NOT_ESTABLISHED
     assert all(p["lo"] is None and not p["flagged"] for p in d0["series"]["vitals"]["sys"]["points"])
-    text = WN.template_items(d0)["key_findings"][0]["text"]
+    text = " ".join(i["text"] for i in WN.template_items(d0)["key_findings"])
     assert "personal baseline not yet established (fewer than 5 earlier readings)" in text and "outside the personal band" not in text and WN._check(WN.template_items(d0), d0, [])["ok"]
     r = WP.build_pdf(d0, WN.make_narrative(d0, [])["text"], [], tmp_path / "nb.pdf")
     t = " ".join(text_of(r["path"]).split())
@@ -382,3 +382,16 @@ def test_no_retrieval_for_a_week_without_monitor_or_urgent_days(world, tmp_path)
     calls = []
     r = WR.make_weekly(eng, PID, "2019-W30", None, retriever=GatedRetriever(lambda *a: calls.append(1) or [KB], pubmed=None), root=tmp_path, send=False, **kw)
     assert not calls and r["provenance"]["sources_retrieved"] == []
+
+
+def test_pdf_has_an_impression_bullet_findings_and_a_follow_up_table(world, tmp_path):
+    d = data(world)
+    n = WN.make_narrative(d, [])
+    assert n["items"]["impression"] and len(n["items"]["key_findings"]) >= 4            # one bullet per topic, not one paragraph
+    fnd = [{"key": "falls", "label": "Possible falls: 1", "n": 1, "sources": ["KB-7"]}, {"key": "routine", "label": "Unusual activity pattern days: 1", "n": 1, "sources": []}]
+    cons = [{"finding": "falls", "text": "1 possible fall this week; consider a post-fall check", "cites": ["KB-7"]}]
+    r = WP.build_pdf(d, n["text"], [KB | {"origin": "local"}], tmp_path / "w.pdf", findings=fnd, considerations=cons, narrative_items=n["items"])
+    t = " ".join(text_of(r["path"]).split())
+    assert "Impression" in t and "Recommended follow-up" in t and "Within 2 days" in t and "[1]" in t
+    assert "no supporting source was retrieved for this finding" in t         # a finding without a source still gets a follow-up pointer, never silence
+    assert t.index("Impression") < t.index("Key findings") < t.index("Findings and supporting sources") < t.index("Recommended follow-up")

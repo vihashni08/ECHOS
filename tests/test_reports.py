@@ -7,6 +7,9 @@ from echos.reports.daily import agent as A
 from echos.reports.llm.fake_llm import FakeLLM
 from echos.reports.llm.llm import make_llm
 from echos.reports.daily.validator import validate_report
+from echos.reports.retrieval import GatedRetriever
+
+NO_RAG = lambda: GatedRetriever(lambda *a, **k: [], pubmed=None)      # noqa: E731  (no outbound PubMed call in tests)
 
 
 def facts(day="2019-05-01", status="MONITOR", sys_now=162.0, with_flag=True):
@@ -26,9 +29,9 @@ def agent_env(tmp_path):
 
 
 def good(sys_text="162"):
-    return json.dumps({"status": "MONITOR", "changes": [{"text": f"Systolic pressure was {sys_text} against usual 128.", "cites": ["F1"]}],
-                       "monitor": [{"text": "Repeat the reading later today.", "cites": ["F1"]},
-                                   {"text": "Keep drinking fluids.", "cites": []}], "guidance": []})
+    return json.dumps({"status": "MONITOR", "assessment": [{"text": f"Systolic pressure was {sys_text} against usual 128.", "cites": ["F1"]}],
+                       "changes": [{"text": f"Systolic pressure was {sys_text} against usual 128.", "cites": ["F1"]}],
+                       "actions": [{"priority": "TODAY", "owner": "CAREGIVER", "text": "Repeat the reading later today.", "escalate_if": "", "cites": ["F1"]}], "guidance": []})
 
 
 def script(*texts):
@@ -82,12 +85,12 @@ def test_llm_off():
 
 def test_llm_valid_retry_and_fallback(agent_env):
     eng, tmp = agent_env
-    ok = A.ReportAgent(eng, FakeLLM(script(good())), root=tmp).daily(facts())
+    ok = A.ReportAgent(eng, FakeLLM(script(good())), root=tmp, retriever=NO_RAG()).daily(facts())
     assert ok["mode"] == "llm" and ok["provenance"]["model"] == "fake-model"
     llm = FakeLLM(script(good("171"), good()))            # first reply has a wrong number -> retried once with the validator's errors
-    assert A.ReportAgent(eng, llm, root=tmp).daily(facts())["mode"] == "llm" and llm.calls == 2
+    assert A.ReportAgent(eng, llm, root=tmp, retriever=NO_RAG()).daily(facts())["mode"] == "llm" and llm.calls == 2
     llm = FakeLLM(script(good("171"), good("171"), good()))  # two bad replies -> template, no third request
-    out = A.ReportAgent(eng, llm, root=tmp).daily(facts())
+    out = A.ReportAgent(eng, llm, root=tmp, retriever=NO_RAG()).daily(facts())
     assert out["mode"] == "template" and llm.calls == 2 and out["validation"]["fallback_reason"].startswith("fake-model: validation_failed")
 
 
@@ -98,7 +101,7 @@ def test_deferred_llm_never_blocks_the_caller(agent_env):
     def slow(system, messages, tools):
         time.sleep(1.0)
         return {"text": good()}
-    ag = A.ReportAgent(eng, FakeLLM([slow]), root=tmp)
+    ag = A.ReportAgent(eng, FakeLLM([slow]), root=tmp, retriever=NO_RAG())
     t0 = time.time()
     out = ag.daily(facts(), defer_llm=True)
     assert time.time() - t0 < 0.5 and out["mode"] == "template"  # template written immediately
@@ -145,7 +148,7 @@ def test_api_error_carries_http_code_and_status():
 def _weekly_with_fake_rag(agent_env, monkeypatch, fake, llm=None):
     eng, tmp = agent_env
     monkeypatch.setattr(A, "retrieve", fake)
-    ag = A.ReportAgent(eng, llm, root=tmp)
+    ag = A.ReportAgent(eng, llm, root=tmp, retriever=NO_RAG())
     for i in range(1, 8):
         ag.daily(facts(day=f"2019-05-0{i}", sys_now=150.0 + i, status="MONITOR", with_flag=True))
     return ag.weekly("p1", "2019-05-07")

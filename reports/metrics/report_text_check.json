@@ -2,31 +2,31 @@
  "label": "AUTOMATED PROXY CHECK of template daily-report wording. Not a reader study: it does not show that a reader understands or finds a report useful.",
  "n_reports": 112,
  "by_status": {
-  "NORMAL": 86,
-  "MONITOR": 17,
+  "NORMAL": 89,
+  "MONITOR": 14,
   "URGENT": 9
  },
  "criteria": {
   "max_grade": 10.0,
-  "max_words": 220,
-  "min_monitor_items": 2,
+  "max_words": 300,
+  "min_monitor_items": 1,
   "banned": "validator rules + model jargon: none allowed"
  },
  "reading_grade": {
-  "median": 5.43,
-  "p90": 8.32,
-  "max": 9.9
+  "median": 8.87,
+  "p90": 9.57,
+  "max": 11.03
  },
- "reading_ease_median": 71.31,
+ "reading_ease_median": 55.0,
  "words": {
-  "median": 34,
-  "p90": 61,
-  "max": 95
+  "median": 66,
+  "p90": 218,
+  "max": 397
  },
- "max_sentence_words_p90": 25,
+ "max_sentence_words_p90": 29,
  "pass": {
-  "grade_within_limit": 112,
-  "length_within_limit": 112,
+  "grade_within_limit": 101,
+  "length_within_limit": 110,
   "named_next_steps": 112,
   "urgent_has_alerts_section": 9,
   "urgent_total": 9,
@@ -34,7 +34,7 @@
   "no_template_leftover": 112,
   "no_empty_section": 112
  },
- "all_checks_pass": 112,
+ "all_checks_pass": 99,
  "caveats": [
   "Syllable counting is a heuristic; grade levels are approximate and short bullet lists score oddly in formulas made for paragraphs.",
   "Only template wording is checked; LLM-written reports are not covered and real-LLM wording has not been evaluated.",

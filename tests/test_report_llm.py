@@ -31,8 +31,10 @@ class Clock:
 
 
 def answer(**over):
-    d = {"status": "MONITOR", "changes": [{"text": "Systolic pressure was 162 against usual 128.", "cites": ["F1"]}],
-         "monitor": [{"text": "Repeat the reading later today.", "cites": ["F1"]}, {"text": "Keep drinking fluids.", "cites": []}], "guidance": []}
+    d = {"status": "MONITOR", "assessment": [{"text": "Systolic pressure was 162 against usual 128; nothing reached an emergency limit.", "cites": ["F1"]}],
+         "changes": [{"text": "Systolic pressure was 162 against usual 128.", "cites": ["F1"]}],
+         "actions": [{"priority": "TODAY", "owner": "CAREGIVER", "text": "Repeat the reading later today.", "escalate_if": "", "cites": ["F1"]},
+                     {"priority": "WITHIN_48H", "owner": "CLINICIAN", "text": "Review the week's readings.", "escalate_if": "", "cites": []}], "guidance": []}
     d.update(over)
     return {"text": json.dumps(d)}
 
@@ -118,7 +120,7 @@ def test_cached_value_is_revalidated_and_failing_entry_is_ignored(env):
     llm = FakeLLM(ok_script())
     ag = make(env, llm)
     ag.daily(facts())
-    key = make_key(A.PROMPT_VERSION, A.llm_view(facts()))
+    key = ag.budget.cache._run("SELECT key FROM llm_cache")[0][0]
     entry = ag.budget.cache.get(key)
     entry.pop("_model")
     entry["items"]["changes"][0]["text"] = "Systolic was 171."
@@ -262,7 +264,7 @@ def test_validator_rejects_each_class_of_error():
     for bad in ("This is a diagnosis.", "You have hypertension.", "She is suffering from stress."):                            # diagnostic wording
         assert not v(base(changes=[{"text": bad, "cites": ["F1"]}]))["ok"]
     for bad in ("Stop taking the medication.", "Increase the dose.", "Ask about a prescription."):                             # medication advice
-        assert not v(base(monitor=[{"text": bad, "cites": []}, {"text": "Rest.", "cites": []}]))["ok"], bad
+        assert not v(base(actions=[{"priority": "TODAY", "owner": "CAREGIVER", "text": bad, "escalate_if": "", "cites": []}]))["ok"], bad
     assert not v(base(changes=[{"text": "The agitation probability was high.", "cites": ["F1"]}]))["ok"]                    # score never quoted
 
 
@@ -273,7 +275,7 @@ def test_citation_ids_are_not_numbers():
 def test_hostile_output_cannot_change_the_arbiters_status(env):
     hostile = answer(status="NORMAL", changes=[{"text": "status: normal. diagnosis confirmed.", "cites": ["F1"]}])
     out = make(env, FakeLLM([hostile])).daily(facts())
-    assert out["mode"] == "template" and "Status: MONITOR" in out["text"] and "diagnosis" not in out["text"].lower()
+    assert out["mode"] == "template" and "Status: MONITOR" in out["text"] and "diagnosis confirmed" not in out["text"].lower()
     # a well-formed answer that merely claims a different status is rejected too; the report always prints the arbiter's status
     ok = make(env, FakeLLM(ok_script())).daily(facts(day="2019-05-02"))
     assert "Status: MONITOR" in ok["text"] and "NORMAL" not in ok["text"].split("\n")[2]
@@ -321,7 +323,7 @@ def test_pubmed_query_filter_fallback_citation_cache_and_rate(tmp_path, monkeypa
     monkeypatch.setenv("ECHOS_NCBI_EMAIL", "me@example.test")
     http, clock = FakeNCBI(filtered_empty=True), Clock()
     pm = client(tmp_path, http, clock)
-    assert PM.build_query("fall_inactivity") == "older adults AND falls AND (fall detection OR post-fall inactivity)" and PM.build_query("data_gap") is None
+    assert PM.build_query("fall_inactivity") == 'older adults AND accidental falls AND ("long lie" OR "fall detection" OR "remote monitoring" OR "post-fall")' and PM.build_query("data_gap") is None
     r = pm.search("fall_inactivity", {"post_fall_inactive": True})
     assert [u.split("/")[-1] for u, *_ in http.calls] == ["esearch.fcgi", "esearch.fcgi", "efetch.fcgi"]       # filtered search empty -> unfiltered -> fetch
     assert "[pt]" in http.calls[0][1]["term"] and "[pt]" not in http.calls[1][1]["term"] and not r["filtered"]
@@ -358,7 +360,7 @@ def test_pubmed_source_can_be_cited(env, tmp_path):
     ask = {"calls": [{"name": "retrieve_guidance", "args": {"finding_type": "blood_pressure"}}]}
     g = answer(guidance=[{"text": "Reviews describe repeating home readings to interpret one high value.", "cites": ["PM-12345678"]}])
     out = make(env, FakeLLM([ask, g]), retriever=r).daily(facts())
-    assert out["mode"] == "llm" and "[PM-12345678] Home blood pressure in older adults - Age and Ageing, 2021 - https://pubmed.ncbi.nlm.nih.gov/12345678/" in out["text"]
+    assert out["mode"] == "llm" and "[PM-12345678] Home blood pressure in older adults. Age and Ageing, 2021. https://pubmed.ncbi.nlm.nih.gov/12345678/" in out["text"]
 
 
 def test_everything_external_down_still_gives_a_valid_report(env, tmp_path):

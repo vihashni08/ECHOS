@@ -73,4 +73,4 @@ def test_template_report_quotes_the_numbers_and_a_specific_action():
                                                                    "specifics": FLAGS[0]["evidence"]["specifics"], "action_hints": SP.vital_actions(["bp_high"], V)}}]}
     out = daily_template_items(facts)
     assert "25 mmHg above this person's usual of 143 mmHg" in out["changes"][0]["text"]
-    assert any("Measure blood pressure again" in m["text"] for m in out["monitor"])
+    assert any("Measure blood pressure again" in m["text"] for m in out["actions"])

@@ -138,9 +138,14 @@ def test_gate_on_off_triage_identical(tmp_path, monkeypatch):
     pats = pick_patients(pdy, 3)
     days = {p: [d.strftime("%Y-%m-%d") for d in sorted(pdy[pdy.patient_id == p].day)[30:50]] for p in pats}
     import echos.reports.daily.agent as ra
+    from echos.knowledge.pubmed import PubMedClient
+    from echos.reports.retrieval import GatedRetriever
     rag_calls = []
+    orig_retrieve = GatedRetriever.retrieve
+    monkeypatch.setattr(GatedRetriever, "retrieve", lambda self, status, *a, **k: rag_calls.append(status) or orig_retrieve(self, status, *a, **k))
+    monkeypatch.setattr(ra, "_default_pubmed", lambda: PubMedClient(http_get=lambda *a: b"<eSearchResult><IdList></IdList></eSearchResult>", cache_path=tmp_path / "pm.sqlite"))
     monkeypatch.setattr(ra.ReportAgent, "weekly", lambda *a, **k: None)   # the gate is about DAILY reports; weekly uses RAG
-    monkeypatch.setattr(ra, "retrieve", lambda *a, **k: rag_calls.append(1) or [])
+    monkeypatch.setattr(ra, "retrieve", lambda *a, **k: [])
     on_cases, on_alerts, on_llm = _gate_run(tmp_path, True, pats, days)
     off_cases, off_alerts, off_llm = _gate_run(tmp_path, False, pats, days)
     assert len(on_cases) == 60
@@ -148,7 +153,7 @@ def test_gate_on_off_triage_identical(tmp_path, monkeypatch):
     n_normal = sum(1 for c in on_cases if c[2] == "NORMAL")
     assert on_llm == len(on_cases) - n_normal                           # gate on: LLM only for non-NORMAL days
     assert off_llm == len(off_cases)                                    # gate off: LLM for every day
-    assert not rag_calls                                                # daily reports make no RAG call
+    assert set(rag_calls) <= {"MONITOR", "URGENT"}                      # a NORMAL day never retrieves (code-side prefetch only for MONITOR / URGENT)
     Path(tmp_path / "gate_result.txt").write_text(f"identical: 60 cases, {n_normal} NORMAL, llm calls on={on_llm} off={off_llm}")
 
 

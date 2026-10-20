@@ -1,7 +1,7 @@
 """AUTOMATED report-text check: a PROXY, not a reader study. Scores the stored TEMPLATE daily reports of a database on
   - reading level (Flesch-Kincaid grade and Flesch reading ease, own syllable heuristic: roughly right for English, not exact),
   - length (words per report, words per sentence),
-  - named next steps (every status: >= 2 'What to monitor today' items, each opening with or containing an action verb; URGENT: an Alerts section),
+  - named next steps (every status: >= 1 Plan action (v2) or >= 2 'What to monitor today' items (v1), each opening with or containing an action verb; URGENT: an Alerts section),
   - banned wording (the validator's diagnostic / medication / agitation-score rules plus model jargon: SHAP, XGBoost, z-score, CUSUM, p-value, ...),
   - no leftover template syntax or empty sections.
 It says nothing about whether a real reader understands or finds a report useful (the rating kit for that is unused), and it checks template wording only (no LLM text).
@@ -22,10 +22,10 @@ from echos.reports.daily.validator import BANNED
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "reports/metrics/report_text_check.json"
 # The criteria are stated here, fixed before looking at the numbers; they are conventional plain-language targets, not clinical standards.
-MAX_GRADE, MAX_WORDS, MIN_MONITOR_ITEMS = 10.0, 220, 2
+MAX_GRADE, MAX_WORDS, MIN_MONITOR_ITEMS = 10.0, 300, 1      # v2 layout (SBAR + Plan table): the prose is longer than the old two-list report, so 220 -> 300 words; tables are not counted
 JARGON = [r"\bshap\b", r"\bxgboost\b", r"\bz-?scores?\b", r"\bcusum\b", r"\bp-?values?\b", r"\blogit\b", r"\bfeature importance\b", r"\bclassifier\b", r"\bthreshold(s)? of\b",
           r"\bstandard deviations?\b", r"\bpr-?auc\b", r"\bbaseline drift\b"]
-ACTION = re.compile(r"\b(check|ask|make sure|look|note|watch|keep|encourage|offer|repeat|recheck|re-check|measure|call|contact|review|confirm|follow|compare|record|stay|see|visit|help|remind)\b", re.I)
+ACTION = re.compile(r"\b(check|ask|make sure|look|note|watch|keep|encourage|offer|repeat|recheck|re-check|measure|call|contact|review|confirm|follow|compare|record|stay|see|visit|help|remind|write|go|take|tell|phone|stay)\b", re.I)
 TEMPLATE_LEFTOVER = re.compile(r"\{\{|\}\}|\{%|%\}|\bNone\b|\bnan\b|\bNaN\b")
 
 
@@ -64,9 +64,16 @@ def sections(md: str) -> dict:
     return {k: [x.strip("- ").strip() for x in v if x.strip() and not x.strip().startswith(("---", "_Decision"))] for k, v in out.items()}
 
 
+def plan_action(row: str) -> str:
+    """The action text of one '| A1 | Today | Caregiver | text |' row of the Plan table ('' for any other line)."""
+    cells = [c.strip() for c in row.strip().strip("|").split("|")]
+    return re.sub(r"\*\*Escalate if:\*\*.*", "", cells[3]).strip() if len(cells) >= 4 and re.fullmatch(r"A\d+", cells[0]) else ""
+
+
 def body_text(sec: dict) -> str:
     """The prose a reader gets: everything below the title, minus markdown marks, citation ids and the fixed footer."""
-    parts = [x for k, v in sec.items() if k != "_head" for x in v] + [x for x in sec["_head"] if x.lower().startswith("**status")]
+    parts = [x for k, v in sec.items() if k != "_head" for x in v if not x.startswith("|")] + [x for x in sec["_head"] if x.lower().startswith("**status")]
+    parts += [plan_action(x) for x in sec.get("Plan", []) if plan_action(x)]
     t = " ".join(parts)
     t = re.sub(r"\[[A-Z]{1,3}-?\d+(, *[A-Z]{1,3}-?\d+)*\]", "", t)
     return re.sub(r"[*_#]", "", t)
@@ -76,9 +83,10 @@ def check_one(md: str) -> dict:
     sec = sections(md)
     text_ = body_text(sec)
     r = readability(text_)
-    mon = sec.get("What to monitor today", [])
+    mon = [a for a in (plan_action(x) for x in sec.get("Plan", [])) if a] or sec.get("What to monitor today", [])      # the Plan table (v2 layout) or the old bullet list
     status = (re.search(r"\*\*Status: (\w+)", md) or [None, "?"])[1]
-    banned = [p for p in BANNED + JARGON if re.search(p, md, re.I)]
+    body = "\n".join(ln for ln in md.splitlines() if not ln.startswith("_Decision"))        # the fixed disclaimer says 'not a diagnosis' on purpose
+    banned = [p for p in BANNED + JARGON if re.search(p, body, re.I)]
     return {"status": status, **r, "monitor_items": len(mon), "monitor_all_action": bool(mon) and all(ACTION.search(x) for x in mon),
             "banned": len(banned), "leftover": bool(TEMPLATE_LEFTOVER.search(md)), "alerts_section": "Alerts" in sec, "empty_section": any(k != "_head" and not v for k, v in sec.items())}
 

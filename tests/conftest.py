@@ -21,7 +21,7 @@ def _never_real_smtp(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _no_real_llm_or_pubmed(monkeypatch):
+def _no_real_llm_or_pubmed(monkeypatch, tmp_path_factory):
     """Tests use FakeLLM and mocked PubMed only. Any outbound connection to Gemini or NCBI E-utilities is blocked, recorded and fails the test
     at teardown even if the code under test swallows the error. The API key is removed from the environment (and .env is not loaded)."""
     ATTEMPTS.clear()
@@ -41,6 +41,13 @@ def _no_real_llm_or_pubmed(monkeypatch):
             ATTEMPTS.append(str(address[0]))
             raise OSError(f"blocked by tests/conftest.py: outbound connection to {address[0]}")
         return real_cc(address, *a, **k)
+    try:       # the daily report retrieves by code on MONITOR / URGENT days: the default PubMed client answers 'no results' offline instead of opening a socket
+        from echos.knowledge import pubmed as _pm
+        from echos.reports.daily import agent as _agent
+        monkeypatch.setattr(_agent, "_default_pubmed", lambda: _pm.PubMedClient(http_get=lambda *a: b"<eSearchResult><IdList></IdList></eSearchResult>",
+                                                                                 cache_path=tmp_path_factory.mktemp("pm") / "pm.sqlite"))
+    except ImportError:
+        pass
     monkeypatch.setattr(socket, "getaddrinfo", gai)
     monkeypatch.setattr(socket, "create_connection", cc)
     monkeypatch.delenv("ECHOS_LLM_API_KEY", raising=False)

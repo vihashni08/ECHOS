@@ -1,4 +1,5 @@
 import { Info, Siren } from "lucide-react"
+import DailyDoc, { type Doc } from "@/components/DailyDoc"
 import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import PatientPicker from "@/components/PatientPicker"
@@ -42,10 +43,11 @@ export default function Caregiver() {
           <Card data-testid="daily-card">
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
               <CardTitle>Today's report · <span className="num">{fmtDay(day)}</span></CardTitle>
-              {summary.data && <StatusBadge status={summary.data.status} className="text-base" />}
+              {summary.data && !d?.doc && <StatusBadge status={summary.data.status} className="text-base" />}
             </CardHeader>
             <CardContent className="flex flex-col gap-4 text-sm">
               {summary.isError ? <ErrorNote error={summary.error} /> : !summary.data || daily.isLoading ? <CardSkeleton h="h-40" /> : (
+                d?.doc ? <DailyDoc doc={d.doc as unknown as Doc} onSource={setSrc} /> : (
                 <>
                   <section aria-labelledby="chg"><h2 id="chg" className="mb-1 text-base font-semibold">What changed</h2>
                     <ul className="list-disc space-y-1 pl-5">{(d?.changes?.length ? d.changes : summary.data!.reasons.length ? summary.data!.reasons : ["Everything looked normal compared with this person's own usual pattern."]).map((c, i) => <li key={i}>{c}</li>)}</ul></section>
@@ -53,7 +55,7 @@ export default function Caregiver() {
                     {d?.monitor?.length ? <ul className="list-disc space-y-1 pl-5">{d.monitor.map((c, i) => <li key={i}>{c}</li>)}</ul> : <p className="text-muted-foreground">No stored report for this day, so no monitoring advice is available.</p>}</section>
                   {(d?.data_note ?? summary.data?.data_note) && <section aria-labelledby="dn"><h2 id="dn" className="mb-1 text-base font-semibold">Data note</h2>
                     <p className="flex items-start gap-1.5 text-muted-foreground"><Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />{d?.data_note ?? summary.data?.data_note}</p></section>}
-                </>
+                </>)
               )}
             </CardContent>
           </Card>

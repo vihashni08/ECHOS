@@ -215,7 +215,7 @@ def test_weekly_pdf_lists_each_finding_with_its_sources_and_json_mapping(world, 
     ret = GatedRetriever(lambda ft, d=None, k=None: [kb_bp, kb_fall], pubmed=None)
     r = WR.make_weekly(eng, PID, WEEK, None, retriever=ret, root=tmp_path, send=False, **kw)
     t = norm(text_of(r["pdf"]["path"]))
-    i_f, i_v, i_c = t.index("Possible falls: 1"), t.index("Blood pressure above usual: 1"), t.index("Considerations for clinician review")
+    i_f, i_v, i_c = t.index("Possible falls: 1"), t.index("Blood pressure above usual: 1"), t.index("Recommended follow-up")
     assert t.index("[KB-1]", i_f) < i_v < t.index("[KB-2]", i_v) < i_c                 # falls source under falls, vitals source under vitals
     m = {f["key"]: f["sources"] for f in r["provenance"]["findings"]}
     assert m == {"falls": ["KB-1"], "bp_high": ["KB-2"], "routine": []} and "No supporting source retrieved for this finding" in t

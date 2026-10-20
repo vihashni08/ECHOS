@@ -1126,6 +1126,10 @@ export interface components {
             monitor: string[];
             /** Data Note */
             data_note?: string | null;
+            /** Doc */
+            doc?: {
+                [key: string]: unknown;
+            } | null;
             /** Created Ts */
             created_ts?: number | null;
             /** Validation */

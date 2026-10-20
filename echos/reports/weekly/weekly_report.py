@@ -88,7 +88,7 @@ def make_weekly(eng, patient_id: str, week, dispatcher=None, budget=None, retrie
     cons, cons_v = EV.reword(findings, cons, rw, {s["id"] for s in sources})
     nar = WN.make_narrative(d, sources, budget=budget, use_llm=use_llm)
     out = root / cfg["weekly"]["dir"] / f"{patient_id}_{d['week']}.pdf"
-    pdf = WP.build_pdf(d, nar["text"], sources, out, max_pages=cfg["weekly"].get("max_pages", 3), findings=findings, considerations=cons)
+    pdf = WP.build_pdf(d, nar["text"], sources, out, max_pages=cfg["weekly"].get("max_pages", 3), findings=findings, considerations=cons, narrative_items=nar["items"])
     prov = {**nar["provenance"], "sources_retrieved": [{k: s.get(k) for k in ("id", "origin", "title", "source", "publisher", "year", "page", "journal", "url", "excerpt")} for s in sources],
             "retrieval_events": notes, "findings": [{k: f[k] for k in ("key", "label", "n", "sources")} for f in findings],
             "vitals_baseline_established": any(d["vitals_summary"][k]["baseline_established"] for k in ("sys", "dia")),

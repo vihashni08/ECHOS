@@ -4491,6 +4491,18 @@
       ],
       "title": "Data Note"
      },
+     "doc": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Doc"
+     },
      "created_ts": {
       "anyOf": [
        {

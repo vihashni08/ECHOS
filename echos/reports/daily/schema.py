@@ -14,11 +14,21 @@ class Item(BaseModel):
     cites: list[str] = Field(description="flag ids (F1) or retrieved source ids (KB-12, PM-123); [] when nothing applies")
 
 
+class Action(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    priority: Literal["NOW", "TODAY", "WITHIN_48H", "THIS_WEEK"] = Field(description="NOW = within the hour, TODAY, WITHIN_48H, THIS_WEEK")
+    owner: Literal["CAREGIVER", "CLINICIAN"]
+    text: str = Field(min_length=1, pattern=r"\S", description="what to do, how and when, naming the exact measure and its recorded value; one or two sentences")
+    escalate_if: str = Field(description="when this needs more than the plan: the sign or limit and the step to take; \"\" when not applicable")
+    cites: list[str] = Field(description="flag ids (F1) or retrieved source ids (KB-12, PM-123); [] when nothing applies")
+
+
 class DailyReport(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Literal["NORMAL", "MONITOR", "URGENT"]
+    assessment: list[Item] = Field(min_length=1, max_length=2, description="1 or 2 short paragraphs that tie the findings together: what the day looks like overall and what matters most, in plain words, without diagnosing")
     changes: list[Item] = Field(description="what differs from this person's own usual pattern, one item per flag")
-    monitor: list[Item] = Field(min_length=2, max_length=3, description="2 or 3 plain-language things to watch today")
+    actions: list[Action] = Field(min_length=1, max_length=5, description="the plan, most urgent first")
     guidance: list[Item] = Field(max_length=2, description="at most 2 paraphrased statements citing retrieved source ids; [] if none")
 
 

@@ -241,7 +241,7 @@ def main(argv=None) -> int:
     from dotenv import load_dotenv
     load_dotenv(ROOT / ".env")
     from echos.knowledge import pubmed as PM
-    from echos.reports.llm.llm import llm_budget as LB
+    from echos.reports.llm import llm_budget as LB
     from echos.reports.llm.llm import ENV_KEY
     if not os.environ.get(ENV_KEY):
         print("No ECHOS_LLM_API_KEY in the environment / .env: nothing to check.")

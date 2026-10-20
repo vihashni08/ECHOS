@@ -196,8 +196,9 @@ def test_live_report_check_only_monitor_reports_failed_rule_and_saves_raw_output
     from echos.knowledge.pubmed import PubMedClient
     from echos.reports.llm.fake_llm import FakeLLM
     from scripts.realservices import live_report_check as LR
-    bad = {"text": json.dumps({"status": "MONITOR", "changes": [{"text": "Systolic pressure was 171 against usual 130.", "cites": ["F1"]}],
-                               "monitor": [{"text": "Repeat the reading.", "cites": ["F1"]}, {"text": "Rest.", "cites": []}], "guidance": []})}
+    bad = {"text": json.dumps({"status": "MONITOR", "assessment": [{"text": "Systolic pressure was higher than usual.", "cites": ["F1"]}],
+                               "changes": [{"text": "Systolic pressure was 171 against usual 130.", "cites": ["F1"]}],
+                               "actions": [{"priority": "TODAY", "owner": "CAREGIVER", "text": "Repeat the reading.", "escalate_if": "", "cites": ["F1"]}], "guidance": []})}
     run, fake = LR.Run(), FakeLLM([bad])
     pm = PubMedClient(http_get=LR.capped_pubmed_get(run, lambda *a: b"<x/>"), cache_path=tmp_path / "pm.sqlite")
     out_dir = tmp_path / "lc"

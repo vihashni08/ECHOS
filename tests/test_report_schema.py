@@ -33,8 +33,8 @@ def test_fixtures_contain_no_patient_text():
 @pytest.mark.parametrize("name", ["monitor", "urgent"])
 def test_live_shapes_are_rejected_with_a_schema_rule(name):
     _, first, second = fixture(name)
-    m, errs = SC.parse(body(first))                 # bare strings in "monitor": the key names match, the item type does not
-    assert m is None and any(e.startswith("schema mismatch at monitor.") for e in errs)
+    m, errs = SC.parse(body(first))                 # the old shape (bare strings under "monitor"): no assessment / actions, and "monitor" is not a key any more
+    assert m is None and any("monitor" in e for e in errs) and any(e.startswith("schema mismatch at assessment") for e in errs)
     m, errs = SC.parse(body(second))                # retry: a different schema altogether (patient_id/day/note[s])
     assert m is None and any("changes" in e for e in errs) and any("extra_forbidden" in e for e in errs)
 
@@ -42,15 +42,18 @@ def test_live_shapes_are_rejected_with_a_schema_rule(name):
 def test_schema_is_strict_about_empty_text_missing_cites_and_counts():
     good = body(answer())
     assert SC.parse(good)[0] is not None
-    assert SC.parse({**good, "monitor": [{"text": "  ", "cites": []}, {"text": "x", "cites": []}]})[0] is None
-    assert SC.parse({**good, "monitor": [{"text": "x"}, {"text": "y", "cites": []}]})[0] is None
-    assert SC.parse({**good, "monitor": [{"text": "x", "cites": []}]})[0] is None
+    act = lambda **o: {"priority": "TODAY", "owner": "CAREGIVER", "text": "x", "escalate_if": "", "cites": [], **o}      # noqa: E731
+    assert SC.parse({**good, "actions": [act(text="  ")]})[0] is None
+    assert SC.parse({**good, "actions": [{k: v for k, v in act().items() if k != "cites"}]})[0] is None
+    assert SC.parse({**good, "actions": [act(priority="SOON")]})[0] is None and SC.parse({**good, "actions": [act(owner="NURSE")]})[0] is None
+    assert SC.parse({**good, "actions": []})[0] is None and SC.parse({**good, "actions": [act()] * 6})[0] is None
+    assert SC.parse({**good, "assessment": []})[0] is None
     assert SC.parse({**good, "guidance": [{"text": "g", "cites": []}] * 3})[0] is None
 
 
 def test_prompt_and_gemini_schema_come_from_the_same_model(env):
     shape = SC.json_schema()
-    assert set(shape["properties"]) == set(SC.DailyReport.model_fields) and shape["properties"]["monitor"]["minItems"] == 2
+    assert set(shape["properties"]) == set(SC.DailyReport.model_fields) and shape["properties"]["actions"]["minItems"] == 1
     llm = FakeLLM([answer()])
     make(env, llm).daily(facts())
     assert json.dumps(SC.prompt_shape())[1:-1] in llm.prompts[0]
