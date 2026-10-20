@@ -37,7 +37,7 @@ export default function EmulatorControls() {
       <div className="flex flex-wrap items-center gap-2 border-t pt-3">
         <Select value={target} onValueChange={setPid}><SelectTrigger className="w-40" aria-label="Patient for the fall"><SelectValue placeholder="Patient" /></SelectTrigger>
           <SelectContent>{(pats.length ? pats : patients.data?.items.map((p) => p.patient_id) ?? []).map((p) => <SelectItem key={p} value={p}>Patient {p}</SelectItem>)}</SelectContent></Select>
-        <Button variant="outline" onClick={() => run({ action: "fall", patient_id: target }, (r) => r.note ?? "Fall injected")} disabled={emu.isPending || !target || !playing && e?.status !== "paused"} data-testid="emu-fall"><Zap className="size-4" aria-hidden="true" />Inject a fall now</Button>
+        <Button variant="outline" onClick={() => run({ action: "fall", patient_id: target }, (r) => r.note ?? "Fall injected")} disabled={emu.isPending || !target || !e} data-testid="emu-fall"><Zap className="size-4" aria-hidden="true" />Inject a fall now</Button>
       </div>
       <p className="text-xs text-muted-foreground">SYNTHETIC: a SisFall recording from a held-out subject (young volunteers on mats), written as one accelerometer event at the patient's current data time.</p>
       {msg && <p role="status" className="rounded-md border px-3 py-2 text-sm" data-testid="emu-msg">{msg}</p>}

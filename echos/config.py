@@ -14,4 +14,6 @@ def load_config() -> dict:
         cfg["alerts"]["send_real"] = True
     if os.environ.get("ECHOS_WEEKLY_LLM") == "1":
         cfg["weekly"]["llm_narrative_in_simulation"] = True
+    if os.environ.get("ECHOS_CRITICAL_COOLDOWN_H"):
+        cfg["alerts"]["critical_cooldown_sim_h"] = float(os.environ["ECHOS_CRITICAL_COOLDOWN_H"])
     return cfg

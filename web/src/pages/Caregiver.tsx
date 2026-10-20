@@ -17,7 +17,11 @@ export default function Caregiver() {
   const pid = sp.get("patient") ?? patients.data?.items[0]?.patient_id ?? ""
   const week = useStatuses(pid, 7)
   const strip = week.data ?? []
-  const day = sp.get("day") ?? strip[strip.length - 1]?.day
+  const latest = strip[strip.length - 1]?.day
+  const [pinned, setPinned] = useState<string>()   // the day shown is fixed once chosen or first loaded; a newer day only offers a button
+  useEffect(() => { if (!pinned && latest) setPinned(latest) }, [latest, pinned])
+  useEffect(() => { setPinned(undefined) }, [pid])
+  const day = sp.get("day") ?? pinned
   const summary = useSummary(pid, day)
   const daily = useDaily(pid, day)
   const [src, setSrc] = useState<string | null>(null)
@@ -40,9 +44,11 @@ export default function Caregiver() {
               <ul className="space-y-0.5 font-medium">{alerts.map((a, i) => <li key={i}>{a}</li>)}</ul>
             </div>
           )}
+          {day && latest && latest > day && (
+            <button onClick={() => { set({ day: latest }) }} className="rounded-lg border border-primary bg-accent px-3 py-2 text-left text-sm font-medium" data-testid="newer-day">A newer day ({fmtDay(latest)}) is available. Show it</button>)}
           <Card data-testid="daily-card">
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-              <CardTitle>Today's report · <span className="num">{fmtDay(day)}</span></CardTitle>
+              <CardTitle>Daily report · <span className="num">{fmtDay(day)}</span></CardTitle>
               {summary.data && !d?.doc && <StatusBadge status={summary.data.status} className="text-base" />}
             </CardHeader>
             <CardContent className="flex flex-col gap-4 text-sm">

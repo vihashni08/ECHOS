@@ -42,13 +42,13 @@ scripts/start.sh --week-demo --real --yes
 ```
 Needs these names set in `.env`: `ECHOS_LLM_API_KEY`, `ECHOS_NCBI_EMAIL`, `ECHOS_CAREGIVER_EMAIL`, `ECHOS_CLINICIAN_EMAIL`, `ECHOS_SMTP_HOST`, `ECHOS_SMTP_USER`, `ECHOS_SMTP_PASSWORD` (a preflight lists any that are missing; values are never printed). Real alert and weekly e-mails are sent, daily reports and the weekly narrative use Gemini, MONITOR / URGENT days fetch PubMed. It applies to this run only (`ECHOS_SEND_REAL=1`, `ECHOS_WEEKLY_LLM=1`); `config.yaml` keeps the dry-run defaults. Alert mails carry an "I have seen this" link: `--real` makes a random `ECHOS_LINK_SECRET` per run and sets `ECHOS_PUBLIC_URL` to the API (`http://127.0.0.1:8000`), so the link opens on the presenting machine; preset either variable to use your own. Opening it acknowledges the alert and stops the escalation timer (fall 300 s, critical vitals 1800 s; an unacknowledged alert then goes to `ECHOS_ESCALATION_EMAIL`, set it to show escalation). Before a presentation check the mail path once with `PYTHONPATH=. python scripts/realservices/send_test_email.py --yes`.
 
-### Same week in LIVE (emulator) mode
+### Short LIVE demo (emulator): one person, 2 data days, about 1 minute
 
 ```bash
-scripts/start.sh --live-week              # dry-run mail, no LLM / PubMed (rehearsal)
-scripts/start.sh --live-week --real --yes # real e-mail, Gemini and PubMed
+scripts/start.sh --live-demo              # dry-run mail, no LLM / PubMed (rehearsal)
+scripts/start.sh --live-demo --real --yes # real e-mail, Gemini and PubMed
 ```
-Raw readings of person 46286 (Mon 2019-05-27 onwards, 8 data days so that Sunday closes) arrive one by one in wall-clock time: one data day takes about 24 s, the week about 3.5 min. Press **Start** in Demo tools; press **Inject a fall now** when you want the fall. Critical readings alert on arrival, each closed day gets its daily report, the Sunday close builds the weekly PDF. Fresh database `data/echos_live_week.db` each start.
+Person 46286 from Tue 2019-05-28 (readings arrive one by one; the critical blood-pressure reading alerts when it arrives). Press **Demo tools -> Start**, then **Inject a fall now** (works as soon as the emulator is loaded). Exactly two alerts and four mails in total: one critical-vitals and one fall alert, each to caregiver and clinician. Fresh database `data/echos_live_demo.db` each start. Pages: Today, Alerts, Patient, Daily report, Weekly report; the day or range you are looking at never moves by itself, a newer day only offers a button.
 
 ## Replay mode (evaluation)
 

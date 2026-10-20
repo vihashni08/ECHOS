@@ -17,11 +17,11 @@ import { cn } from "@/lib/utils"
 const NAV: { to: string; label: string; icon: typeof User; end?: boolean; need?: Role }[] = [
   { to: "/", label: "Today", icon: LayoutDashboard, end: true },
   { to: "/alerts", label: "Alerts", icon: BellRing },
-  { to: "/patient", label: "People", icon: User },
-  { to: "/falls", label: "Fall Monitor", icon: Activity },
-  { to: "/caregiver", label: "Caregiver report", icon: Users },
-  { to: "/clinician", label: "Clinician week", icon: Stethoscope, need: "clinician" },
-  { to: "/system", label: "System", icon: Settings2 },
+  { to: "/patient", label: "Patient", icon: User },
+  { to: "/caregiver", label: "Daily report", icon: Users },
+  { to: "/clinician", label: "Weekly report", icon: Stethoscope, need: "clinician" },
+  { to: "/falls", label: "Fall details", icon: Activity },
+  { to: "/system", label: "How it works", icon: Settings2 },
 ]
 
 function NavItems({ row }: { row?: boolean }) {
