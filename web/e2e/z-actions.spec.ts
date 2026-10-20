@@ -10,7 +10,7 @@ test("Simulate fall raises an URGENT alert in the feed and shows the Alert sent 
   await page.route(`${API}/sim/fall`, async (route) => route.continue({ postData: JSON.stringify({ ...route.request().postDataJSON(), activity: "F02", subject: "SA03" }) }))
   await page.goto("/", { waitUntil: "networkidle" })
   await expect(page.getByTestId("conn")).toContainText("Live")
-  await page.getByRole("link", { name: "Fall Monitor" }).first().click()
+  await page.getByRole("link", { name: "Fall details" }).first().click()
   await expect(page.getByTestId("simulate-fall")).toBeEnabled({ timeout: 20000 })
   await page.getByTestId("simulate-fall").click()
   const panel = page.getByTestId("alert-sent")
