@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # One command: API + watchdog + runtime (scripts/run_api.sh) and the web app (Vite), wait until both answer, print the URLs, stop everything on Ctrl-C.
-#   scripts/start.sh [--replay | --live | --week-demo] [--auth] [--fresh] [--llm] [--pubmed] [--check]
+#   scripts/start.sh [--replay | --live | --week-demo] [--auth] [--fresh] [--llm] [--pubmed] [--real --yes] [--check]
 #   --replay   (default) TIHM replayed day by day on a COPY of the database (data/echos_ui_dev.db, made from data/echos.db when missing)
 #   --live     live / emulator mode on data/echos_live_dev.db (kept between runs: a restart recovers; add --fresh to start empty)
 #   --week-demo  one person, one week (46286, Mon 2019-05-27 .. Sun 2019-06-02: low-BP critical readings + one injected fall), fresh database data/echos_week_demo.db
 #              every start; press Play in Demo tools: 7 daily reports, the alerts and the weekly PDF (Sunday close) appear. Dummy dry-run addresses, nothing is sent
+#   --real     with --week-demo: REAL services: alert/weekly e-mails ARE sent (SMTP), Gemini and PubMed ARE called; needs --yes and the .env names
+#              (README / .env.example); a preflight lists missing names (values are never printed)
 #   --auth     authentication on; tokens go to data/auth_tokens.txt (git-ignored); they are NEVER printed
 #   --fresh    live only: delete the live dev database first
 #   --llm      allow the Gemini report agent (needs ECHOS_LLM_API_KEY in .env). Default: OFF (template reports)
@@ -13,7 +15,7 @@
 # Mail is ALWAYS a dry run here (outbox only; the SMTP mailer refuses to start). Ports: API ECHOS_API_PORT (8000), web ECHOS_WEB_PORT (5173). Logs: data/logs/ (API, web).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-MODE=replay; WEEK=0; AUTH=(); FRESH=0; LLM=0; PUBMED=0; CHECK=0
+MODE=replay; WEEK=0; REAL=0; YES=0; AUTH=(); FRESH=0; LLM=0; PUBMED=0; CHECK=0
 for a in "$@"; do
   case "$a" in
     --replay) MODE=replay ;;
@@ -24,6 +26,8 @@ for a in "$@"; do
     --llm) LLM=1 ;;
     --pubmed) PUBMED=1 ;;
     --check) CHECK=1 ;;
+    --real) REAL=1 ;;
+    --yes) YES=1 ;;
     -h|--help) sed -n 2,12p "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option $a (try --help)"; exit 2 ;;
   esac
@@ -35,11 +39,26 @@ for p in "$API_PORT" "$WEB_PORT"; do
 done
 [ -d web/node_modules ] || { echo "web/node_modules is missing: run 'cd web && npm ci' first"; exit 1; }
 mkdir -p data/logs
+if [ "$REAL" = 1 ]; then   # real-services demo: e-mail, Gemini and PubMed on; only together with --week-demo and --yes
+  [ "$WEEK" = 1 ] || { echo "--real is only for --week-demo"; exit 2; }
+  [ "$YES" = 1 ] || { echo "--real sends REAL e-mails and calls Gemini / PubMed: add --yes to confirm"; exit 2; }
+  PYTHONPATH="$PWD" .venv/bin/python - <<'PY' || exit 1
+import os, sys
+from dotenv import load_dotenv
+load_dotenv(".env")
+need = ["ECHOS_LLM_API_KEY", "ECHOS_NCBI_EMAIL", "ECHOS_CAREGIVER_EMAIL", "ECHOS_CLINICIAN_EMAIL", "ECHOS_SMTP_HOST", "ECHOS_SMTP_USER", "ECHOS_SMTP_PASSWORD"]
+miss = [n for n in need if not os.environ.get(n)]
+print("preflight: all required names set in .env" if not miss else "preflight: MISSING in .env: " + ", ".join(miss))
+sys.exit(1 if miss else 0)
+PY
+fi
 FLAGS=(--dry)                                   # never real mail
 [ "$LLM" = 0 ] && FLAGS+=(--no-llm)             # --no-llm also switches PubMed off
 [ "$LLM" = 1 ] && [ "$PUBMED" = 0 ] && FLAGS+=(--no-pubmed)
 [ "$LLM" = 0 ] && [ "$PUBMED" = 1 ] && FLAGS=(--dry)   # PubMed only: the LLM stays off through the environment below
-export ECHOS_DRY_RUN=1; [ "$LLM" = 0 ] && export ECHOS_REPORT_LLM=off
+[ "$REAL" = 1 ] && { LLM=1; PUBMED=1; FLAGS=(); export ECHOS_SEND_REAL=1 ECHOS_WEEKLY_LLM=1; }
+[ "$REAL" = 0 ] && export ECHOS_DRY_RUN=1
+[ "$LLM" = 0 ] && export ECHOS_REPORT_LLM=off
 if [ "$MODE" = live ]; then
   DB=data/echos_live_dev.db
   [ "$FRESH" = 1 ] && rm -rf "$DB" "$DB-wal" "$DB-shm" "${DB%.db}.cp.sqlite"* "${DB%.db}_files"
@@ -48,7 +67,7 @@ elif [ "$WEEK" = 1 ]; then
   DB=data/echos_week_demo.db
   rm -rf "$DB" "$DB-wal" "$DB-shm" "${DB%.db}.cp.sqlite"* "${DB%.db}_files"
   export ECHOS_DEMO_PATIENTS=46286 ECHOS_DEMO_START=2019-05-27 ECHOS_DEMO_FALLS=1 ECHOS_OOF=1
-  export ECHOS_CAREGIVER_EMAIL=caregiver@example.org ECHOS_CLINICIAN_EMAIL=clinician@example.org ECHOS_ESCALATION_EMAIL=escalation@example.org   # dry run: never sent
+  [ "$REAL" = 1 ] || export ECHOS_CAREGIVER_EMAIL=caregiver@example.org ECHOS_CLINICIAN_EMAIL=clinician@example.org ECHOS_ESCALATION_EMAIL=escalation@example.org   # dry run: never sent
   FLAGS+=(--demo --patients 1 --days 7)
 else
   DB=data/echos_ui_dev.db
@@ -83,7 +102,7 @@ for i in $(seq 1 150); do
   sleep 1
 done
 ok "$API/api/auth/me" && ok "http://127.0.0.1:$WEB_PORT/" && rt_ok || { echo "not healthy after 150 s: see data/logs/api.log and data/logs/web.log"; exit 1; }
-echo "ECHOS is running ($MODE mode, dry-run mail$([ "$LLM" = 0 ] && echo ', no LLM')$([ "$PUBMED" = 0 ] && echo ', no PubMed'))"
+echo "ECHOS is running ($MODE mode, $([ "$REAL" = 1 ] && echo 'REAL e-mail' || echo 'dry-run mail')$([ "$LLM" = 0 ] && echo ', no LLM')$([ "$PUBMED" = 0 ] && echo ', no PubMed'))"
 echo "  web: $WEB"
 echo "  api: $API  (docs: $API/docs)"
 [ ${#AUTH[@]} -gt 0 ] && echo "  login tokens: data/auth_tokens.txt (not printed)"

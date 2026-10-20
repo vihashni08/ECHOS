@@ -35,6 +35,13 @@ scripts/start.sh --week-demo
 ```
 Open http://localhost:5173, then **Demo tools -> Play**. One person (46286), Mon 2019-05-27 to Sun 2019-06-02, built fresh each start (`data/echos_week_demo.db`, dry-run mail with dummy addresses, no LLM): an injected fall on day 1, critical low blood pressure readings on 4 days, 7 daily reports and the weekly PDF (written when Sunday closes). Window and patient come from `ECHOS_DEMO_PATIENTS / _START / _FALLS` (echos/sim/replay.py).
 
+### Same week with REAL services (e-mail, Gemini, PubMed)
+
+```bash
+scripts/start.sh --week-demo --real --yes
+```
+Needs these names set in `.env`: `ECHOS_LLM_API_KEY`, `ECHOS_NCBI_EMAIL`, `ECHOS_CAREGIVER_EMAIL`, `ECHOS_CLINICIAN_EMAIL`, `ECHOS_SMTP_HOST`, `ECHOS_SMTP_USER`, `ECHOS_SMTP_PASSWORD` (a preflight lists any that are missing; values are never printed). Real alert and weekly e-mails are sent, daily reports and the weekly narrative use Gemini, MONITOR / URGENT days fetch PubMed. It applies to this run only (`ECHOS_SEND_REAL=1`, `ECHOS_WEEKLY_LLM=1`); `config.yaml` keeps the dry-run defaults. Before a presentation check the mail path once with `PYTHONPATH=. python scripts/realservices/send_test_email.py --yes`.
+
 ## Replay mode (evaluation)
 
 ```bash
