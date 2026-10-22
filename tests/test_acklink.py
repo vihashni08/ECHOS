@@ -16,7 +16,7 @@ from echos.orchestrator import state as S
 from echos.team import lifecycle
 
 SECRET, URL = "test-secret-0123456789", "https://echos.example.test"
-AID = "p1|2019-05-05|fall|1"
+AID = "p1|2019-05-05|critical_vitals|1"
 TO = {"caregiver": "care@example.test", "clinician": "doc@example.test"}
 
 
@@ -27,13 +27,13 @@ def env(monkeypatch):
 
 
 def payload():
-    return P.AlertPayload(alert_id=AID, alert_type="FALL", patient_id="p1", event_time="2019-05-05T10:00:00", event_id=1, fall_probability=0.9)
+    return P.AlertPayload(alert_id=AID, patient_id="p1", event_time="2019-05-05T10:00:00", event_id=1)
 
 
 def make(tmp_path, monkeypatch=None):
     eng = S.get_engine(tmp_path / "a.db")
     with eng.begin() as c:
-        S.insert_ignore(c, S.alert_state, alert_id=AID, patient_id="p1", type="FALL", state="SENT", created_ts=1.0, sent_ts=1.0, deadline_ts=1e12)
+        S.insert_ignore(c, S.alert_state, alert_id=AID, patient_id="p1", type="CRITICAL_VITALS", state="SENT", created_ts=1.0, sent_ts=1.0, deadline_ts=1e12)
     return eng, TestClient(create_app(V.Ctx(eng=eng, root=tmp_path, cfg=load_config())))
 
 
@@ -44,7 +44,7 @@ def state(eng):
 def test_token_roundtrip_and_contents(env):
     t = acklink.make_token(AID, 100, now=1000)
     assert acklink.verify_token(t, now=1050) == AID
-    assert "p1" not in t and "fall" not in t        # only a base64 alert id + expiry + signature: no readable data
+    assert "p1" not in t and "critical" not in t        # only a base64 alert id + expiry + signature: no readable data
 
 
 def test_expired_forged_and_malformed(env):
@@ -125,9 +125,9 @@ def test_endpoint_rejects_forged_expired_unknown(env, tmp_path):
     tok = acklink.make_token(AID)
     a, e, s = tok.split(".")
     assert c.get(f"/api/ack/{a}.{e}.{'f' * 32}").status_code == 400
-    assert c.get(f"/api/ack/{acklink._b64('p2|2019-05-05|fall|9')}.{e}.{s}").status_code == 400     # signature of another alert
+    assert c.get(f"/api/ack/{acklink._b64('p2|2019-05-05|critical_vitals|9')}.{e}.{s}").status_code == 400     # signature of another alert
     assert c.get(f"/api/ack/{acklink.make_token(AID, -5)}").status_code == 410
-    assert c.get(f"/api/ack/{acklink.make_token('nobody|1|fall|1')}").status_code == 404
+    assert c.get(f"/api/ack/{acklink.make_token('nobody|1|critical_vitals|1')}").status_code == 404
     assert state(eng) == "SENT"
 
 
@@ -145,3 +145,11 @@ def test_works_with_auth_on_without_a_login_but_other_routes_stay_closed(env, tm
     assert c.get(f"/api/ack/{acklink.make_token(AID)}").status_code == 200 and state(eng) == "ACKNOWLEDGED"
     assert c.post(f"/api/alerts/{AID}/resolve").status_code == 401         # the link grants acknowledge only
     assert c.get(f"/api/ack/{acklink.make_token(AID)}/extra").status_code == 401
+
+
+def test_acknowledge_before_the_care_agent_registered_the_alert(tmp_path):
+    eng = S.get_engine(tmp_path / "early.db")
+    with eng.begin() as c:
+        S.insert_ignore(c, S.alerts, alert_id="p9|2019-05-05|critical_vitals|1", patient_id="p9", type="critical_vitals", time=1.0, payload="{}", status="PENDING")
+    assert lifecycle.acknowledge(eng, "p9|2019-05-05|critical_vitals|1", "caregiver") == "ACKNOWLEDGED"
+    assert lifecycle.acknowledge(eng, "never|queued", "caregiver") is None

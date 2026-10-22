@@ -1,4 +1,4 @@
-"""API helpers for the multi-agent layer: components, alert lifecycle, care tasks, case files, agent messages. Reads / writes SQLite only
+"""API helpers for the multi-agent layer: components, alert lifecycle, care tasks, agent messages. Reads / writes SQLite only
 (the API never loads agents or models); acknowledgement is a DB write the Care Coordinator reads on its next pass."""
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from echos.api.services import Ctx, NotFound
 from echos.components import COMPONENTS
 from echos.orchestrator import state as S
 from echos.team import lifecycle
-from echos.team.investigator import load_case_file
 
 
 def components(ctx: Ctx) -> list[dict]:
@@ -21,30 +20,20 @@ def components(ctx: Ctx) -> list[dict]:
     with ctx.eng.begin() as c:
         hbs = {r.agent_id: r for r in c.execute(select(S.agent_heartbeat))}
         open_alerts = c.execute(select(func.count()).select_from(S.alert_state).where(S.alert_state.c.state.in_(lifecycle.OPEN_STATES))).scalar()
-        cases = c.execute(select(func.count()).select_from(S.case_file)).scalar()
-        last_case = c.execute(select(func.max(S.case_state.c.day))).scalar()
-        reports = c.execute(select(func.count()).select_from(S.reports)).scalar()
         tasks = c.execute(select(func.count()).select_from(S.care_task).where(S.care_task.c.status == "OPEN")).scalar()
+        scored = c.execute(select(func.count()).select_from(S.agent_output).where(S.agent_output.c.agent_id == "patient_monitor")).scalar()
+        reviews = c.execute(select(func.count()).select_from(S.review_list)).scalar()
+        msgs = c.execute(select(func.count()).select_from(S.agent_message)).scalar()
+    detail = {"patient_monitor": f"{scored} patient-day(s) scored", "review_coordinator": f"{reviews} review(s) assigned",
+              "care": f"{open_alerts} open alert(s), {tasks} open task(s)", "bus": f"{msgs} message(s)"}
     out = []
     for comp in COMPONENTS:
         d = {k: comp[k] for k in ("id", "name", "kind", "role", "inputs", "outputs", "on_failure", "never")}
         h = hbs.get(comp["id"])
         age = None if h is None else max(0.0, now - h.ts)
         alive = bool(h and h.status != "stopped" and age < 3 * hb_s + 10)
-        detail = None
-        if comp["worker"] or comp["id"] == "coordinator":
-            status = "running" if alive else ("missing" if h is None else "stopped")
-            if comp["id"] == "coordinator":
-                detail = f"{open_alerts} open alert(s), {tasks} open task(s)"
-        elif comp["id"] == "investigator":
-            status, detail = ("idle" if cases == 0 else "running"), f"{cases} case file(s)"
-        elif comp["id"] == "triage":
-            status, detail = ("idle" if not last_case else "running"), (f"last day decided {last_case}" if last_case else None)
-        elif comp["id"] == "report":
-            status, detail = ("idle" if reports == 0 else "running"), f"{reports} report(s)"
-        else:
-            status = "n/a"
-        out.append({**d, "status": status, "heartbeat_age_s": None if age is None else round(age, 1), "detail": detail})
+        status = ("running" if alive else ("missing" if h is None else "stopped")) if comp["worker"] else "n/a"
+        out.append({**d, "status": status, "heartbeat_age_s": None if age is None else round(age, 1), "detail": detail.get(comp["id"])})
     return out
 
 
@@ -94,21 +83,6 @@ def task_done(ctx: Ctx, tid: int) -> dict:
         c.execute(S.care_task.update().where(S.care_task.c.id == tid).values(status="DONE", done_ts=time.time()))
         r = c.execute(select(S.care_task).where(S.care_task.c.id == tid)).first()
     return {k: getattr(r, k) for k in ("id", "patient_id", "day", "kind", "title", "detail", "created_by", "created_ts", "due_ts", "status", "alert_id")}
-
-
-def case_file(ctx: Ctx, pid: str, day: Optional[str]) -> Optional[dict]:
-    """The Case Investigator's file, or None when the day (or the patient so far) has none: a normal day has no case file."""
-    if day is None:
-        with ctx.eng.begin() as c:
-            day = c.execute(select(func.max(S.case_state.c.day)).where(S.case_state.c.patient_id == pid)).scalar()
-        if day is None:
-            return None
-    return load_case_file(ctx.eng, pid, day)
-
-
-def team_plan(ctx: Ctx, pid: str, day: Optional[str]) -> Optional[dict]:
-    from echos.team.planner import latest_plan
-    return latest_plan(ctx.eng, pid, day)
 
 
 def messages(ctx: Ctx, pid: Optional[str], limit: int) -> list[dict]:

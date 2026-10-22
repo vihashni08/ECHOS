@@ -21,23 +21,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/patients/{pid}/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Summary */
-        get: operations["summary_api_patients__pid__summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/patients/{pid}/statuses": {
         parameters: {
             query?: never;
@@ -49,152 +32,6 @@ export interface paths {
         get: operations["statuses_api_patients__pid__statuses_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patients/{pid}/vitals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Vitals */
-        get: operations["vitals_api_patients__pid__vitals_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patients/{pid}/reports/daily": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Daily */
-        get: operations["daily_api_patients__pid__reports_daily_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patients/{pid}/reports/weekly": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Weekly */
-        get: operations["weekly_api_patients__pid__reports_weekly_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patients/{pid}/reports/weekly-available": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Weekly Available
-         * @description ISO weeks with a stored weekly report for this patient (the UI builds a missing one instead of probing for a 404).
-         */
-        get: operations["weekly_available_api_patients__pid__reports_weekly_available_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patients/{pid}/reports/weekly/pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Weekly Pdf */
-        get: operations["weekly_pdf_api_patients__pid__reports_weekly_pdf_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patients/{pid}/reports/weekly/build": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Weekly Build
-         * @description Build (or rebuild) the weekly PDF and store it; nothing is emailed.
-         */
-        post: operations["weekly_build_api_patients__pid__reports_weekly_build_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/sources/{sid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Source */
-        get: operations["source_api_sources__sid__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patients/{pid}/reports/weekly/send": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Weekly Send
-         * @description Build (or rebuild) the weekly PDF and email it to the CLINICIAN. Respects alerts.send_real (false = outbox only, DryRun).
-         *     Without `force` a week that was already sent is not sent again.
-         */
-        post: operations["weekly_send_api_patients__pid__reports_weekly_send_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -319,67 +156,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ingest/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Ingest
-         * @description Ingestion contract for ANY source (device, hub, emulator): a batch of activity / vitals / accel / heartbeat events with DATA timestamps.
-         *     Idempotent: an exact repeat counts as a duplicate. If ECHOS_INGEST_TOKEN is set, send it as X-Echos-Token. Limits (config `ingest`): 413 too large / too many events, 411 no Content-Length, 403 unregistered device, 429 rate limit (Retry-After).
-         */
-        post: operations["ingest_api_ingest_events_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/live/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Live Status
-         * @description Data mode (replay / emulator / live), emulator state and, per patient, how fresh each stream is.
-         */
-        get: operations["live_status_api_live_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/live/emulator": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Live Emulator
-         * @description Control the labelled device emulator: load | play | pause | speed | fall.
-         */
-        post: operations["live_emulator_api_live_emulator_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/components": {
         parameters: {
             query?: never;
@@ -412,86 +188,6 @@ export interface paths {
          * @description The message bus: who told whom what (newest first).
          */
         get: operations["agent_messages_api_agents_messages_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agents/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Agents Summary
-         * @description Every detector, agent and infrastructure part: live status, how many actions it has logged and its latest one.
-         */
-        get: operations["agents_summary_api_agents_summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agents/activity": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Agents Activity
-         * @description What the agents did, newest first, from the tables they write. With `patient_id` + `day` (one case) the detector steps are included and the order can be oldest first.
-         */
-        get: operations["agents_activity_api_agents_activity_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patients/{pid}/case": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Case File
-         * @description The Case Investigator's file for a changed or urgent day (latest day if none is given); null when that day has none (a normal day).
-         */
-        get: operations["case_file_api_patients__pid__case_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/patients/{pid}/team-plan": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Team Plan
-         * @description Which agents the Team Planner called for on a day (latest day if none is given) and why; null when no plan was recorded.
-         */
-        get: operations["team_plan_api_patients__pid__team_plan_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -565,61 +261,6 @@ export interface paths {
          * @description Resend ONE outbox row now (uses this API's mailer: DryRun unless alerts.send_real). A row that is already SENT is never re-sent (409).
          */
         post: operations["outbox_retry_api_outbox__outbox_id__retry_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/falls": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Falls */
-        get: operations["falls_api_falls_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/falls/{fid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Fall */
-        get: operations["fall_api_falls__fid__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/sim/fall": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sim Fall
-         * @description Inject a SisFall fall window for a patient at the current simulated time. The response states which SisFall subject it came from and whether
-         *     that subject was in the training set of the model used by the Fall worker (the replay model excludes the held-out subjects) and of the final model.
-         */
-        post: operations["sim_fall_api_sim_fall_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -737,23 +378,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/system/quality": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Sys Quality */
-        get: operations["sys_quality_api_system_quality_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/system/metrics": {
         parameters: {
             query?: never;
@@ -763,23 +387,6 @@ export interface paths {
         };
         /** Sys Metrics */
         get: operations["sys_metrics_api_system_metrics_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/system/llm-budget": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Sys Llm */
-        get: operations["sys_llm_api_system_llm_budget_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -805,36 +412,113 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Review Day
+         * @description The Review Coordinator's list for a day (latest allocated day if none is given), plus the patients it deferred.
+         */
+        get: operations["review_day_api_v2_review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/patients/{pid}/monitor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Monitor Timeline
+         * @description What this person's Patient Monitor saw and concluded, newest day first: readings vs personal usual, urgent / attention flags,
+         *     agitation windows with reasons, the personal event rate with its 95% credible interval, and whether the Coordinator picked them.
+         */
+        get: operations["monitor_timeline_api_v2_patients__pid__monitor_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/reviews/outcome": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review Outcome
+         * @description A clinician's answer after a review (confirmed problem or not). It goes to the Care agent, which passes it to the patient's Patient
+         *     Monitor as FEEDBACK: the monitor updates its personal event rate and episode history from it.
+         */
+        post: operations["review_outcome_api_v2_reviews_outcome_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sim/reading": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sim Reading
+         * @description Demo: inject one vitals reading for a replay patient at the current simulated time. The Patient Monitor checks it at once; a red-flag
+         *     value (NEWS2 red score, BP >= 180/120) becomes an URGENT alert through the Care agent.
+         */
+        post: operations["sim_reading_api_sim_reading_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * V2 Summary
+         * @description Counts for the dashboard header: days scored, urgent alerts, reviews (and how many found a confirmed event), messages per topic.
+         */
+        get: operations["v2_summary_api_v2_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** ActivityEventOut */
-        ActivityEventOut: {
-            /** Ts */
-            ts: number;
-            /** Agent */
-            agent: string;
-            /** Action */
-            action: string;
-            /** Text */
-            text: string;
-            /**
-             * Patient Id
-             * @default
-             */
-            patient_id: string;
-            /**
-             * Day
-             * @default
-             */
-            day: string;
-            /**
-             * Ref
-             * @default
-             */
-            ref: string;
-        };
         /** AgentHealth */
         AgentHealth: {
             /** Agent */
@@ -875,45 +559,6 @@ export interface components {
             payload?: {
                 [key: string]: unknown;
             };
-        };
-        /** AgentPickOut */
-        AgentPickOut: {
-            /** Id */
-            id: string;
-            /** Active */
-            active: boolean;
-            /**
-             * Role
-             * @default
-             */
-            role: string;
-            /** Reason */
-            reason: string;
-            /** Need */
-            need?: number | null;
-            /** Threshold */
-            threshold?: number | null;
-        };
-        /** AgentSummaryOut */
-        AgentSummaryOut: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-            /** Kind */
-            kind: string;
-            /** Status */
-            status: string;
-            /** Detail */
-            detail?: string | null;
-            /** Heartbeat Age S */
-            heartbeat_age_s?: number | null;
-            /** Actions */
-            actions: number;
-            /** Last Ts */
-            last_ts?: number | null;
-            /** Last Text */
-            last_text?: string | null;
         };
         /** AlertAckIn */
         AlertAckIn: {
@@ -990,61 +635,6 @@ export interface components {
             /** Alert Id */
             alert_id?: string | null;
         };
-        /** CaseFileOut */
-        CaseFileOut: {
-            /** Patient Id */
-            patient_id: string;
-            /** Day */
-            day: string;
-            /** Status */
-            status: string;
-            /** Headline */
-            headline: string;
-            /** Evidence Level */
-            evidence_level: string;
-            /** Reasons */
-            reasons?: string[];
-            /** Specifics */
-            specifics?: string[];
-            /** Caveats */
-            caveats?: string[];
-            /** Next Checks */
-            next_checks?: string[];
-            /** Trace */
-            trace?: {
-                [key: string]: unknown;
-            }[];
-            /** Detectors */
-            detectors?: {
-                [key: string]: unknown;
-            };
-            /** History */
-            history?: {
-                [key: string]: unknown;
-            } | null;
-            /** Agreement */
-            agreement?: {
-                [key: string]: unknown;
-            } | null;
-            /**
-             * Disclaimer
-             * @default
-             */
-            disclaimer: string;
-        };
-        /** Completeness */
-        Completeness: {
-            /**
-             * Days
-             * @default 0
-             */
-            days: number;
-            /**
-             * Days With Vitals
-             * @default 0
-             */
-            days_with_vitals: number;
-        };
         /** ComponentOut */
         ComponentOut: {
             /** Id */
@@ -1070,58 +660,6 @@ export interface components {
             /** Detail */
             detail?: string | null;
         };
-        /** DailyReportOut */
-        DailyReportOut: {
-            /** Patient Id */
-            patient_id: string;
-            /** Day */
-            day: string;
-            /** Mode */
-            mode: string;
-            /** Text */
-            text: string;
-            /** Status */
-            status?: string | null;
-            /**
-             * Alerts
-             * @default []
-             */
-            alerts: string[];
-            /**
-             * Changes
-             * @default []
-             */
-            changes: string[];
-            /**
-             * Monitor
-             * @default []
-             */
-            monitor: string[];
-            /** Data Note */
-            data_note?: string | null;
-            /** Doc */
-            doc?: {
-                [key: string]: unknown;
-            } | null;
-            /** Created Ts */
-            created_ts?: number | null;
-            /** Validation */
-            validation?: {
-                [key: string]: unknown;
-            } | null;
-            provenance?: components["schemas"]["Provenance"] | null;
-        };
-        /** DayBand */
-        DayBand: {
-            /** Day */
-            day: string;
-            /** Lo */
-            lo: number;
-            /** Hi */
-            hi: number;
-            /** Base */
-            base: number;
-        };
         /** DayStatus */
         DayStatus: {
             /** Day */
@@ -1130,67 +668,6 @@ export interface components {
             status: string;
             /** Reasons */
             reasons: string[];
-        };
-        /** EmulatorCmdIn */
-        EmulatorCmdIn: {
-            /**
-             * Action
-             * @description load | play | pause | speed | fall
-             */
-            action: string;
-            /** Speed */
-            speed?: number | null;
-            /** Patient Id */
-            patient_id?: string | null;
-            /** Subject */
-            subject?: string | null;
-            /** Activity */
-            activity?: string | null;
-            /** Start Day */
-            start_day?: string | null;
-            /** N Days */
-            n_days?: number | null;
-            /** N Patients */
-            n_patients?: number | null;
-        };
-        /** EmulatorCmdOut */
-        EmulatorCmdOut: {
-            /** Status */
-            status: string;
-            /** Result */
-            result?: {
-                [key: string]: unknown;
-            } | null;
-            /**
-             * Note
-             * @default
-             */
-            note: string;
-        };
-        /** EmulatorOut */
-        EmulatorOut: {
-            /** Status */
-            status: string;
-            /** Speed */
-            speed: number;
-            /** Sim Now */
-            sim_now?: string | null;
-            /**
-             * Cursor
-             * @default 0
-             */
-            cursor: number;
-            /**
-             * Total
-             * @default 0
-             */
-            total: number;
-            /** Start */
-            start?: string | null;
-            /** End */
-            end?: string | null;
-            /** Patients */
-            patients?: string[];
         };
         /** ErrorBody */
         ErrorBody: {
@@ -1203,133 +680,6 @@ export interface components {
         ErrorOut: {
             error: components["schemas"]["ErrorBody"];
         };
-        /** FallDetail */
-        FallDetail: {
-            /** Id */
-            id: number;
-            /** Patient Id */
-            patient_id: string;
-            /** Day */
-            day: string;
-            /** Ts */
-            ts: string;
-            /** Sisfall Subject */
-            sisfall_subject?: string | null;
-            /** Probability */
-            probability: number;
-            /** Probability Text */
-            probability_text: string;
-            /** Peak G */
-            peak_g?: number | null;
-            /** Inactivity */
-            inactivity: boolean;
-            /** Day Status */
-            day_status?: string | null;
-            /** Alert Status */
-            alert_status?: string | null;
-            /** Inactivity Observed S */
-            inactivity_observed_s?: number | null;
-            /** Inactivity Required S */
-            inactivity_required_s?: number | null;
-            /** Threshold */
-            threshold?: number | null;
-            /**
-             * Injected
-             * @default false
-             */
-            injected: boolean;
-            /** In Training Set Of Worker Model */
-            in_training_set_of_worker_model?: boolean | null;
-            /** In Training Set Of Final Model */
-            in_training_set_of_final_model?: boolean | null;
-            waveform?: components["schemas"]["Waveform"] | null;
-            alert?: components["schemas"]["AlertOut"] | null;
-            /**
-             * Outbox
-             * @default []
-             */
-            outbox: components["schemas"]["OutboxOut"][];
-        };
-        /** FallItem */
-        FallItem: {
-            /** Id */
-            id: number;
-            /** Patient Id */
-            patient_id: string;
-            /** Day */
-            day: string;
-            /** Ts */
-            ts: string;
-            /** Sisfall Subject */
-            sisfall_subject?: string | null;
-            /** Probability */
-            probability: number;
-            /** Probability Text */
-            probability_text: string;
-            /** Peak G */
-            peak_g?: number | null;
-            /** Inactivity */
-            inactivity: boolean;
-            /** Day Status */
-            day_status?: string | null;
-            /** Alert Status */
-            alert_status?: string | null;
-        };
-        /** IngestBatch */
-        IngestBatch: {
-            /** Events */
-            events: components["schemas"]["IngestEvent"][];
-        };
-        /** IngestEvent */
-        IngestEvent: {
-            /** Patient Id */
-            patient_id: string;
-            /**
-             * Device Id
-             * @default device-1
-             */
-            device_id: string;
-            /**
-             * Ts
-             * Format: date-time
-             */
-            ts: string;
-            /**
-             * Kind
-             * @enum {string}
-             */
-            kind: "vitals" | "accel" | "heartbeat";
-            /** Device Type */
-            device_type?: string | null;
-            /** Value */
-            value?: number | null;
-            /** Unit */
-            unit?: string | null;
-            /** Fs */
-            fs?: number | null;
-            /** Samples */
-            samples?: number[][] | null;
-            /**
-             * Source
-             * @default device
-             * @enum {string}
-             */
-            source: "device" | "hub" | "emulator";
-        };
-        /** IngestResultOut */
-        IngestResultOut: {
-            /** Accepted */
-            accepted: number;
-            /** Duplicates */
-            duplicates: number;
-            /**
-             * Rejected
-             * @default 0
-             */
-            rejected: number;
-            /** Patients */
-            patients: string[];
-        };
         /** KillOut */
         KillOut: {
             /** Agent */
@@ -1341,61 +691,12 @@ export interface components {
             /** Recovery S */
             recovery_s?: number | null;
         };
-        /** LLMBudgetOut */
-        LLMBudgetOut: {
-            /** Models */
-            models: components["schemas"]["ModelBudget"][];
-            /** Cache Hits */
-            cache_hits: number;
-            /** Model Requests */
-            model_requests: number;
-            /** Cache Hit Rate */
-            cache_hit_rate?: number | null;
-            /** Recent Events */
-            recent_events: {
-                [key: string]: unknown;
-            }[];
-        };
         /** LimitationsOut */
         LimitationsOut: {
             /** Source */
             source: string;
             /** Text */
             text: string;
-        };
-        /** LivePatientOut */
-        LivePatientOut: {
-            /** Patient Id */
-            patient_id: string;
-            /** Last Event Ts */
-            last_event_ts?: string | null;
-            /** Open Day */
-            open_day?: string | null;
-            /** Status */
-            status?: string | null;
-            /**
-             * Provisional
-             * @default true
-             */
-            provisional: boolean;
-            /** As Of */
-            as_of?: string | null;
-            /** Streams */
-            streams?: {
-                [key: string]: components["schemas"]["StreamOut"];
-            };
-        };
-        /** LiveStatusOut */
-        LiveStatusOut: {
-            /** Mode */
-            mode: string;
-            /** Label */
-            label: string;
-            emulator?: components["schemas"]["EmulatorOut"] | null;
-            /** Patients */
-            patients?: components["schemas"]["LivePatientOut"][];
-            /** Now */
-            now: number;
         };
         /** LoginIn */
         LoginIn: {
@@ -1411,22 +712,54 @@ export interface components {
                 [key: string]: unknown;
             };
         };
-        /** ModelBudget */
-        ModelBudget: {
-            /** Model */
-            model: string;
-            /** Rpm Limit */
-            rpm_limit?: number | null;
-            /** Effective Rpm Cap */
-            effective_rpm_cap?: number | null;
-            /** Requests Last Minute */
-            requests_last_minute: number;
-            /** Requests Last 24H */
-            requests_last_24h: number;
-            /** Cooldown Remaining S */
-            cooldown_remaining_s: number;
-            /** Failures Last 24H */
-            failures_last_24h: number;
+        /** MonitorDay */
+        MonitorDay: {
+            /** Day */
+            day: string;
+            /** Status */
+            status?: string | null;
+            /**
+             * Vitals
+             * @default {}
+             */
+            vitals: {
+                [key: string]: unknown;
+            };
+            /**
+             * Urgent
+             * @default []
+             */
+            urgent: string[];
+            /**
+             * Attention
+             * @default []
+             */
+            attention: string[];
+            /**
+             * Agitation
+             * @default []
+             */
+            agitation: {
+                [key: string]: unknown;
+            }[];
+            /** Agitation Max */
+            agitation_max?: number | null;
+            /** Vitals Risk */
+            vitals_risk?: number | null;
+            /** Rate */
+            rate?: number | null;
+            /** Rate Ci95 */
+            rate_ci95?: number[] | null;
+            /**
+             * Reasons
+             * @default []
+             */
+            reasons: string[];
+            /**
+             * Reviewed
+             * @description rank on the review list that day, if selected
+             */
+            reviewed?: number | null;
         };
         /** OutboxOut */
         OutboxOut: {
@@ -1482,8 +815,24 @@ export interface components {
              * @default dry_run
              */
             delivery: string;
-            /** Body */
-            body?: string | null;
+        };
+        /** OutcomeIn */
+        OutcomeIn: {
+            /** Patient Id */
+            patient_id: string;
+            /** Day */
+            day: string;
+            /**
+             * Vitals Event
+             * @description the clinician confirmed a BP / pulse problem
+             * @default false
+             */
+            vitals_event: boolean;
+            /**
+             * Agitation Windows
+             * @description window end times (ISO) with confirmed agitation
+             */
+            agitation_windows?: string[];
         };
         /** Page[AlertOut] */
         Page_AlertOut_: {
@@ -1500,17 +849,6 @@ export interface components {
         Page_CareTaskOut_: {
             /** Items */
             items: components["schemas"]["CareTaskOut"][];
-            /** Total */
-            total: number;
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-        };
-        /** Page[FallItem] */
-        Page_FallItem_: {
-            /** Items */
-            items: components["schemas"]["FallItem"][];
             /** Total */
             total: number;
             /** Limit */
@@ -1556,94 +894,85 @@ export interface components {
             last_alert_time?: string | null;
             /** Last Alert Type */
             last_alert_type?: string | null;
-            /** Attention Kind */
-            attention_kind?: string | null;
-            completeness: components["schemas"]["Completeness"];
-        };
-        /** Provenance */
-        Provenance: {
             /**
-             * Model
-             * @default template
-             */
-            model: string;
-            /**
-             * Mode
-             * @default template
-             */
-            mode: string;
-            /**
-             * Cache Hit
-             * @default false
-             */
-            cache_hit: boolean;
-            /**
-             * Tools
-             * @default []
-             */
-            tools: {
-                [key: string]: unknown;
-            }[];
-            /**
-             * Sources Retrieved
-             * @default []
-             */
-            sources_retrieved: {
-                [key: string]: unknown;
-            }[];
-            /**
-             * Sources Cited
-             * @default []
-             */
-            sources_cited: string[];
-            /** Validator */
-            validator?: {
-                [key: string]: unknown;
-            } | null;
-            /** Fallback Reason */
-            fallback_reason?: string | null;
-            /**
-             * Requests
+             * Days
              * @default 0
              */
-            requests: number;
+            days: number;
             /**
-             * Tokens
-             * @default {}
+             * Reviews
+             * @default 0
              */
-            tokens: {
-                [key: string]: number;
-            };
-            /**
-             * Models Tried
-             * @default []
-             */
-            models_tried: string[];
-            /**
-             * Events
-             * @default []
-             */
-            events: {
-                [key: string]: unknown;
-            }[];
-            /**
-             * Retrieval Events
-             * @default []
-             */
-            retrieval_events: string[];
-            /** Pubmed Failure */
-            pubmed_failure?: string | null;
+            reviews: number;
         };
-        /** QualityOut */
-        QualityOut: {
-            /** Live */
-            live: {
-                [key: string]: unknown;
-            };
-            /** Static */
-            static?: {
-                [key: string]: unknown;
-            } | null;
+        /** ReadingIn */
+        ReadingIn: {
+            /** Patient Id */
+            patient_id: string;
+            /** Sys */
+            sys?: number | null;
+            /** Dia */
+            dia?: number | null;
+            /** Hr */
+            hr?: number | null;
+            /** Temp */
+            temp?: number | null;
+        };
+        /** ReviewDay */
+        ReviewDay: {
+            /** Day */
+            day: string | null;
+            /** K */
+            k: number;
+            /** Items */
+            items: components["schemas"]["ReviewItem"][];
+            /**
+             * Deferred
+             * @default []
+             */
+            deferred: string[];
+            /**
+             * Days
+             * @default []
+             */
+            days: string[];
+        };
+        /** ReviewItem */
+        ReviewItem: {
+            /** Day */
+            day: string;
+            /** Patient Id */
+            patient_id: string;
+            /** Rank */
+            rank: number;
+            /**
+             * Reason
+             * @description 'priority' (highest lift) or 'fairness' (not reviewed for >= review.fairness_days)
+             */
+            reason: string;
+            /**
+             * Priority
+             * @description max(vitals risk / its base rate, agitation risk / its base rate)
+             */
+            priority: number;
+            /** Vitals Risk */
+            vitals_risk?: number | null;
+            /** Agitation Risk */
+            agitation_risk?: number | null;
+            /** Lift Vitals */
+            lift_vitals?: number | null;
+            /** Lift Agitation */
+            lift_agitation?: number | null;
+            /**
+             * Why
+             * @default []
+             */
+            why: string[];
+            /**
+             * Outcome
+             * @description CONFIRMED / NO_EVENT once the clinician (or the TIHM record in replay) has answered
+             */
+            outcome?: string | null;
         };
         /** SimControlIn */
         SimControlIn: {
@@ -1657,49 +986,6 @@ export interface components {
              * @description events per second, for action=speed
              */
             speed?: number | null;
-        };
-        /** SimFallIn */
-        SimFallIn: {
-            /** Patient Id */
-            patient_id: string;
-            /**
-             * Subject
-             * @description optional held-out SisFall subject (SA03, SA11, SA19, SE06)
-             */
-            subject?: string | null;
-            /**
-             * Activity
-             * @description optional SisFall fall type, e.g. F02 (default: random)
-             */
-            activity?: string | null;
-        };
-        /** SimFallOut */
-        SimFallOut: {
-            /** Command Id */
-            command_id: number;
-            /**
-             * Status
-             * @enum {string}
-             */
-            status: "DONE" | "QUEUED";
-            /** Patient Id */
-            patient_id: string;
-            /** Day */
-            day?: string | null;
-            /** Event Id */
-            event_id?: number | null;
-            /** Sisfall Subject */
-            sisfall_subject: string;
-            /** Activity */
-            activity: string;
-            /** File */
-            file: string;
-            /** In Training Set Of Worker Model */
-            in_training_set_of_worker_model: boolean;
-            /** In Training Set Of Final Model */
-            in_training_set_of_final_model: boolean;
-            /** Note */
-            note: string;
         };
         /** SimStateOut */
         SimStateOut: {
@@ -1721,54 +1007,6 @@ export interface components {
             /** Runtime Alive */
             runtime_alive: boolean;
         };
-        /** SourceOut */
-        SourceOut: {
-            /** Id */
-            id: string;
-            /** Origin */
-            origin: string;
-            /** Title */
-            title: string;
-            /** Source */
-            source: string;
-            /** Year */
-            year?: string | null;
-            /** Page */
-            page?: string | null;
-            /** Journal */
-            journal?: string | null;
-            /** Url */
-            url?: string | null;
-            /** Excerpt */
-            excerpt?: string | null;
-        };
-        /** StreamOut */
-        StreamOut: {
-            /** Last Wall Age S */
-            last_wall_age_s?: number | null;
-            /** State */
-            state: string;
-        };
-        /** SummaryOut */
-        SummaryOut: {
-            /** Patient Id */
-            patient_id: string;
-            /** Day */
-            day: string;
-            /** Status */
-            status: string;
-            /** Status Text */
-            status_text: string;
-            /** Reasons */
-            reasons: string[];
-            /**
-             * Alerts
-             * @default []
-             */
-            alerts: string[];
-            /** Data Note */
-            data_note?: string | null;
-        };
         /** SystemConfigOut */
         SystemConfigOut: {
             /**
@@ -1782,178 +1020,6 @@ export interface components {
             dry_run_mail: boolean;
             /** Llm Enabled */
             llm_enabled: boolean;
-        };
-        /**
-         * TeamPlanOut
-         * @description The Team Planner's record for one patient-day: which of the four agents the case needed and why (a ratio and a cutoff, not a model).
-         */
-        TeamPlanOut: {
-            /** Patient Id */
-            patient_id: string;
-            /** Day */
-            day: string;
-            /** Status */
-            status: string;
-            /** Team Size */
-            team_size: number;
-            /** Max Llm Requests */
-            max_llm_requests: number;
-            /** Summary */
-            summary: string;
-            /** Agents */
-            agents: components["schemas"]["AgentPickOut"][];
-            /**
-             * Rules Version
-             * @default
-             */
-            rules_version: string;
-            /** Needs */
-            needs?: {
-                [key: string]: unknown;
-            };
-            /** Thresholds */
-            thresholds?: {
-                [key: string]: unknown;
-            };
-            /**
-             * Watch
-             * @default false
-             */
-            watch: boolean;
-            /** Closest */
-            closest?: string | null;
-        };
-        /** VitalPoint */
-        VitalPoint: {
-            /** T */
-            t: string;
-            /** Value */
-            value: number;
-            /** Flagged */
-            flagged: boolean;
-            /** Base */
-            base?: number | null;
-            /** Lo */
-            lo?: number | null;
-            /** Hi */
-            hi?: number | null;
-        };
-        /** VitalSeries */
-        VitalSeries: {
-            /** Name */
-            name: string;
-            /** Unit */
-            unit: string;
-            /** Baseline Established */
-            baseline_established: boolean;
-            /** Baseline Note */
-            baseline_note?: string | null;
-            /** Points */
-            points: components["schemas"]["VitalPoint"][];
-            /** Bands */
-            bands: components["schemas"]["DayBand"][];
-        };
-        /** VitalsOut */
-        VitalsOut: {
-            /** Patient Id */
-            patient_id: string;
-            /** Start */
-            start: string;
-            /** End */
-            end: string;
-            /** Min History Readings */
-            min_history_readings: number;
-            /** Series */
-            series: {
-                [key: string]: components["schemas"]["VitalSeries"];
-            };
-        };
-        /** Waveform */
-        Waveform: {
-            /** Fs Hz */
-            fs_hz: number;
-            /** Downsample Stride */
-            downsample_stride: number;
-            /** T S */
-            t_s: number[];
-            /** X G */
-            x_g: number[];
-            /** Y G */
-            y_g: number[];
-            /** Z G */
-            z_g: number[];
-            /** Magnitude G */
-            magnitude_g: number[];
-            /** Impact Index */
-            impact_index: number;
-            /** Impact Time S */
-            impact_time_s: number;
-        };
-        /** WeeklyReportOut */
-        WeeklyReportOut: {
-            /** Patient Id */
-            patient_id: string;
-            /** Week */
-            week: string;
-            /** Week Start */
-            week_start: string;
-            /** Week End */
-            week_end: string;
-            /** Mode */
-            mode: string;
-            /** Narrative */
-            narrative?: string | null;
-            /** Provenance */
-            provenance?: {
-                [key: string]: unknown;
-            } | null;
-            /** Validation */
-            validation?: {
-                [key: string]: unknown;
-            } | null;
-            /** Pdf Available */
-            pdf_available: boolean;
-            /** Pdf Pages */
-            pdf_pages?: number | null;
-            /** Data */
-            data?: {
-                [key: string]: unknown;
-            } | null;
-            /** Findings */
-            findings?: {
-                [key: string]: unknown;
-            }[] | null;
-            /** Considerations */
-            considerations?: {
-                [key: string]: unknown;
-            }[] | null;
-        };
-        /** WeeklySendIn */
-        WeeklySendIn: {
-            /**
-             * Force
-             * @default false
-             */
-            force: boolean;
-        };
-        /** WeeklySendOut */
-        WeeklySendOut: {
-            /** Patient Id */
-            patient_id: string;
-            /** Week */
-            week: string;
-            /** Queued */
-            queued: boolean;
-            /** Deduplicated */
-            deduplicated: boolean;
-            /** Alert Id */
-            alert_id?: string | null;
-            /** Send Real */
-            send_real: boolean;
-            /** Mode */
-            mode: string;
-            /** Outbox */
-            outbox: components["schemas"]["OutboxOut"][];
         };
     };
     responses: never;
@@ -2023,66 +1089,6 @@ export interface operations {
             };
         };
     };
-    summary_api_patients__pid__summary_get: {
-        parameters: {
-            query?: {
-                day?: string | null;
-            };
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SummaryOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
     statuses_api_patients__pid__statuses_get: {
         parameters: {
             query?: {
@@ -2103,486 +1109,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DayStatus"][];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    vitals_api_patients__pid__vitals_get: {
-        parameters: {
-            query?: {
-                from?: string | null;
-                to?: string | null;
-            };
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VitalsOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    daily_api_patients__pid__reports_daily_get: {
-        parameters: {
-            query?: {
-                day?: string | null;
-            };
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DailyReportOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    weekly_api_patients__pid__reports_weekly_get: {
-        parameters: {
-            query?: {
-                /** @description ISO week, e.g. 2019-W19 */
-                week?: string | null;
-            };
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WeeklyReportOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    weekly_available_api_patients__pid__reports_weekly_available_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string[];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    weekly_pdf_api_patients__pid__reports_weekly_pdf_get: {
-        parameters: {
-            query?: {
-                week?: string | null;
-            };
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    weekly_build_api_patients__pid__reports_weekly_build_post: {
-        parameters: {
-            query?: {
-                week?: string | null;
-            };
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WeeklyReportOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    source_api_sources__sid__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                sid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SourceOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    weekly_send_api_patients__pid__reports_weekly_send_post: {
-        parameters: {
-            query?: {
-                week?: string | null;
-            };
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["WeeklySendIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WeeklySendOut"];
                 };
             };
             /** @description Forbidden */
@@ -2981,184 +1507,6 @@ export interface operations {
             };
         };
     };
-    ingest_api_ingest_events_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                "x-echos-token"?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["IngestBatch"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IngestResultOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    live_status_api_live_status_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LiveStatusOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    live_emulator_api_live_emulator_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EmulatorCmdIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EmulatorCmdOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
     components_api_components_get: {
         parameters: {
             query?: never;
@@ -3234,244 +1582,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentMessageOut"][];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    agents_summary_api_agents_summary_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentSummaryOut"][];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    agents_activity_api_agents_activity_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                agent?: string | null;
-                patient_id?: string | null;
-                day?: string | null;
-                oldest_first?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActivityEventOut"][];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    case_file_api_patients__pid__case_get: {
-        parameters: {
-            query?: {
-                day?: string | null;
-            };
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CaseFileOut"] | null;
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    team_plan_api_patients__pid__team_plan_get: {
-        parameters: {
-            query?: {
-                day?: string | null;
-            };
-            header?: never;
-            path: {
-                pid: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamPlanOut"] | null;
                 };
             };
             /** @description Forbidden */
@@ -3709,183 +1819,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OutboxOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    falls_api_falls_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Page_FallItem_"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    fall_api_falls__fid__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                fid: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FallDetail"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    sim_fall_api_sim_fall_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SimFallIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SimFallOut"];
                 };
             };
             /** @description Forbidden */
@@ -4275,66 +2208,10 @@ export interface operations {
             };
         };
     };
-    sys_quality_api_system_quality_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["QualityOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
     sys_metrics_api_system_metrics_get: {
         parameters: {
             query?: {
-                /** @description comma-separated metrics file names (default model_selection,calibration,fall_audit) */
+                /** @description comma-separated metrics file names (default: the v2_* evaluation files) */
                 names?: string | null;
             };
             header?: never;
@@ -4350,62 +2227,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MetricsOut"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorOut"];
-                };
-            };
-        };
-    };
-    sys_llm_api_system_llm_budget_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LLMBudgetOut"];
                 };
             };
             /** @description Forbidden */
@@ -4462,6 +2283,300 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LimitationsOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    review_day_api_v2_review_get: {
+        parameters: {
+            query?: {
+                day?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDay"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    monitor_timeline_api_v2_patients__pid__monitor_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorDay"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    review_outcome_api_v2_reviews_outcome_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutcomeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    sim_reading_api_sim_reading_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    v2_summary_api_v2_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Forbidden */

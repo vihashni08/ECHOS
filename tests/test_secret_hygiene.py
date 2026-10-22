@@ -25,8 +25,7 @@ def test_outbox_error_and_logs_have_no_password_or_full_address(tmp_path, monkey
     clock = Clock()
     d = AlertDispatcher(eng, Leaky(), to={"caregiver": ADDR, "clinician": "doc@example.test"}, threaded=False, clock=clock)
     with caplog.at_level(logging.DEBUG):
-        d.dispatch(P.AlertPayload(alert_id="p1|2019-05-05|fall|1", alert_type="FALL", patient_id="p1", event_time="2019-05-05T10:00:00", event_id=1,
-                                  fall_probability=0.97, peak_impact_g=5.2, post_fall_inactivity=True))
+        d.dispatch(P.AlertPayload(alert_id="p1|2019-05-05|critical_vitals|1", patient_id="p1", event_time="2019-05-05T10:00:00", event_id=1))
         d.drive(clock() + 2000)
     with eng.begin() as c:
         errs = [r.error for r in c.execute(select(S.outbox)) if r.error]

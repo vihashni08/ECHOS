@@ -7,7 +7,7 @@
   <key>Label</key><string>com.echos</string>
   <key>WorkingDirectory</key><string>__ECHOS_DIR__</string>
   <key>ProgramArguments</key><array>
-    <string>/bin/bash</string><string>__ECHOS_DIR__/scripts/run_api.sh</string><string>--mode</string><string>live</string><string>--dry</string><string>--no-llm</string>
+    <string>/bin/bash</string><string>__ECHOS_DIR__/scripts/run_api.sh</string><string>--dry</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>

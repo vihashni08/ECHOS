@@ -156,6 +156,7 @@ def test_v2_api(eng, models_dir, tmp_path):
     from echos.api.services import Ctx
     app = create_app(Ctx(eng=eng))
     cl = TestClient(app)
+    assert [p["patient_id"] for p in cl.get("/api/patients").json()["items"]] == ["p1", "p2", "p3"]     # no empty id from day_close events
     r = cl.get("/api/v2/review").json()
     assert r["day"] == "2019-05-06" and len(r["items"]) == 1 and r["items"][0]["outcome"] in ("CONFIRMED", "NO_EVENT")
     t = cl.get("/api/v2/patients/p1/monitor").json()
@@ -166,3 +167,27 @@ def test_v2_api(eng, models_dir, tmp_path):
     assert bus.poll(eng, "care", ["clinician_outcome"])[0]["payload"]["vitals_event"] is True
     s = cl.get("/api/v2/summary").json()
     assert s["urgent_alerts"] == 1 and s["reviews"] == 6
+    ev = cl.get("/api/events", params={"last_event_id": 0, "max_seconds": 1.5}).text      # the SSE stream replays the feed (alerts, review lists, messages)
+    assert ": connected" in ev and "event: review_list" in ev and "event: alert" in ev
+
+
+def test_replay_controller_resumes_after_a_restart(tmp_path):
+    from echos.sim.controller import SimController
+    eng = S.get_engine(tmp_path / "r.db")
+    ev = _events(days=3)
+    c1 = SimController(eng, builder=lambda: ev)
+    c1.handle("play", {})
+    for _ in range(10):
+        c1.emit_next()
+    c2 = SimController(eng, builder=lambda: ev)          # the runtime was restarted by the watchdog
+    assert c2.resume() == 10 and c2.status == "paused" and c2.cursor == 10
+    c2.handle("play", {})
+    while c2.emit_next():
+        pass
+    with eng.begin() as c:
+        assert c.execute(select(func.count()).select_from(S.event_log)).scalar() == len(ev)     # nothing written twice
+
+
+def test_components_doc_is_up_to_date():
+    from scripts.docgen.make_components_doc import ROOT as R, render
+    assert (R / "docs" / "COMPONENTS.md").read_text() == render(), "run: PYTHONPATH=. python scripts/docgen/make_components_doc.py"

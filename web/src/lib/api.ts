@@ -12,11 +12,8 @@ client.use({
 
 export type Schemas = components["schemas"]
 export type Patient = Schemas["PatientOut"]
-export type FallItem = Schemas["FallItem"]
-export type FallDetail = Schemas["FallDetail"]
 export type Outbox = Schemas["OutboxOut"]
 export type AlertRow = Schemas["AlertOut"]
-export type Vitals = Schemas["VitalsOut"]
 export type AgentHealth = Schemas["AgentHealth"]
 export type Component = Schemas["ComponentOut"]
 
@@ -44,5 +41,3 @@ export async function call<T>(p: Promise<{ data?: T; error?: unknown; response: 
   }
 }
 
-export type AgentSummary = Schemas["AgentSummaryOut"]
-export type ActivityEvent = Schemas["ActivityEventOut"]

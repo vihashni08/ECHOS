@@ -1,70 +1,57 @@
-# 5-minute demo
+# Demo script (about 10 minutes)
 
-Everything is offline: dry-run mail (nothing is sent), no Gemini, no live PubMed. Two modes; the badge in the header always says which one you are in.
-
-## Start the live / emulator mode (the main demo)
-
-One command: `scripts/start.sh --live --fresh` (then open the printed web URL). Or by hand:
-
-Terminal 1, from the repo root (fresh database; the first start also builds the replay fall model):
+## Before the demo
 ```bash
-rm -f data/echos_live_dev.db data/echos_live_dev.db-wal data/echos_live_dev.db-shm
-scripts/run_api.sh --dry --no-llm --demo --mode live --db data/echos_live_dev.db
+scripts/start.sh
 ```
-Terminal 2:
-```bash
-cd web && npm run dev
-```
-Open **http://localhost:5173** (use `localhost`, not `127.0.0.1`).
 
-| Min | Show | Say |
-|---|---|---|
-| 0:00 | **Today** (empty) | "ECHOS watches the sensors and vitals of older people at home and tells carers what needs action. The badge says EMULATOR: a labelled device emulator replays real TIHM sensor events in real time; it is not a real device. Real devices would use the same ingestion API." |
-| 0:30 | **Demo tools** -> *Start* | "Events arrive; each person gets a status as the data comes in. A day stays provisional until it closes." Point at *Is the data arriving?* and *What the agents are doing*. |
-| 1:15 | **How it works** | "Three detectors sense; four agents act: Triage decides with plain rules, the Case Investigator builds a case file, the Care Coordinator owns the alert until someone acts, the Report agent words it. They talk over a message bus." Show a detector card (Never: ...) and the bus. |
-| 2:00 | **Demo tools** -> *Inject a fall now* | "A SisFall recording is written as one accelerometer event at the patient's current data time. The URGENT alert is queued before any other work: fixed template, no LLM." Back on **Today**: the alert card, the escalation countdown. |
-| 2:45 | **Open case** (People -> the person) | "How this decision was made": headline, evidence level (not a probability), suggested next checks, and the Investigator's step-by-step trace. |
-| 3:30 | **Acknowledge** | "Acknowledging stops the escalation timer; the Care Coordinator opens a check-in task. If nobody acknowledges, the same alert goes to a second contact." (Alerts page: delivery log, tasks.) |
-| 4:15 | **Today** -> *Data needs checking* (only shown when a person has gone more than 7 days without a vitals reading; the 4-patient demo data usually has none, then skip this line) | "A day with only data problems is a device to check, not a change in the person; it can never be Normal." |
-| 4:40 | **System** -> limitations | "What we do not claim: clinical validity, forecasting, novelty. Small cohort, simulated falls, no real device." |
+Open http://localhost:5173 and check that the top bar says **REPLAY** and **Live**. Mail is a dry run: nothing leaves the machine.
 
-## One-week demo (critical alert + fall + daily and weekly reports)
+## 1. The problem (1 min), on How it works
+- A small clinical team cannot read every reading from every home. The question each morning is who to look at, and why.
+- **Label audit:** 88% of days with BP ≥ 160/100 are labelled, so "detecting" the labels from the same day's readings would be circular. That is why ECHOS ranks people for review and only alerts on red flags.
 
-```bash
-scripts/start.sh --week-demo
-```
-Open http://localhost:5173, then **Demo tools -> Play**. One person (46286), Mon 2019-05-27 to Sun 2019-06-02, built fresh each start (`data/echos_week_demo.db`, dry-run mail with dummy addresses, no LLM): an injected fall on day 1, critical low blood pressure readings on 4 days, 7 daily reports and the weekly PDF (written when Sunday closes). Window and patient come from `ECHOS_DEMO_PATIENTS / _START / _FALLS` (echos/sim/replay.py).
+## 2. Start the agents (1 min)
+1. Open **Demo tools** and choose 20 events/s.
+2. Press **Play**.
+3. Close the sheet.
+4. Open **Agents**: three processes, alive, with heartbeats.
+5. The **message trace** fills up. Point out:
+   - `review request` (Patient Monitor → Review Coordinator)
+   - `feedback` (Care agent → Patient Monitor)
+   - `assign review` (Review Coordinator → Care agent)
 
-### Same week with REAL services (e-mail, Gemini, PubMed)
+## 3. Today (2 min)
+- **Review list.** Four people are ranked by how far a risk is above its base rate. Read one card's reasons aloud: "agitation risk 24% in the afternoon window: fridge door 62 (usual-adjusted z +4.4)…" or "17 confirmed BP/pulse event days in 26 days: personal rate 60% (95% CI 42–77%)".
+- **Fairness.** A patient unseen for a week is picked even with a low score.
+- **Urgent alerts.** Point out the escalation countdown.
 
-```bash
-scripts/start.sh --week-demo --real --yes
-```
-Needs these names set in `.env`: `ECHOS_LLM_API_KEY`, `ECHOS_NCBI_EMAIL`, `ECHOS_CAREGIVER_EMAIL`, `ECHOS_CLINICIAN_EMAIL`, `ECHOS_SMTP_HOST`, `ECHOS_SMTP_USER`, `ECHOS_SMTP_PASSWORD` (a preflight lists any that are missing; values are never printed). Real alert and weekly e-mails are sent, daily reports and the weekly narrative use Gemini, MONITOR / URGENT days fetch PubMed. It applies to this run only (`ECHOS_SEND_REAL=1`, `ECHOS_WEEKLY_LLM=1`); `config.yaml` keeps the dry-run defaults. Alert mails carry an "I have seen this" link: `--real` makes a random `ECHOS_LINK_SECRET` per run and sets `ECHOS_PUBLIC_URL` to the API (`http://127.0.0.1:8000`), so the link opens on the presenting machine; preset either variable to use your own. Opening it acknowledges the alert and stops the escalation timer (fall 300 s, critical vitals 1800 s; an unacknowledged alert then goes to `ECHOS_ESCALATION_EMAIL`, set it to show escalation). Before a presentation check the mail path once with `PYTHONPATH=. python scripts/realservices/send_test_email.py --yes`.
+## 4. One person (2 min)
+Open **Patients** and choose 46286.
+- **BP and pulse** against their own usual. The dashed line starts at the population average and moves to their own level (cold start), and red-flag readings are marked.
+- **The 3-day risk climbs** as confirmed events arrive. This is the Patient Monitor learning from the feedback.
+- **The day log and their agent messages.**
 
-### Short LIVE demo (emulator): one person, 2 data days, about 1 minute
+## 5. Red flag → URGENT (1 min)
+1. Open **Demo tools** → **Inject a reading**.
+2. Choose a patient and "Severe high BP 192/124", then press **Inject**.
+3. Open **Alerts**: the new red-flag alert, queued about 0.2 s after the reading.
+4. Press **I have seen this**: the escalation timer stops.
 
-```bash
-scripts/start.sh --live-demo              # dry-run mail, no LLM / PubMed (rehearsal)
-scripts/start.sh --live-demo --real --yes # real e-mail, Gemini and PubMed
-```
-Person 46286 from Tue 2019-05-28 (readings arrive one by one; the critical blood-pressure reading alerts when it arrives). Press **Demo tools -> Start**, then **Inject a fall now** (works as soon as the emulator is loaded). Exactly two alerts and four mails in total: one critical-vitals and one fall alert, each to caregiver and clinician. Fresh database `data/echos_live_demo.db` each start. Pages: Today, Alerts, Patient, Daily report, Weekly report; the day or range you are looking at never moves by itself, a newer day only offers a button.
+## 6. Crash an agent (1 min)
+1. On **Agents**, kill the Patient Monitor.
+2. About 12 s later: "alive again", restarts: 1.
+3. Nothing was lost. The kill test (`reports/metrics/v2_runtime.json`) shows identical review picks and alerts with and without the crash.
 
-## Replay mode (evaluation)
+## 7. Results and limits (2 min), on How it works
+- **Agitation:** PR-AUC 0.27 vs 0.016 chance; 88 of 135 episodes caught.
+- **BP / pulse priority:** 0.62 vs 0.28; better than the study's own threshold rule.
+- **Coordinator:** 0.45 vs 0.25 events per review.
+- **Limits:** 41–56 patients over 3 months; labels are confirmed alerts; no forecasting of new episodes; replay, not live patients.
 
-```bash
-scripts/make_ui_dev_copy.sh
-scripts/run_api.sh --dry --no-llm --demo --db data/echos_ui_dev.db
-```
-Same web app. *Demo tools* then holds the simulation controls and, with `--demo`, the agent kill switch; the **Demo guide** walks through reset and play, a fall, killing the Fall detector worker and the weekly report. `reports/metrics/kill_test.json` has the measured recovery (detect 2.8 s, recover 3.9 s).
-
-## If something fails
-
-| Problem | Do |
+## If something goes wrong
+| Problem | Fix |
 |---|---|
-| The UI shows no data or "API not reachable" | Check terminal 1; open http://127.0.0.1:8000/docs. Use `localhost:5173`, not an IP. |
-| "runtime not running" in the header | The runtime process died; restart `scripts/run_api.sh`. |
-| Port in use | Stop the process that holds 8000 (API) or 5173 (UI). |
-| Emulator never starts | Press *Start* in Demo tools; the first start loads TIHM raw files (a few seconds). |
-| Fall is not URGENT | A flagged fall without post-fall inactivity is only MONITOR (by design). Inject again; the API picks a random held-out recording. |
-| Vite will not start | `cd web && npm ci`; or show `web/screenshots/` (`node scripts/ui_screenshots.mjs`). |
+| "API not reachable" banner | Restart `scripts/start.sh` |
+| Play says the store holds events | Use **Reset** in Demo tools (or restart; the demo database starts fresh) |
+| Charts are empty | The replay has not reached that person yet |

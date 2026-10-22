@@ -25,8 +25,8 @@ agent_output = Table("agent_output", md, Column("event_id", Integer, primary_key
 case_state = Table("case_state", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True),
                    Column("status", String), Column("data_gap", Boolean), Column("days_since_vitals", Integer),
                    Column("reasons", Text), Column("report", String), Column("updated_ts", Float),
-                   Column("as_of", String),            # live mode: data time of the latest decision for this (still open) day
-                   Column("provisional", Boolean))     # live mode: True while the day is open (the day row is final when the day closes)
+                   Column("as_of", String),            # kept for databases created by v1
+                   Column("provisional", Boolean))
 alerts = Table("alerts", md, Column("alert_id", String, primary_key=True),   # unique per event: patient|day|type|event_id
                Column("patient_id", String, index=True), Column("type", String), Column("time", Float),
                Column("payload", Text), Column("status", String, default="PENDING"),   # PENDING / SENT / FAILED: derived from the outbox
@@ -40,18 +40,9 @@ outbox = Table("outbox", md, Column("outbox_id", Integer, primary_key=True, auto
                Column("attachment_name", String), Column("attachment_path", String),   # weekly report PDF
                Column("next_attempt_time", Float), Column("last_attempt_time", Float), Column("window_start", Float),   # retry state (alert emails): survives a restart
                UniqueConstraint("alert_id", "recipient_role", name="uq_outbox_alert_role"))
-gt_fall = Table("gt_fall", md, Column("event_id", Integer, primary_key=True), Column("patient_id", String),
-                Column("day", String), Column("ts", String), Column("subject", String), Column("file", String))
 restart_log = Table("restart_log", md, Column("id", Integer, primary_key=True, autoincrement=True),
                     Column("agent_id", String), Column("detected_ts", Float), Column("reason", String),
                     Column("restarted_ts", Float))
-
-# which event kinds each agent consumes
-AGENT_KINDS = {"quality": ["day"], "health_monitoring": ["day"], "fall": ["sensor"]}
-# Agent 0 runs first: health monitoring waits for its output of the same event (unless its heartbeat is stale; then pass-through).
-# The fall agent is independent of both.
-AFTER_QUALITY = ("health_monitoring",)
-
 
 def db_url(path=None) -> str:
     p = Path(path) if path else ROOT / load_config()["db_path"]
@@ -74,7 +65,7 @@ def get_engine(path=None):
         create_feed_triggers(c)
         create_indexes(c)
     with eng.begin() as c:   # databases created before these columns existed
-        for table, col, typ in (("reports", "provenance", "TEXT"), ("outbox", "attachment_name", "TEXT"), ("outbox", "attachment_path", "TEXT"),
+        for table, col, typ in (("outbox", "attachment_name", "TEXT"), ("outbox", "attachment_path", "TEXT"),
                                 ("outbox", "next_attempt_time", "REAL"), ("outbox", "last_attempt_time", "REAL"), ("outbox", "window_start", "REAL"), ("case_state", "as_of", "TEXT"), ("case_state", "provisional", "INTEGER")):
             if col not in {r[1] for r in c.execute(text(f"PRAGMA table_info({table})"))}:
                 c.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {typ}"))
@@ -98,28 +89,12 @@ def j(x) -> str:
 def now() -> float:
     return time.time()
 
-# ---- Report agent tables (daily facts feed the reports and the dashboards; reports index points to files in reports/)
-daily_facts = Table("daily_facts", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True),
-                    Column("facts", Text))
-reports = Table("reports", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True),
-                Column("kind", String, primary_key=True), Column("mode", String), Column("path", String),
-                Column("validation", Text), Column("created_ts", Float),
-                Column("provenance", Text))   # JSON: model / cache hit / tools / sources / validator / fallback reason / request counts ("How this report was made")
-
-
 # ---- live control + change feed (API <-> runtime). The API never loads models: it writes commands here and reads state/feed.
 sim_state = Table("sim_state", md, Column("key", String, primary_key=True), Column("value", Text))          # status / speed / cursor / total / sim_time / message
 sim_command = Table("sim_command", md, Column("id", Integer, primary_key=True, autoincrement=True), Column("ts", Float), Column("cmd", String),
                     Column("args", Text), Column("status", String, default="NEW"), Column("result", Text))  # NEW -> DONE | ERROR (consumed by echos.sim.controller)
 event_feed = Table("event_feed", md, Column("id", Integer, primary_key=True, autoincrement=True), Column("ts", Float), Column("kind", String),
                    Column("data", Text))                                                                      # server-sent events: filled by triggers below
-
-# ---- live / emulator mode (echos/live): raw events arrive through the ingestion API into event_log (kinds vitals / accel / heartbeat)
-live_day = Table("live_day", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True), Column("row", Text),
-                 Column("closed", Boolean), Column("updated_ts", Float))             # the patient-day row built from raw events (same columns as the training table)
-live_patient = Table("live_patient", md, Column("patient_id", String, primary_key=True), Column("source", String), Column("first_wall", Float),
-                     Column("last_event_ts", String),                                 # newest DATA time seen for this patient (any kind): the patient's clock
-                     Column("wall_vitals", Float), Column("wall_accel", Float), Column("wall_heartbeat", Float))   # WALL time of the newest event per stream
 
 # ---- multi-agent layer (echos/team): message bus, alert lifecycle, care tasks, case files
 agent_message = Table("agent_message", md, Column("id", Integer, primary_key=True, autoincrement=True), Column("ts", Float), Column("sender", String, index=True),
@@ -133,7 +108,6 @@ care_task = Table("care_task", md, Column("id", Integer, primary_key=True, autoi
                   Column("kind", String), Column("title", Text), Column("detail", Text), Column("created_by", String), Column("created_ts", Float),
                   Column("due_ts", Float), Column("status", String, default="OPEN"), Column("done_ts", Float), Column("alert_id", String),
                   UniqueConstraint("patient_id", "kind", "alert_id", "day", name="uq_task"))
-case_file = Table("case_file", md, Column("patient_id", String, primary_key=True), Column("day", String, primary_key=True), Column("file", Text), Column("created_ts", Float))
 
 _TRIGGERS = [
     ("feed_alert_state", "AFTER UPDATE OF state ON alert_state", "WHEN OLD.state IS NOT NEW.state", "'alert_state'",
@@ -145,8 +119,6 @@ _TRIGGERS = [
     ("feed_day_ins", "AFTER INSERT ON case_state", "", "'day_status'", "json_object('patient_id', NEW.patient_id, 'day', NEW.day, 'status', NEW.status)"),
     ("feed_day_upd", "AFTER UPDATE OF status ON case_state", "WHEN OLD.status IS NOT NEW.status", "'day_status'",
      "json_object('patient_id', NEW.patient_id, 'day', NEW.day, 'status', NEW.status, 'previous', OLD.status)"),
-    ("feed_report_ins", "AFTER INSERT ON reports", "", "'report_ready'", "json_object('patient_id', NEW.patient_id, 'day', NEW.day, 'kind', NEW.kind, 'mode', NEW.mode)"),
-    ("feed_report_upd", "AFTER UPDATE ON reports", "", "'report_ready'", "json_object('patient_id', NEW.patient_id, 'day', NEW.day, 'kind', NEW.kind, 'mode', NEW.mode)"),
     ("feed_outbox_ins", "AFTER INSERT ON outbox", "", "'outbox_status'",
      "json_object('outbox_id', NEW.outbox_id, 'alert_id', NEW.alert_id, 'role', NEW.recipient_role, 'status', NEW.status)"),
     ("feed_outbox_upd", "AFTER UPDATE OF status ON outbox", "WHEN OLD.status IS NOT NEW.status", "'outbox_status'",

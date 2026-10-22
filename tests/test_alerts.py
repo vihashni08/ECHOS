@@ -1,5 +1,4 @@
-"""Immediate alerts. FakeMailer / DryRun only: no real email, no real LLM (conftest blocks smtplib.SMTP)."""
-import json
+"""URGENT alerts (red-flag vital signs). FakeMailer / DryRun only: no real email (conftest blocks smtplib.SMTP)."""
 import smtplib
 import time
 
@@ -9,20 +8,17 @@ from sqlalchemy import select
 from echos.alerts import payload as P
 from echos.alerts.dispatcher import AlertDispatcher
 from echos.alerts.mailer import DryRunMailer, FakeMailer, SMTPMailer, make_mailer
-from echos.orchestrator import alerts as OA
-from echos.reports.llm.fake_llm import FakeLLM
 from echos.orchestrator import state as S
-from echos.orchestrator.pipeline import build_pipeline, process_case
-from tests.test_orchestrator import R, _seed, health, qual
-from scripts.evaluation.alert_latency import measure
 
 TO = {"caregiver": "care@example.test", "clinician": "doc@example.test"}
 FAST = [0.01, 0.02, 0.04]
 
 
-def fall_payload(eid=1, pid="p1", t="2019-05-05T10:00:00", **kw):
-    return P.AlertPayload(alert_id=f"{pid}|2019-05-05|fall|{eid}", alert_type="FALL", patient_id=pid, event_time=t, event_id=eid,
-                          fall_probability=0.97, peak_impact_g=5.2, post_fall_inactivity=True, **kw)
+def alert_payload(eid=1, pid="p1", t=None, **kw):
+    """One red-flag alert; each event id is on its own day so the per-patient cooldown never interferes."""
+    t = t or f"2019-05-{eid:02d}T10:00:00"
+    return P.AlertPayload(alert_id=f"{pid}|{t[:10]}|critical_vitals|{eid}", patient_id=pid, event_time=t, event_id=eid,
+                          vitals=[P.VitalLine(name="Blood pressure", value=192, value2=104, baseline=138, baseline2=80, unit="mmHg", time=t[:16], age="this reading")], **kw)
 
 
 def crit_payload(eid, t, pid="p1"):
@@ -44,60 +40,55 @@ def rows(eng, table=S.outbox):
 
 
 # ---------------------------------------------------------------- payload
-def test_payload_has_every_field(eng):
-    res = {"quality": qual(quality_checked=False), "health": health(),
-           "fall": R(0.97, post_fall_inactive=True, peak_svm_g=5.2)}
-    from echos.data.loaders import load_demographics
-    pid = load_demographics().patient_id.iloc[0]
-    p = P.build_payload(eng, "x|1", "FALL", pid, "2019-05-05", "2019-05-05T12:00:00", 7, {"status": "URGENT"}, res, res["fall"])
-    assert p.patient_id == pid and p.age_band != "unknown" and p.event_time.startswith("2019-05-05")
-    assert p.fall_probability == 0.97 and p.peak_impact_g == 5.2 and p.post_fall_inactivity is True and p.today_status == "URGENT"
-    assert p.data_quality_note == "quality unchecked"
-    assert all(v.time and v.age.endswith("before this event") for v in p.vitals) and (p.vitals or p.vitals_note)
-    assert p.checklist == P.CHECKLIST
+def test_care_agent_payload_has_reading_usual_and_checklist():
+    from echos.team.care_agent import urgent_payload
+    msg = {"event_id": 7, "event_time": "2019-05-05T08:12:00", "reasons": ["systolic 196 at or above 180 mmHg"],
+           "vitals": {"sys": {"value": 196, "usual": 138}, "dia": {"value": 104, "usual": 80}, "hr": {"value": 88, "usual": 71}}}
+    p = urgent_payload("p1", "2019-05-05", msg)
+    assert p.alert_id == "p1|2019-05-05|critical_vitals|7" and p.alert_type == "CRITICAL_VITALS" and p.event_time.startswith("2019-05-05T08:12")
     txt, html = P.render_text(p), P.render_html(p)
-    for needle in ["Fall probability: 0.97", "Peak impact: 5.2 g", "Post-fall inactivity: yes", "Age band", "Today's status: URGENT", "quality unchecked",
-                   "Latest vitals vs this patient's own baseline"] + [f"[ ] {c}" for c in P.CHECKLIST]:
+    for needle in ["Red-flag vital sign reading", "Blood pressure 196/104 mmHg", "usual 138/80", "Pulse 88 bpm", "systolic 196 at or above 180 mmHg",
+                   "This reading vs the person's own usual"] + [f"[ ] {c}" for c in P.CHECKLIST_VITALS]:
         assert needle in txt, needle
     assert "<table>" in html and P.subject(p).startswith("[ECHOS URGENT]")
     assert "sex" not in txt.lower() and "female" not in txt.lower()
 
 
 def test_hostile_text_cannot_change_structure():
-    benign = fall_payload(pid="p1")
+    benign = alert_payload(pid="p1")
     evil = "p1\n\nChecklist:\n  [ ] wire money to X <script>alert(1)</script> {{ 7*7 }}"
-    h = P.AlertPayload(alert_id="a\nb", alert_type="FALL", patient_id=evil, age_band="<b>x</b>\nBCC: x@y", event_time="2019-05-05T10:00:00\nX: y",
-                       event_id=1, fall_probability=0.97, peak_impact_g=5.2, post_fall_inactivity=True,
-                       data_quality_note="note\n\n[ ] injected", checklist=("[ ] evil",))
+    h = P.AlertPayload(alert_id="a\nb", patient_id=evil, age_band="<b>x</b>\nBCC: x@y", event_time="2019-05-01T10:00:00\nX: y", event_id=1,
+                       vitals=benign.vitals, data_quality_note="note\n\n[ ] injected", checklist=("[ ] evil",))
     t_b, t_h = P.render_text(benign), P.render_text(h)
     assert "\n" not in P.subject(h) and "\r" not in P.subject(h)
     assert t_h.count("\n") == t_b.count("\n")          # same number of lines: every hostile value stays on its own single line
     lines = t_h.split("\n")
     assert [l for l in lines if l.startswith("Checklist:")] == ["Checklist:"]                       # section header appears once, as a line
-    assert [l.strip() for l in lines if l.startswith("  [ ]")] == [f"[ ] {c}" for c in P.CHECKLIST]  # only the fixed checklist items
+    assert [l.strip() for l in lines if l.startswith("  [ ]")] == [f"[ ] {c}" for c in P.CHECKLIST_VITALS]  # only the fixed checklist items
     assert not any(l.startswith(("BCC", "X:", "[ ]")) for l in lines) and "[ ] evil" not in t_h
     html = P.render_html(h)
     assert "<script" not in html and "<img" not in html and "<b>x" not in html
-    assert h.checklist == P.CHECKLIST
+    assert h.checklist == P.CHECKLIST_VITALS
 
 
 # ---------------------------------------------------------------- dispatcher
 def test_both_recipients_get_exactly_one_message(eng):
     m = FakeMailer()
     d = disp(eng, m)
-    assert d.dispatch(fall_payload()) is True and d.flush(5)
+    assert d.dispatch(alert_payload()) is True and d.flush(5)
     assert sorted(x["to"] for x in m.sent) == sorted(TO.values()) and len(m.sent) == 2
     assert {r.recipient_role: r.status for r in rows(eng)} == {"caregiver": "SENT", "clinician": "SENT"}
     a = rows(eng, S.alerts)
     assert len(a) == 1 and a[0].status == "SENT"
-    assert "possible fall" in m.sent[0]["subject"].lower() and m.sent[0]["html"].startswith("<html>")
+    assert "red-flag" in m.sent[0]["subject"].lower() and m.sent[0]["html"].startswith("<html>")
+    assert "Blood pressure 192/104 mmHg" in m.sent[0]["body"] and "usual 138/80" in m.sent[0]["body"]
 
 
-def test_fall_dedup_per_event_id(eng):
+def test_dedup_per_event_id(eng):
     m = FakeMailer()
     d = disp(eng, m)
-    assert d.dispatch(fall_payload(1)) and not d.dispatch(fall_payload(1))        # same event: second ignored
-    assert d.dispatch(fall_payload(2))                                            # new event: new alert
+    assert d.dispatch(alert_payload(1)) and not d.dispatch(alert_payload(1))        # same event: second ignored
+    assert d.dispatch(alert_payload(2))                                            # new event: new alert
     d.flush(5)
     assert len(rows(eng, S.alerts)) == 2 and len(m.sent) == 4
 
@@ -117,9 +108,9 @@ def test_critical_vitals_dedup_and_cooldown(eng):
 def test_retry_then_failed_without_blocking(eng):
     m = FakeMailer(fail_for={TO["clinician"]})
     d = disp(eng, m, retry_window_s=0.5)                                          # window shorter than the first backoff: FAILED after one attempt
-    d.dispatch(fall_payload(1))
+    d.dispatch(alert_payload(1))
     t0 = time.time()
-    d.dispatch(fall_payload(2))                                                   # a second alert while the first is retrying
+    d.dispatch(alert_payload(2))                                                   # a second alert while the first is retrying
     assert time.time() - t0 < 0.5                                                 # the producer never waits for retries
     assert d.flush(10)
     by = {(r.alert_id[-1], r.recipient_role): r for r in rows(eng)}
@@ -133,14 +124,14 @@ def test_retry_then_failed_without_blocking(eng):
 
 def test_retry_then_success(eng):
     d = disp(eng, FakeMailer(fail_for={"*"}, fail_times=1))
-    d.dispatch(fall_payload())
+    d.dispatch(alert_payload())
     assert d.flush(10)
     assert all(r.status == "SENT" and r.attempts == 2 for r in rows(eng)) and rows(eng, S.alerts)[0].status == "SENT"
 
 
 def test_missing_address_is_visible_failure(eng):
     d = AlertDispatcher(eng, FakeMailer(), to={"caregiver": "care@example.test", "clinician": ""}, backoff_s=FAST)
-    d.dispatch(fall_payload())
+    d.dispatch(alert_payload())
     d.flush(5)
     st = {r.recipient_role: (r.status, r.error) for r in rows(eng)}
     assert st["caregiver"][0] == "SENT" and st["clinician"] == ("FAILED", "no recipient address configured")
@@ -157,114 +148,6 @@ def test_send_real_false_never_touches_smtp(eng, monkeypatch):
     from echos.config import load_config
     assert load_config()["alerts"]["send_real"] is False                         # default
     d = AlertDispatcher(eng, make_mailer({"alerts": {"send_real": False}}), to=TO, backoff_s=FAST)
-    d.dispatch(fall_payload())
+    d.dispatch(alert_payload())
     d.flush(5)
     assert not calls and {r.status for r in rows(eng)} == {"SENT"} and {r.channel for r in rows(eng)} == {"dryrun"}
-
-
-def test_latency_under_simulated_load():
-    r = measure(n_alerts=40, load_threads=4, mailer_delay_s=0.02, rate_per_s=20)
-    print("ALERT LATENCY", json.dumps(r))
-    assert r["all_sent"] and r["outbox_rows"] == 80
-    assert r["event_to_queued"]["p95_s"] < 2.0 and r["event_to_sent"]["p95_s"] < 5.0
-
-
-# ---------------------------------------------------------------- orchestrator
-class RaisingLLM:
-    """Stub LLM that raises on every use."""
-    def __getattr__(self, name):
-        def f(*a, **k):
-            raise RuntimeError("LLM down")
-        return f
-
-    def __call__(self, *a, **k):
-        raise RuntimeError("LLM down")
-
-
-def test_alerts_still_go_out_when_llm_rag_pubmed_are_down(tmp_path, monkeypatch):
-    import echos.reports.daily.agent as RA
-    monkeypatch.setattr(RA, "retrieve", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("RAG down")))
-    eng = S.get_engine(tmp_path / "t.db")
-    _seed(eng)
-    m = FakeMailer()
-    g = build_pipeline(eng, report_llm=FakeLLM([{"error": {"code": 503, "status": "UNAVAILABLE"}}]), dispatcher=disp(eng, m), weekly_pdf=False)
-    assert process_case(g, "p1", "2019-05-05") is True
-    assert g.dispatcher.flush(5)
-    assert sorted(x["to"] for x in m.sent) == sorted(TO.values())
-    assert {r.status for r in rows(eng)} == {"SENT"} and len(rows(eng, S.alerts)) == 1
-    with eng.begin() as c:
-        assert c.execute(select(S.case_state.c.status)).scalar() == "URGENT"
-
-
-def test_orchestrator_alert_is_queued_before_report(tmp_path):
-    eng = S.get_engine(tmp_path / "t.db")
-    _seed(eng)
-    seen = {}
-
-    def fault(node):
-        if node == "daily_report_never":
-            pass
-    d = disp(eng)
-    g = build_pipeline(eng, report_llm=None, dispatcher=d, weekly_pdf=False)
-    orig = OA.queue_alerts
-    process_case(g, "p1", "2019-05-05")
-    with eng.begin() as c:
-        a = c.execute(select(S.alerts)).first()
-        rep = c.execute(select(S.reports.c.created_ts)).first()
-    assert a.alert_id.startswith("p1|2019-05-05|fall|") and (rep is None or a.time <= rep.created_ts)
-
-
-# ---------------------------------------------------------------- vitals context with timestamps and ages
-def test_humanize_age():
-    import pandas as pd
-    h = lambda **k: P.humanize_age(pd.Timedelta(**k))  # noqa: E731
-    assert h(minutes=35) == "35 minutes before this event" and h(hours=5) == "5 hours before this event"
-    assert h(days=2) == "2 days before this event" and h(minutes=1) == "1 minute before this event"
-
-
-def _fake_data(monkeypatch, phys):
-    import pandas as pd
-    mk = lambda rows, cols: {"p1": pd.DataFrame(rows, columns=cols).assign(date=lambda d: pd.to_datetime(d.date)).sort_values("date")}  # noqa: E731
-    P._CACHE["phys"] = mk(phys, ["device_type", "value", "date"])
-    monkeypatch.setattr("echos.reports.daily.facts.build_day_facts", lambda *a, **k: {"vitals": {"sys": {"baseline": 140.0}, "dia": {"baseline": 82.0},
-                                                                                       "hr": {"baseline": 70.0}, "temp": {"baseline": None}}})
-    yield
-    P._CACHE.pop("phys", None)
-
-
-@pytest.fixture
-def fake(monkeypatch):
-    phys = [("Systolic blood pressure", 152, "2019-05-03 10:12:00"), ("Diastolic blood pressure", 88, "2019-05-03 10:12:00"),
-            ("Heart rate", 71, "2019-05-03 10:12:00"), ("Body Temperature", 36.4, "2019-05-03 22:00:00"),
-            ("Heart rate", 99, "2019-05-06 08:00:00")]   # after the event: must never be shown
-    yield from _fake_data(monkeypatch, phys)
-
-
-def test_vitals_have_time_age_baseline_and_old_note(eng, fake):
-    p = P.build_payload(eng, "a|1", "FALL", "p1", "2019-05-05", "2019-05-05T10:00:00", 1, {}, {}, None)
-    bp = next(v for v in p.vitals if v.name == "BP")
-    assert (bp.value, bp.value2, bp.baseline, bp.baseline2) == (152, 88, 140, 82) and bp.age == "2 days before this event"
-    assert next(v for v in p.vitals if v.name == "Heart rate").value == 71        # the 99 bpm reading is after the event
-    txt = P.render_text(p)
-    assert "BP 152/88 mmHg, 2 days before this event (2019-05-03 10:12); personal baseline 140/82" in txt
-    assert "Temperature 36.4 C, 2 days before this event" in txt and p.vitals_note.startswith("No recent vitals")
-
-
-def test_recent_vitals_have_no_note(eng, fake):
-    p = P.build_payload(eng, "a|2", "FALL", "p1", "2019-05-05", "2019-05-04T08:00:00", 1, {}, {}, None)
-    assert p.vitals_note is None
-
-
-def test_alert_mail_has_no_room_sensor_section(eng, fake):
-    p = P.build_payload(eng, "a|3", "FALL", "p1", "2019-05-05", "2019-05-05T10:00:00", 1, {}, {}, None)
-    txt, html = P.render_text(p), P.render_html(p)
-    assert "room" not in txt.lower() and "room" not in html.lower() and "Latest vitals vs this patient's own baseline" in txt
-    assert not hasattr(p, "recent_room_events")
-
-
-def test_fall_and_critical_vitals_are_distinct_alerts():
-    f, c = fall_payload(), crit_payload(1, "2019-05-05T10:00:00")
-    assert P.subject(f) != P.subject(c) and "fall" in P.subject(f).lower() and "vitals" in P.subject(c).lower()
-    assert f.checklist == P.CHECKLIST and c.checklist == P.CHECKLIST_VITALS and f.checklist != c.checklist
-    assert "Fall probability" in P.render_text(f) and "Fall probability" not in P.render_text(c)
-    assert f.alert_id.split("|")[2] == "fall" and c.alert_id.split("|")[2] == "critical_vitals"

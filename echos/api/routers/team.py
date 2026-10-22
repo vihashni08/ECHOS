@@ -1,4 +1,4 @@
-"""Multi-agent layer: components, bus messages, case files, plans, tasks."""
+"""Multi-agent layer: components, bus messages, care tasks, outbox."""
 from __future__ import annotations
 
 from typing import Optional
@@ -9,8 +9,7 @@ from sqlalchemy import select
 from echos.api import services as V
 from echos.api import team_services as T
 from echos.api import auth as A
-from echos.api import activity as AC
-from echos.api.models import ActivityEventOut, AgentSummaryOut, AgentMessageOut, CareTaskOut, CaseFileOut, ComponentOut, TeamPlanOut, FallDetail, FallItem, OutboxOut, Page
+from echos.api.models import AgentMessageOut, CareTaskOut, ComponentOut, OutboxOut, Page
 from echos.orchestrator import state as S
 
 from echos.api.deps import ERR, Limit, Offset, ctx_of
@@ -27,30 +26,6 @@ def components(request: Request):
 def agent_messages(request: Request, patient_id: Optional[str] = None, limit: int = Query(50, ge=1, le=300)):
     """The message bus: who told whom what (newest first)."""
     return T.messages(ctx_of(request), patient_id, limit)
-
-@router.get("/agents/summary", response_model=list[AgentSummaryOut], tags=["agents"])
-def agents_summary(request: Request):
-    """Every detector, agent and infrastructure part: live status, how many actions it has logged and its latest one."""
-    return AC.summary(ctx_of(request))
-
-@router.get("/agents/activity", response_model=list[ActivityEventOut], tags=["agents"])
-def agents_activity(request: Request, limit: int = Query(100, ge=1, le=500), agent: Optional[str] = None, patient_id: Optional[str] = None, day: Optional[str] = None, oldest_first: bool = False):
-    """What the agents did, newest first, from the tables they write. With `patient_id` + `day` (one case) the detector steps are included and the order can be oldest first."""
-    return AC.events(ctx_of(request), limit, agent, patient_id, day, oldest_first)
-
-@router.get("/patients/{pid}/case", response_model=Optional[CaseFileOut], tags=["patients"])
-def case_file(request: Request, pid: str, day: Optional[str] = None):
-    """The Case Investigator's file for a changed or urgent day (latest day if none is given); null when that day has none (a normal day)."""
-    ctx = ctx_of(request)
-    V.require_patient(ctx, pid)
-    return T.case_file(ctx, pid, day)
-
-@router.get("/patients/{pid}/team-plan", response_model=Optional[TeamPlanOut], tags=["patients"])
-def team_plan(request: Request, pid: str, day: Optional[str] = None):
-    """Which agents the Team Planner called for on a day (latest day if none is given) and why; null when no plan was recorded."""
-    ctx = ctx_of(request)
-    V.require_patient(ctx, pid)
-    return T.team_plan(ctx, pid, day)
 
 @router.get("/tasks", response_model=Page[CareTaskOut], tags=["alerts"])
 def care_tasks(request: Request, status: Optional[str] = Query(None, description="OPEN or DONE"), limit: int = Limit, offset: int = Offset):
@@ -85,12 +60,3 @@ def outbox_retry(request: Request, outbox_id: int):
     with ctx.eng.begin() as c:
         row = c.execute(select(S.outbox).where(S.outbox.c.outbox_id == outbox_id)).first()
     return V.outbox_out(row)
-
-@router.get("/falls", response_model=Page[FallItem], tags=["falls"])
-def falls(request: Request, limit: int = Limit, offset: int = Offset):
-    rows, n = V.list_falls(ctx_of(request), limit, offset)
-    return {"items": rows, "total": n, "limit": limit, "offset": offset}
-
-@router.get("/falls/{fid}", response_model=FallDetail, tags=["falls"])
-def fall(request: Request, fid: int):
-    return V.fall_detail(ctx_of(request), fid)

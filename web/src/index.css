@@ -30,7 +30,7 @@
   --monitor-bg: #fdf0cc; --monitor-fg: #6b3a05; --monitor-line: #c98a1b;
   --urgent-bg: #fde2e0; --urgent-fg: #8a1710; --urgent-line: #d4483d;
   --gap-bg: #e8e5e0; --gap-fg: #3a352f; --gap-line: #8d867c;
-  --chart-1: #0b5a5e; --chart-2: #b45309; --chart-3: #4d6a9c; --chart-4: #7a5c99; --chart-band: #0b5a5e22;
+  --chart-1: #2a78d6; --chart-2: #eb6834; --chart-band: #2a78d61f;   /* dataviz reference slots 1-2, validated light (CVD dE 9+) */
 }
 .dark {
   --background: #12100e;
@@ -55,7 +55,7 @@
   --monitor-bg: #3a2a08; --monitor-fg: #f6d98a; --monitor-line: #c8962b;
   --urgent-bg: #471513; --urgent-fg: #fecaca; --urgent-line: #e0584c;
   --gap-bg: #2d2925; --gap-fg: #d6cfc6; --gap-line: #8d867c;
-  --chart-1: #5fc4c0; --chart-2: #f0a35a; --chart-3: #8fb0e0; --chart-4: #c3a3e0; --chart-band: #5fc4c026;
+  --chart-1: #3987e5; --chart-2: #d95926; --chart-band: #3987e52e;   /* same slots stepped for the dark surface */
 }
 
 @theme inline {

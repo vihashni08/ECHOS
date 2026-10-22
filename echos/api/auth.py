@@ -1,6 +1,6 @@
 """Optional authentication and roles. Off by default (local demo); on with `api.auth.enabled: true` or ECHOS_AUTH=on.
 Tokens come from the environment only (ECHOS_TOKEN_CAREGIVER / _CLINICIAN / _OPERATOR); a role without a token cannot log in. Nothing is stored or printed here.
-A request carries `Authorization: Bearer <token>` (the event stream, which cannot set headers, uses ?token=). Devices use their own `X-Echos-Token` on /api/ingest/events.
+A request carries `Authorization: Bearer <token>` (the event stream, which cannot set headers, uses ?token=).
 Roles: caregiver < clinician < operator."""
 from __future__ import annotations
 
@@ -13,19 +13,18 @@ from typing import Optional
 
 LEVEL = {"caregiver": 1, "clinician": 2, "operator": 3}
 ENV = {"caregiver": "ECHOS_TOKEN_CAREGIVER", "clinician": "ECHOS_TOKEN_CLINICIAN", "operator": "ECHOS_TOKEN_OPERATOR"}
-PUBLIC = (("POST", re.compile(r"^/api/auth/login$")), ("GET", re.compile(r"^/api/auth/me$")), ("POST", re.compile(r"^/api/ingest/events$")),
+PUBLIC = (("POST", re.compile(r"^/api/auth/login$")), ("GET", re.compile(r"^/api/auth/me$")),
           ("GET", re.compile(r"^/api/ack/[^/]+$")))    # the e-mail "I have seen this" link: its own signed token is the credential
 # (method, path pattern, minimum role): first match wins; anything not listed is operator-only for POST and caregiver for GET
 RULES = [
     ("POST", re.compile(r"^/api/alerts/.+/(ack|resolve)$"), "caregiver"),
     ("POST", re.compile(r"^/api/tasks/\d+/done$"), "caregiver"),
     ("POST", re.compile(r"^/api/v2/reviews/outcome$"), "clinician"),
-    ("POST", re.compile(r"^/api/patients/[^/]+/reports/weekly/(build|send)$"), "clinician"),
     ("POST", re.compile(r"^/api/outbox/\d+/retry$"), "clinician"),
-    ("GET", re.compile(r"^/api/patients/[^/]+/reports/weekly"), "clinician"),
     ("GET", re.compile(r"^/api/outbox"), "clinician"),
+    ("GET", re.compile(r"^/api/system/(metrics|limitations|config)$"), "caregiver"),   # evaluation results and UI flags: no secrets
     ("GET", re.compile(r"^/api/system/"), "operator"),
-    ("GET", re.compile(r"^/api/agents/health$"), "operator"),
+    ("GET", re.compile(r"^/api/agents/health$"), "clinician"),
 ]
 
 

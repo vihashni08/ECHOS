@@ -1,10 +1,10 @@
 """Synthetic-data guard: models train only on real data. Every training table carries a `source` column
-('tihm' or 'sisfall'); trainers call assert_real_source() and fail on anything else (simulated, synthetic, missing)."""
+('tihm'); trainers call assert_real_source() and fail on anything else (simulated, synthetic, missing)."""
 from __future__ import annotations
 
 import pandas as pd
 
-REAL_SOURCES = {"tihm", "sisfall"}
+REAL_SOURCES = {"tihm"}
 
 
 def assert_real_source(df: pd.DataFrame, expected: str) -> None:

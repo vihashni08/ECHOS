@@ -1,22 +1,18 @@
 import { Info } from "lucide-react"
-import { MODE, useMode } from "@/lib/live"
 import { cn } from "@/lib/utils"
+
+const WHAT = "Real TIHM study data replayed day by day. Each person is scored by a model that never saw them; the day's confirmed outcomes come from the study record. Not live patients."
 
 /** Which kind of data the whole page shows: always visible, never colour alone. */
 export function ModeBadge({ className }: { className?: string }) {
-  const { mode } = useMode()
-  const m = MODE[mode]
-  return <span title={m.what} data-testid="mode-badge" className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold tracking-wide", m.cls, className)}>{m.label}</span>
+  return <span title={WHAT} data-testid="mode-badge" className={cn("inline-flex items-center gap-1.5 rounded-full border border-gap-line bg-gap-bg px-2.5 py-0.5 text-xs font-bold tracking-wide text-gap-fg", className)}>REPLAY</span>
 }
 
 export function ModeBanner() {
-  const { mode } = useMode()
-  if (mode === "live") return null
-  const m = MODE[mode]
   return (
-    <div role="note" data-testid="mode-banner" className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2 text-sm", m.cls)}>
+    <div role="note" data-testid="mode-banner" className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-gap-line bg-gap-bg px-4 py-2 text-sm text-gap-fg">
       <Info className="size-4 shrink-0" aria-hidden="true" />
-      <span><strong>{m.label}:</strong> {m.what}</span>
+      <span><strong>REPLAY:</strong> {WHAT}</span>
     </div>
   )
 }

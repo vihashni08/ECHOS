@@ -1,5 +1,0 @@
-[
- {
-  "text": "{\"status\": \"MONITOR\", \"changes\": [{\"text\": \"Systolic pressure was 162 against usual 128, above this person's usual range.\", \"cites\": [\"F1\"]}], \"guidance\": [], \"assessment\": [{\"text\": \"Systolic pressure was 162 against usual 128; nothing reached an emergency limit.\", \"cites\": [\"F1\"]}], \"actions\": [{\"priority\": \"TODAY\", \"owner\": \"CAREGIVER\", \"text\": \"Repeat the reading later today, rested and seated.\", \"escalate_if\": \"\", \"cites\": [\"F1\"]}]}"
- }
-]

@@ -1,147 +1,43 @@
+# ECHOS v2 configuration. Method and numbers: docs/METHOD.md.
 seed: 42
 paths:
   tihm: data/tihm/Dataset
-  processed: data/processed/patient_day.parquet
   models: models
   metrics: reports/metrics
 splits:
-  n_folds: 5
-agent1:
-  fixed_rule: {sys_high: 140, dia_high: 90, sys_low: 100}
-  alert_budget_per_patient_week: [0.5, 1.0, 2.0]
-  baseline_window_days: 28
-data_quality:   # Agent 0 (rule-based), see docs/DATA_POLICY.md
-  weights: {vitals: 0.8, validity: 0.2}   # completeness score (a day with a vitals reading and no invalid value = 1.0)
-  ranges:                      # physiologically plausible limits (from reports/eda/DATA_QUALITY.md)
-    Body Temperature: [34, 42]
-    Skin Temperature: [20, 40]
-    Systolic blood pressure: [60, 250]
-    Diastolic blood pressure: [30, 150]
-    Heart rate: [30, 220]
-    Body weight: [30, 200]
-    Total body water: [30, 80]
-agent3:
-  fs: 200
-  window_s: 2.5
-  stride_s: 1.25
-  inactivity: {seconds: 3.0, std_g: 0.05}
-  model_file: fall_v2.joblib   # v2 (unbiased windowing) model; fall.joblib = v1, kept
-  jitter_s: 0.5            # v2 windowing: fall AND ADL peak windows are shifted by U(-jitter, +jitter) s around their own max sample
-  n_folds: 5
-  operating: {threshold: 0.8, require_inactivity: true}   # chosen by scripts/evaluation/fall_audit.py (reports/metrics/fall_audit.json)
+  n_folds: 5                # patient-level GroupKFold (echos/data/splits.py)
 db_path: data/echos.db
-runtime:
+runtime:                    # every agent process (echos/team/agent_base.py)
   heartbeat_s: 5
   checkpoint_s: 60
   poll_s: 0.2
   batch: 50
-supervisor:
+supervisor:                 # echos/orchestrator/supervisor.py
   missed_heartbeats: 3
-  stall_s: 30        # last_event_id unchanged this long while events are pending -> dead
+  stall_s: 30               # cursor unchanged this long while events are pending -> restart
   poll_s: 1.0
-replay:
-  holdout_subjects: [SA03, SA11, SA19, SE06]   # fall model for replay is trained WITHOUT these subjects
-  falls_per_patient: 3
-  adl_windows_per_day: 2
-health:   # Health Monitoring agent (vitals model)
-  use_calibrated: true   # models/*_calibrated.joblib (scripts/tuning/calibrate.py); thresholds below are on the calibrated scale
-  persistence: {z: 2.0, last_n: 3, need: 2}   # evidence only: 2 of last 3 readings beyond |z| >= 2 of the personal baseline
-triage:
-  # chosen from reports/metrics/{agent1,triage_thresholds}.json (see docs in orchestrator/triage.py)
-  vitals_prob: 0.284       # calibrated OOF score: <= 1 alert / patient-week (scripts/tuning/choose_monitor_thresholds.py)
-  fall_prob_high: null   # URGENT on probability alone; null = inactivity confirmation required (scripts/evaluation/fall_audit.py)
-  fall_prob: 0.8   # URGENT with post-fall inactivity (MONITOR without, if fall_prob_high is null); scripts/evaluation/fall_audit.py
-  critical_vitals: {sys_high: 180, sys_low: 85, dia_high: 120, hr_high: 130, hr_low: 40}
-  max_vitals_gap_days: 7   # readings exist on ~62% of days; >7 days silent -> data_gap
-planner:   # Triage stage 2 (echos/team/planner.py): which agents a case needs. r = max_k p_k / tau_k (detector score over its own alert threshold); equations in docs/TEAM_DESIGN.md
-  # a fired rule -> Investigator + Coordinator; no rule but r > theta (near miss) -> Investigator writes a short watch file. theta = call budget: false calls on Normal days <= budget_per_patient_week.
-  theta: 0.8298   # = watch a day when a detector is above 83% of its own alert threshold; from reports/metrics/routing_thresholds.json (scripts/tuning/choose_routing_threshold.py)
-  budget_per_patient_week: 0.25
-  source: scripts/tuning/choose_routing_threshold.py
-llm:
-  model: gemini-3.5-flash-lite
-  fallback_model: gemini-3.8-flash         # Gemini model name, set by the user; null -> template mode (no LLM calls)
-  temperature: 0.2
-  retries: 1           # failed (non-timeout) LLM output is retried at most this many times, then Jinja2 template fallback
-  timeout_s: 45        # hard per-call timeout; a timeout is never retried
-  max_requests_per_min: 5   # legacy limiter, used only by the weekly report's direct generate() calls
-  rpm: {primary: 15, fallback: 5}   # requests/min limits of the primary / fallback model (set from your Gemini quota); the budget manager stays 20% below
-  cooldown_s: 60       # a model that returned HTTP 429 is skipped this long
-  cache_path: data/llm_cache.sqlite   # response cache + call log (SQLite)
-  max_pending: 200     # background report backlog; beyond it reports stay template (logged)
-alerts:   # immediate alerts (fall, critical vitals): fixed template, no LLM; see echos/alerts/
+alerts:   # URGENT alerts: fixed template, structured data only, no model; see echos/alerts/
   send_real: false          # false -> DryRunMailer: outbox rows only, SMTP is never used
   max_attempts: 3
-  backoff_s: [1, 2, 4]      # weekly emails only: wait before the next attempt (a 3rd failure -> FAILED)
-  retry_window_s: 900       # FALL / CRITICAL_VITALS emails: PENDING -> RETRYING with backoff 1, 2, 4, 8 ... capped at backoff_cap_s until this window (from queueing) ends -> FAILED
+  backoff_s: [1, 2, 4]
+  retry_window_s: 900       # PENDING -> RETRYING with backoff 1, 2, 4, 8 ... capped at backoff_cap_s until this window (from queueing) ends -> FAILED
   backoff_cap_s: 60
   sweep_interval_s: 300     # a background sweeper retries FAILED alert rows this often ...
   sweep_window_s: 7200      # ... for this long after queueing (POST /api/outbox/{id}/retry resends one row on demand)
-  ack_link_ttl_s: 86400     # the "I have seen this" link in alert e-mails (needs ECHOS_LINK_SECRET and ECHOS_PUBLIC_URL; without them the mail has no link) expires after this
-  critical_cooldown_sim_h: 12   # per patient: a second critical-vitals alert inside this many SIMULATED hours is suppressed
-pubmed:   # live PubMed (NCBI E-utilities) for MONITOR / URGENT daily reports only; env: ECHOS_NCBI_EMAIL, optional NCBI_API_KEY
-  enabled: true
-  max_results: 3
-  years: 15             # only publications of the last N years
-  timeout_s: 10
-  max_rps: 3            # NCBI limit without an API key
-  cache_path: data/pubmed_cache.sqlite
-weekly:   # weekly clinician report (PDF by email to the clinician only)
-  enabled: true
-  llm_narrative_in_simulation: false   # false: replays use the template Key findings (protects the Gemini quota); send-now may use the LLM
-  dir: data/reports/weekly
-  band_sd: 2.0          # personal band = past mean +/- band_sd * past sd
-  max_pages: 3
-  evidence:             # weekly 'Findings and supporting sources' (echos/reports/evidence.py)
-    local_min_score: 0.5     # local guideline chunks below this cosine similarity are dropped (the daily report keeps rag.min_score 0.25)
-    max_sources_per_finding: 2   # local first, at most 1 PubMed
-    max_pubmed_per_finding: 1
-report_gate:
-  enabled: true       # NORMAL days get a template daily report (no LLM, no RAG); never affects triage or alerts
-rag:
-  enabled: true                       # false -> reports have no guideline guidance (template mode still works)
-  embedding_model: all-MiniLM-L6-v2   # local sentence-transformers model, no API key
-  dir: data/rag                       # persistent Chroma store (git-ignored)
-  k: 3
-  min_score: 0.25                     # cosine similarity below this is treated as not relevant
-reports:
-  daily_dir: reports/daily
-  weekly_dir: reports/weekly
-  samples_dir: reports/samples
-api:   # echos/api (FastAPI): bound to 127.0.0.1, NO authentication (demo only), CORS for the local UI only
+  ack_link_ttl_s: 86400     # the "I have seen this" link in alert e-mails (needs ECHOS_LINK_SECRET and ECHOS_PUBLIC_URL; otherwise no link)
+  critical_cooldown_sim_h: 12   # per patient: a second red-flag alert inside this many SIMULATED hours is suppressed
+api:   # echos/api (FastAPI): bound to 127.0.0.1, CORS for the local UI only
   host: 127.0.0.1
   port: 8000
   cors_origin: http://localhost:5173
-  allow_kill: false      # POST /api/agents/{name}/kill is refused unless true
-  auth: {enabled: false} # true (or ECHOS_AUTH=on): bearer tokens from ECHOS_TOKEN_CAREGIVER / _CLINICIAN / _OPERATOR; roles caregiver < clinician < operator (echos/api/auth.py)
-
-coordinator:   # Care Coordinator agent (echos/team/coordinator.py): owns the alert lifecycle. Wall-clock seconds.
+  allow_kill: false      # POST /api/agents/{name}/kill is refused unless true (scripts/run_api.sh --demo turns it on)
+  auth: {enabled: false} # true (or ECHOS_AUTH=on): bearer tokens from ECHOS_TOKEN_CAREGIVER / _CLINICIAN / _OPERATOR; roles caregiver < clinician < operator
+coordinator:   # alert lifecycle inside the Care agent (echos/team/coordinator.py). Wall-clock seconds.
   poll_s: 1.0
-  ack_timeout_s: {FALL: 300, CRITICAL_VITALS: 1800}   # not acknowledged this long after SENT -> ESCALATED (second contact)
-  checkin_after_ack_s: 1800                            # after an acknowledged FALL: open a "confirm the person is well" task due this long later
-  stale_after_s: 21600                                 # an unacknowledged alert older than this is EXPIRED, never escalated (history after a restart)
-  review_window_days: 5                                # >= review_min_days non-NORMAL days within this window -> a clinician-review task
-  review_min_days: 3
-  bus_keep_s: 2592000                                  # handled agent messages older than this (30 days) are deleted, once an hour
+  ack_timeout_s: {CRITICAL_VITALS: 1800}   # not acknowledged this long after SENT -> ESCALATED (second contact)
+  stale_after_s: 21600                     # an unacknowledged alert older than this is EXPIRED, never escalated (history after a restart)
+  bus_keep_s: 2592000                      # handled agent messages older than this (30 days) are deleted, once an hour
   prune_every_s: 3600
-investigator:   # Case Investigator agent (echos/team/investigator.py): bounded tool loop, no LLM
-  max_steps: 7
-
-ingest:   # limits on POST /api/ingest/events (echos/api/ingest_limits.py, docs/INGESTION.md); checked before anything is stored
-  max_body_bytes: 4000000       # 413 above this (one 6000-sample accelerometer window is about 150 KB)
-  max_batch_events: 500         # 413 above this many events in one request
-  max_events_per_window: 600    # 429 when one device_id would exceed this many events within window_s (in-memory counters, reset on API restart)
-  window_s: 60
-  devices: []                   # empty = any device_id is accepted; a list of ids = only these (403 otherwise)
-live:   # live / emulator mode (echos/live). Raw events -> ingestion API -> event_log -> LiveProcessor (detectors scored from events, rolling triage).
-  decide_min_interval_s: 2.0     # heartbeat-only batches re-decide at most this often (vitals and accelerometer events decide at once)
-  offline_after_s: 120           # wall seconds without any event -> the stream shows as stale in the UI (real and emulated sources alike)
-  emulator:                      # a LABELLED emulator: replays real TIHM raw events in wall-clock time. Not a real device.
-    speed: 3600                  # simulated seconds per wall second (3600 = one data hour per second, one day in 24 s)
-    heartbeat_min: 15            # simulated minutes between device heartbeats
-    start_day: "2019-05-13"
-    n_days: 14
-    n_patients: 4
 monitor:   # ECHOS v2 core (echos/monitor/): personal Bayesian episode tracker + agitation detector. Equations: docs/METHOD.md
   min_bp_days: 14            # inclusion: a personal baseline needs history (fixed before any result was seen)
   baseline_window_days: 28   # personal NIG model uses the last 28 reading-days (past only)

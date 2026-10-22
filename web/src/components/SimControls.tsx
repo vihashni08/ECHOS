@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePatients, useSimControl, useSimState } from "@/lib/queries"
 
 const SPEEDS = [0.5, 1, 5, 20, 100]
-export const RESET_TEXT = "This clears the simulation tables of the database the API was started with: events, agent outputs, day statuses, alerts, outbox rows, daily facts and reports. Patient demographics, models and report files on disk are kept."
+export const RESET_TEXT = "This clears the replay tables of the database the API was started with: events, the agents' memories and messages, day statuses, review lists, alerts and outbox rows. Models and the TIHM files are kept."
 
 export default function SimControls() {
   const sim = useSimState()

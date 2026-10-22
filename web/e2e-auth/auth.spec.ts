@@ -19,25 +19,24 @@ test("a caregiver sees the care pages only and is stopped from the rest; log out
   await page.goto("/", { waitUntil: "networkidle" })
   await login(page, "e2e-care")
   await expect(page.getByTestId("role")).toContainText("caregiver")
-  await expect(page.getByRole("link", { name: "Alerts" }).first()).toBeVisible()
-  await expect(page.getByRole("link", { name: "Clinician week" })).toHaveCount(0)
+  for (const n of ["Today", "Review board", "Alerts", "How it works"]) await expect(page.getByRole("link", { name: n }).first()).toBeVisible()
+  await expect(page.getByRole("link", { name: "Agents" })).toHaveCount(0)
   await expect(page.getByTestId("demo-tools-button")).toHaveCount(0)
-  await page.goto("/system", { waitUntil: "networkidle" })           // a fresh load keeps the session (sessionStorage) but not the page
-  await expect(page.getByRole("tab", { name: "How it works" })).toBeVisible()      // the explanation tabs are open to every role ...
-  await expect(page.getByRole("tab", { name: "Health" })).toHaveCount(0)            // ... the health and metrics tabs are operator-only
-  await page.goto("/clinician", { waitUntil: "networkidle" })
+  await page.goto("/how", { waitUntil: "networkidle" })
+  await expect(page.getByTestId("results")).toBeVisible()           // evaluation results are open to every role
+  await page.goto("/agents", { waitUntil: "networkidle" })
   await expect(page.getByTestId("forbidden")).toContainText("clinician")
   await page.getByTestId("logout").click()
   await expect(page.getByTestId("token")).toBeVisible()
 })
 
-test("an operator sees everything including the emulator controls", async ({ page }) => {
+test("an operator sees everything and can drive the replay", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" })
   await login(page, "e2e-oper")
   await expect(page.getByTestId("role")).toContainText("operator")
-  for (const n of ["Clinician week", "System"]) await expect(page.getByRole("link", { name: n }).first()).toBeVisible()
+  await expect(page.getByRole("link", { name: "Agents" }).first()).toBeVisible()
   await page.getByTestId("demo-tools-button").click()
-  await page.getByTestId("emu-play").click()
-  await expect(page.getByTestId("emu-status")).toContainText("playing", { timeout: 20000 })      // the event stream and API calls work with the bearer token
-  await expect(page.getByTestId("conn")).toContainText("Live")
+  await page.getByTestId("play-pause").click()
+  await expect(page.getByTestId("sim-state")).toContainText(/playing|finished/, { timeout: 20000 })     // API calls work with the bearer token
+  await expect(page.getByTestId("conn")).toContainText("Live")                                          // and so does the event stream
 })

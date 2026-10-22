@@ -1,10 +1,9 @@
-"""Care Coordinator agent. Goal: every alert is acted on by a human, or someone else is told.
+"""Alert lifecycle used by the Care agent (echos/team/care_agent.py). Goal: every alert is acted on by a human, or someone else is told.
 
 It runs its own loop (a thread inside the runtime), keeps its state in SQLite (so a restart loses nothing) and acts through tools:
   track delivery      NEW -> SENT when the outbox shows a delivered row; if the caregiver mail FAILED it escalates at once
   wait for an ack     deadline = sent time + coordinator.ack_timeout_s[type]
   escalate            no ack by the deadline -> the escalation contact gets the same alert (dispatcher.dispatch_escalation), state ESCALATED
-  follow up           an acknowledged FALL opens a CHECK_IN task; >= review_min_days non-normal days in review_window_days open a clinician REVIEW task
 It never delays or suppresses the first alert (that is the dispatcher's job, queued before any report work) and never touches triage."""
 from __future__ import annotations
 
@@ -35,11 +34,10 @@ class CareCoordinator:
 
     # ------------------------------------------------------------ one pass (also called directly by tests with a fake clock)
     def step(self) -> dict:
-        n = {"registered": 0, "sent": 0, "escalated": 0, "tasks": 0}
+        n = {"registered": 0, "sent": 0, "escalated": 0}
         n["registered"] = self._register()
         n["sent"] = self._track_delivery()
         n["escalated"] = self._escalate_overdue()
-        n["tasks"] = self._followups() + self._reviews()
         self._housekeeping()
         self.last_beat = self.clock()
         return n
@@ -107,35 +105,6 @@ class CareCoordinator:
                 k += 1
                 bus.post(self.eng, self.agent, "all", "alert_escalated", r.patient_id, "", {"alert_id": r.alert_id, "waited_s": round(waited)})
                 log.warning("alert %s escalated after %.0f s without acknowledgement", r.alert_id, waited)
-        return k
-
-    def _followups(self) -> int:
-        k = 0
-        delay = float(self.cfg.get("checkin_after_ack_s", 1800))
-        with self.eng.begin() as c:
-            rows = c.execute(select(S.alert_state).where((S.alert_state.c.state == "ACKNOWLEDGED") & (S.alert_state.c.type == "FALL"))).fetchall()
-            for r in rows:
-                if S.insert_ignore(c, S.care_task, patient_id=r.patient_id, day="", kind="CHECK_IN", alert_id=r.alert_id, created_by=self.agent, created_ts=self.clock(),
-                                   due_ts=(r.ack_ts or self.clock()) + delay, status="OPEN", title="Confirm the person is well after the fall",
-                                   detail="Phone or visit and note whether they need a clinician."):
-                    k += 1
-        return k
-
-    def _reviews(self) -> int:
-        k = 0
-        msgs = bus.poll(self.eng, self.agent, ["case_file_ready"])
-        win, need = int(self.cfg.get("review_window_days", 5)), int(self.cfg.get("review_min_days", 3))
-        for m in msgs:
-            with self.eng.begin() as c:
-                n = c.execute(select(func.count()).select_from(S.case_state).where(
-                    (S.case_state.c.patient_id == m["patient_id"]) & (S.case_state.c.day <= m["day"]) & (S.case_state.c.status != "NORMAL")
-                    & (S.case_state.c.day > func.date(m["day"], f"-{win} day")))).scalar()
-                if n >= need and S.insert_ignore(
-                        c, S.care_task, patient_id=m["patient_id"], day=m["day"], kind="CLINICIAN_REVIEW", alert_id="", created_by=self.agent, created_ts=self.clock(),
-                        due_ts=self.clock() + 86400, status="OPEN", title=f"Clinician review: {n} changed days in the last {win}",
-                        detail="Repeated changes from the person's usual: see the case files."):
-                    k += 1
-        bus.done(self.eng, [m["id"] for m in msgs])
         return k
 
     # ------------------------------------------------------------ thread

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAgents, useConfig, useKill } from "@/lib/queries"
 
-const NAME: Record<string, string> = { quality: "Data quality", health_monitoring: "Health monitoring", fall: "Fall" }
+export const NAME: Record<string, string> = { patient_monitor: "Patient Monitor", review_coordinator: "Review Coordinator", care: "Care agent" }
 
 export default function AgentStrip() {
   const agents = useAgents()
@@ -23,6 +23,7 @@ export default function AgentStrip() {
             {agents.data.map((a) => (
               <li key={a.agent} className="flex flex-col gap-1.5 rounded-lg border p-3 text-sm">
                 <div className="font-medium">{NAME[a.agent] ?? a.agent}</div>
+                <div className="num text-xs text-muted-foreground">restarts: {a.restarts}</div>
                 <div className={`inline-flex items-center gap-1.5 font-semibold ${a.alive ? "text-normal-fg" : "text-urgent-fg"}`}>
                   {a.alive ? <CheckCircle2 className="size-4" aria-hidden="true" /> : <AlertTriangle className="size-4" aria-hidden="true" />}
                   {a.alive ? "alive" : "stale"}
@@ -44,7 +45,7 @@ export default function AgentStrip() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Kill the {NAME[target ?? ""] ?? target} agent?</AlertDialogTitle>
-            <AlertDialogDescription>Fault demo: the worker process is killed and the supervisor restarts it from its checkpoint (about 12 s). Events keep queueing; no alert is lost.</AlertDialogDescription>
+            <AlertDialogDescription>Fault demo: the agent's process is killed (SIGKILL). The supervisor notices the missing heartbeat and restarts it (about 12 s); it resumes from its saved memory. Messages wait on the bus; no alert is lost or sent twice.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

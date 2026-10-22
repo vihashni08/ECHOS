@@ -1,14 +1,7 @@
-import os
 import smtplib
-import socket
 from pathlib import Path
 
 import pytest
-
-os.environ.setdefault("MPLBACKEND", "Agg")  # report charts are drawn from a background thread: never use a GUI backend
-
-BLOCKED_HOSTS = ("generativelanguage.googleapis.com", "eutils.ncbi.nlm.nih.gov")
-ATTEMPTS: list = []
 
 
 @pytest.fixture(autouse=True)
@@ -21,60 +14,26 @@ def _never_real_smtp(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _no_real_llm_or_pubmed(monkeypatch, tmp_path_factory):
-    """Tests use FakeLLM and mocked PubMed only. Any outbound connection to Gemini or NCBI E-utilities is blocked, recorded and fails the test
-    at teardown even if the code under test swallows the error. The API key is removed from the environment (and .env is not loaded)."""
-    ATTEMPTS.clear()
-    real_gai, real_cc = socket.getaddrinfo, socket.create_connection
-
-    def is_blocked(host) -> bool:
-        return any(str(host).lower().rstrip(".").endswith(h) for h in BLOCKED_HOSTS)
-
-    def gai(host, *a, **k):
-        if is_blocked(host):
-            ATTEMPTS.append(str(host))
-            raise OSError(f"blocked by tests/conftest.py: outbound HTTP to {host}")
-        return real_gai(host, *a, **k)
-
-    def cc(address, *a, **k):
-        if is_blocked(address[0]):
-            ATTEMPTS.append(str(address[0]))
-            raise OSError(f"blocked by tests/conftest.py: outbound connection to {address[0]}")
-        return real_cc(address, *a, **k)
-    try:       # the daily report retrieves by code on MONITOR / URGENT days: the default PubMed client answers 'no results' offline instead of opening a socket
-        from echos.knowledge import pubmed as _pm
-        from echos.reports.daily import agent as _agent
-        monkeypatch.setattr(_agent, "_default_pubmed", lambda: _pm.PubMedClient(http_get=lambda *a: b"<eSearchResult><IdList></IdList></eSearchResult>",
-                                                                                 cache_path=tmp_path_factory.mktemp("pm") / "pm.sqlite"))
-    except ImportError:
-        pass
-    monkeypatch.setattr(socket, "getaddrinfo", gai)
-    monkeypatch.setattr(socket, "create_connection", cc)
-    monkeypatch.delenv("ECHOS_LLM_API_KEY", raising=False)
-    monkeypatch.delenv("NCBI_API_KEY", raising=False)
-    monkeypatch.setenv("ECHOS_CAREGIVER_EMAIL", "caregiver@example.test")    # .env is not loaded in tests; alerts are DryRun / FakeMailer only
+def _test_recipients(monkeypatch):
+    """.env is not loaded in tests; alerts go to FakeMailer / DryRun with example.test addresses only."""
+    monkeypatch.setenv("ECHOS_CAREGIVER_EMAIL", "caregiver@example.test")
     monkeypatch.setenv("ECHOS_CLINICIAN_EMAIL", "clinician@example.test")
     try:
         import dotenv
         monkeypatch.setattr(dotenv, "load_dotenv", lambda *a, **k: False)
     except ImportError:
         pass
-    yield
-    assert not ATTEMPTS, f"a test tried outbound HTTP to {sorted(set(ATTEMPTS))} (use FakeLLM / mocked PubMed)"
 
 
-# ---- data that is not in a fresh clone (git-ignored: TIHM / SisFall / guideline PDFs / built tables)
+# ---- data that is not in a fresh clone (git-ignored: TIHM files, trained v2 models)
 ROOT = Path(__file__).resolve().parent.parent
-MISSING = [name for name, p in {"built tables (data/processed)": ROOT / "data/processed/patient_day.parquet",
-                                "SisFall recordings": ROOT / "data/sisfall/SisFall_dataset/SA01",
-                                "guideline PDFs": ROOT / "echos/knowledge/raw"}.items() if not p.exists()]
+MISSING = [name for name, p in {"TIHM dataset (data/tihm)": ROOT / "data/tihm/Dataset/Physiology.csv",
+                                "v2 models (scripts/train_v2.py)": ROOT / "models/v2/meta.json"}.items() if not p.exists()]
 
 
 def _needs_missing_data(ex: BaseException) -> bool:
     msg = f"{type(ex).__name__}: {ex}"
-    return ((isinstance(ex, FileNotFoundError) and any(k in msg for k in ("data/", "models/", "knowledge/raw")))
-            or (isinstance(ex, KeyError) and "subject" in msg) or (isinstance(ex, AttributeError) and "DataFrame' object has no attribute" in msg)
-            or (isinstance(ex, AssertionError) and "training table has no" in msg))
+    return isinstance(ex, FileNotFoundError) and any(k in msg for k in ("data/", "models/"))
 
 
 @pytest.hookimpl(hookwrapper=True)

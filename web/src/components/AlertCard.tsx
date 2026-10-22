@@ -21,7 +21,7 @@ export function AlertCard({ a, compact }: { a: AlertRow; compact?: boolean }) {
   const st = a.state ?? "NEW"
   const open = isOpen(a)
   return (
-    <article data-testid="alert-card" data-state={st} aria-label={`${typeLabel(a.type)} for patient ${a.patient_id}`}
+    <article data-testid="alert-card" data-alert-id={a.alert_id} data-state={st} aria-label={`${typeLabel(a.type)} for patient ${a.patient_id}`}
       className={cn("flex flex-col gap-2 rounded-xl border p-3 text-sm", open ? "border-urgent-line bg-urgent-bg text-urgent-fg" : "bg-card")}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex items-start gap-2">

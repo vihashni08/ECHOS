@@ -16,9 +16,20 @@ def get(eng, alert_id: str):
         return c.execute(select(S.alert_state).where(S.alert_state.c.alert_id == alert_id)).first()
 
 
+def _register_if_queued(eng, alert_id: str):
+    """A person may acknowledge an alert in the second before the Care agent has registered it: register it here (state NEW) so the
+    acknowledgement is never refused. None when no such alert was ever queued."""
+    with eng.begin() as c:
+        a = c.execute(select(S.alerts.c.patient_id, S.alerts.c.type).where(S.alerts.c.alert_id == alert_id)).first()
+        if a is None:
+            return None
+        S.insert_ignore(c, S.alert_state, alert_id=alert_id, patient_id=a.patient_id, type=(a.type or "").upper(), state="NEW", created_ts=S.now())
+    return get(eng, alert_id)
+
+
 def acknowledge(eng, alert_id: str, by: str = "caregiver", now: Optional[float] = None) -> Optional[str]:
     """Idempotent. Returns the new state, the existing state if it was already acknowledged / resolved, or None if the alert is unknown."""
-    row = get(eng, alert_id)
+    row = get(eng, alert_id) or _register_if_queued(eng, alert_id)
     if row is None:
         return None
     if row.state in ("ACKNOWLEDGED", "RESOLVED"):
@@ -29,7 +40,7 @@ def acknowledge(eng, alert_id: str, by: str = "caregiver", now: Optional[float] 
 
 
 def resolve(eng, alert_id: str, note: str = "", now: Optional[float] = None) -> Optional[str]:
-    row = get(eng, alert_id)
+    row = get(eng, alert_id) or _register_if_queued(eng, alert_id)
     if row is None:
         return None
     if row.state == "RESOLVED":

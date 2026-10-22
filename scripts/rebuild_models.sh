@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
-# Rebuild every table and model from the raw data (models/ and data/processed/ are git-ignored). Needs data/tihm/Dataset and data/sisfall/SisFall_dataset
-# in place (see README). Fully offline: no Gemini, PubMed or e-mail. Takes several minutes (SisFall windowing and the nested cross-validation dominate).
-# Not run by the tests. Writes reports/metrics/{agent1,agent3,calibration,monitor_thresholds,table_rebuild}.json.
+# Rebuild every ECHOS v2 result and model from the raw TIHM files (data/tihm/Dataset; models/ and data/v2/ are git-ignored).
+# Fully offline (no e-mail). Writes reports/metrics/v2_*.json and models/v2/. Takes a few minutes. Not run by the tests.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-export PYTHONPATH=. ECHOS_REPORT_LLM=off ECHOS_PUBMED=off ECHOS_DRY_RUN=1
-PY="${PYTHON:-python}"
-$PY scripts/dataprep/build_tables.py                       # data/processed/patient_day.parquet + sisfall_windows_v2.parquet
-$PY -m echos.agents.health.vitals                 # models/physiological.joblib   (+ reports/metrics/agent1.json)
-$PY -m echos.agents.fall                          # models/fall_v2.joblib         (+ agent3.json)
-$PY scripts/tuning/calibrate.py                          # models/*_calibrated.joblib
-$PY scripts/tuning/choose_monitor_thresholds.py          # models/oof_scores.parquet (out-of-fold scores used by the replay / e2e)
-$PY -c "from echos.sim.replay import train_replay_fall_model as t; t(force=True)"   # models/fall_replay_v2.joblib (held-out SisFall subjects excluded)
-echo "models rebuilt"
+export PYTHONPATH=. ECHOS_DRY_RUN=1
+PY="${PYTHON:-.venv/bin/python}"
+$PY scripts/evaluation/label_audit.py            # v2_label_audit.json
+$PY scripts/evaluation/vitals_eval.py            # v2_vitals.json   + data/v2/oof_vitals.parquet
+$PY scripts/evaluation/agitation_eval.py         # v2_agitation.json + data/v2/oof_agitation.parquet
+$PY scripts/evaluation/allocation_eval.py        # v2_allocation.json (uses the out-of-fold scores above)
+$PY scripts/train_v2.py                          # models/v2/: per-fold models for the runtime + base rates
+$PY scripts/evaluation/team_e2e.py               # v2_runtime.json (real agent processes, kill test)
+echo "v2 results and models rebuilt"

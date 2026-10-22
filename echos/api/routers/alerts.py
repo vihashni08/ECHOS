@@ -1,4 +1,4 @@
-"""Alerts (ack / resolve), outbox and falls."""
+"""Alerts (ack / resolve) and the e-mail acknowledgement link."""
 from __future__ import annotations
 
 from typing import Optional

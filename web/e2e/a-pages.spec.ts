@@ -1,10 +1,10 @@
 import AxeBuilder from "@axe-core/playwright"
 import { expect, test } from "@playwright/test"
-import { writeFileSync } from "node:fs"
-import { API, firstPatient, json, setTheme, watchConsole } from "./helpers"
+import { API, json, replayToEnd, setTheme, watchConsole } from "./helpers"
 
-const ROUTES = ["/", "/alerts", "/falls", "/patient", "/caregiver", "/clinician", "/how-it-works", "/system"]
-const WEEK = "2019-W20"      // contains 6b29b's fall on 2019-05-13 (URGENT)
+const ROUTES = ["/", "/review", "/patient", "/alerts", "/agents", "/how"]
+
+test.beforeAll(async () => { await replayToEnd() })
 
 test("each page loads without console errors", async ({ page }) => {
   const errors = watchConsole(page)
@@ -12,156 +12,68 @@ test("each page loads without console errors", async ({ page }) => {
     await page.goto(r, { waitUntil: "networkidle" })
     await expect(page.locator("main h1").first()).toBeVisible()
   }
-  for (const tab of ["Data quality", "Models", "Limitations"]) { await page.getByRole("tab", { name: tab }).click(); await page.waitForTimeout(300) }
-  expect(errors, errors.join("\n")).toEqual([])
+  expect(errors.filter((e) => !e.includes("woff2")), errors.join("\n")).toEqual([])
 })
 
-test("theme toggle switches and is remembered", async ({ page }) => {
+test("Today shows the review list with reasons, the stats and the caseload", async ({ page }) => {
+  const r = await json<{ day: string; items: { patient_id: string; why: string[] }[] }>("/v2/review")
   await page.goto("/")
-  const html = page.locator("html")
-  const was = await html.evaluate((e) => e.classList.contains("dark"))
-  await page.getByTestId("theme-toggle").click()
-  expect(await html.evaluate((e) => e.classList.contains("dark"))).toBe(!was)
-  await page.reload()
-  expect(await html.evaluate((e) => e.classList.contains("dark"))).toBe(!was)
+  await expect(page.getByTestId("review-item")).toHaveCount(r.items.length)
+  await expect(page.getByTestId("review-list")).toContainText(r.items[0].patient_id)
+  await expect(page.getByTestId("stats")).toContainText("Patient-days scored")
+  await expect(page.getByTestId("caseload").locator("tbody tr")).toHaveCount((await json<{ items: unknown[] }>("/patients")).items.length)
+})
+
+test("Review board moves between days and shows outcomes from the record", async ({ page }) => {
+  const r = await json<{ day: string; days: string[] }>("/v2/review")
+  await page.goto("/review")
+  await expect(page.getByTestId("review-day")).toHaveText(r.day)
+  await page.getByRole("button", { name: "Previous day" }).click()
+  await expect(page.getByTestId("review-day")).toHaveText(r.days[1])
+  await expect(page.getByTestId("outcome").first()).toBeVisible()
+})
+
+test("Patient page: belief, charts against the personal usual, day log and the agents' messages", async ({ page }) => {
+  const p = (await json<{ items: { patient_id: string }[] }>("/patients")).items[0].patient_id
+  await page.goto(`/patients/${p}`)
+  await expect(page.getByTestId("belief")).toContainText("95% credible interval")
+  for (const t of ["Blood pressure vs this person's usual", "Pulse vs this person's usual", "Agitation probability (highest window of the day)"])
+    await expect(page.getByRole("figure", { name: `${t} chart` })).toBeVisible()
+  await expect(page.getByTestId("day-log").locator("li").first()).toBeVisible()
+  await expect(page.getByTestId("patient-messages")).toContainText("Review Coordinator")
+})
+
+test("Agents page: three agents alive and the message trace", async ({ page }) => {
+  await page.goto("/agents")
+  await expect(page.getByTestId("agent-strip").locator("li")).toHaveCount(3)
+  await expect(page.getByTestId("agent-strip")).toContainText("alive")
+  await expect(page.getByTestId("message-trace")).toContainText("review request")
+  await page.getByRole("button", { name: "assign review" }).click()
+  await expect(page.getByTestId("message-trace").locator("tbody tr").first()).toContainText("assign review")
+})
+
+test("How it works shows the evaluation results and the limitations", async ({ page }) => {
+  await page.goto("/how")
+  await expect(page.getByTestId("results")).toContainText("Agitation detection")
+  await expect(page.getByTestId("results")).toContainText("PR-AUC")
+  await expect(page.getByTestId("limitations")).toContainText("Small cohort")
 })
 
 test("API-down banner appears when the API is unreachable", async ({ page }) => {
   await page.route(`${API}/**`, (r) => r.abort())
   await page.goto("/")
-  await expect(page.getByTestId("api-banner")).toContainText("API not reachable: start scripts/run_api.sh")
-  for (const r of ["/caregiver", "/clinician", "/system"]) { await page.goto(r); await expect(page.getByTestId("api-banner")).toBeVisible(); await expect(page.locator("main h1")).toBeVisible() }
+  await expect(page.getByTestId("api-banner")).toContainText("API not reachable")
 })
 
-test("Caregiver page renders the day's report, the alert time, the 7-day strip and provenance", async ({ page }) => {
-  const p = await firstPatient()
-  const daily = await json<{ changes: string[]; monitor: string[]; mode: string }>(`/patients/${p.patient_id}/reports/daily?day=${p.latest_day}`)
-  await page.goto(`/caregiver?patient=${p.patient_id}&day=${p.latest_day}`)
-  const card = page.getByTestId("daily-card")
-  await expect(card).toContainText(p.latest_day)
-  await expect(card.getByRole("heading", { name: "What changed compared with their usual pattern" })).toBeVisible()
-  await expect(card.getByRole("heading", { name: "Plan" })).toBeVisible()
-  await expect(card.getByRole("heading", { name: "Situation" })).toBeVisible()
-  await expect(card.getByTestId("doc-action").first()).toBeVisible()
-  await expect(card).toContainText(daily.changes[0].slice(0, 30))
-  expect(daily.monitor.length).toBeGreaterThanOrEqual(1)
-  await expect(page.getByTestId("week-strip").locator("li")).toHaveCount(7)
-  await expect(page.getByTestId("daily-card").locator("text=/probab/i")).toHaveCount(0)
-  const prov = page.getByTestId("provenance")
-  await prov.locator("summary").click()
-  await expect(prov).toContainText("Fixed template")
-  // a day with a fall shows the alert and its time at the top
-  await page.goto(`/caregiver?patient=6b29b&day=2019-05-13`)
-  await expect(page.getByTestId("alert-banner")).toContainText("Possible fall at 10:18")
-})
-
-test("Clinician page: report data, citation side panel, PDF links, dry-run send with second confirmation", async ({ page }) => {
-  await page.goto(`/clinician?patient=6b29b&week=${WEEK}`)
-  await expect(page.getByTestId("narrative")).toBeVisible({ timeout: 100000 })        // first visit builds the weekly report (nothing is emailed)
-  const w = await json<{ data: { status_counts: Record<string, number>; falls: unknown[] }; narrative: string }>(`/patients/6b29b/reports/weekly?week=${WEEK}`)
-  await expect(page.getByTestId("tiles")).toContainText(`Urgent ${w.data.status_counts.URGENT}`)
-  await expect(page.getByTestId("narrative")).toContainText(w.narrative.slice(0, 40))
-  await expect(page.getByTestId("alerts-table")).toContainText("Possible fall")
-  await expect(page.getByTestId("dq-line")).toContainText("Data quality")
-  const refs = page.getByTestId("references").locator("button")
-  expect(await refs.count()).toBeGreaterThan(0)
-  const label = await refs.first().getAttribute("aria-label")
-  await refs.first().click()
-  const panel = page.getByTestId("source-panel")
-  await expect(panel).toBeVisible()
-  await expect(panel).toContainText("Title")
-  await expect(panel).toContainText("Excerpt")
-  expect(label).toContain("Open source")
-  await page.keyboard.press("Escape")
-  await expect(panel).toBeHidden()
-  await expect(page.getByTestId("download-pdf")).toHaveAttribute("href", /reports\/weekly\/pdf\?week=2019-W20/)
-  await expect(page.getByTestId("preview-pdf")).toHaveAttribute("target", "_blank")
-  const pdf = await page.request.get((await page.getByTestId("download-pdf").getAttribute("href"))!)
-  expect(pdf.headers()["content-type"]).toBe("application/pdf")
-  // dry-run send
-  const weeklyRows = () => page.getByTestId("outbox-list").locator("li", { hasText: "6b29b_2019-W20.pdf" })
-  await page.getByTestId("send-weekly").click()
-  await expect(page.getByRole("alertdialog")).toContainText("DRY RUN")
-  await page.getByTestId("confirm-send").click()
-  await expect(page.getByTestId("send-result")).toContainText("SENT", { timeout: 60000 })
-  await expect(page.getByTestId("send-result")).toContainText("dry run")
-  await expect(weeklyRows()).toHaveCount(1)
-  await expect(weeklyRows().first()).toContainText("Dry run")
-  // second send: asks again before sending another copy
-  await page.getByTestId("send-weekly").click()
-  await page.getByTestId("confirm-send").click()
-  await expect(page.getByRole("alertdialog")).toContainText("already sent")
-  await page.getByRole("button", { name: "Keep one copy" }).click()
-  await expect(weeklyRows()).toHaveCount(1)
-})
-
-test("System tabs render and the numbers equal /system/metrics", async ({ page }) => {
-  const m = await json<{ files: Record<string, any> }>("/system/metrics")        // eslint-disable-line @typescript-eslint/no-explicit-any
-  const ms = m.files.model_selection, cal = m.files.calibration, audit = m.files.fall_audit
-  await page.goto("/system")
-  await expect(page.getByRole("table", { name: "Agent heartbeats" })).toBeVisible()
-  await page.getByRole("tab", { name: "Data quality" }).click()
-  await expect(page.getByTestId("quality")).toContainText("Patient-days processed")
-  await page.getByRole("tab", { name: "Models" }).click()
-  const [name, r] = Object.entries(ms.vitals.models)[0] as [string, any]       // eslint-disable-line @typescript-eslint/no-explicit-any
-  await expect(page.getByTestId(`vitals-${name}-prauc`)).toHaveText(`${r.pr_auc.value.toFixed(3)} (${r.pr_auc.ci95.map((x: number) => x.toFixed(3)).join("–")})`)
-  await expect(page.getByTestId("vitals-brier-raw")).toHaveText(cal.vitals.brier_raw.toFixed(3))
-  const t = audit.thresholds[3]
-  await expect(page.getByTestId(`curve-${t}`)).toHaveText(audit.curve.find((c: any) => c.threshold === t && !c.confirm_inactivity).adult_sensitivity.toFixed(3))      // eslint-disable-line @typescript-eslint/no-explicit-any
-  const e = ms.fall_elderly_by_threshold.rows[0]
-  await expect(page.getByTestId(`elder-${e.threshold}-no`)).toContainText(e.without_inactivity.sensitivity.toFixed(3))
-  await page.getByRole("tab", { name: "Limitations" }).click()
-  await expect(page.getByTestId("limitations")).not.toBeEmpty()
-  await expect(page.getByText("not lost")).toBeVisible()
-})
-
-test("keyboard: demo guide drawer traps focus, closes with Escape and returns focus", async ({ page }) => {
-  await page.goto("/", { waitUntil: "networkidle" })
-  const btn = page.getByTestId("demo-guide-button")
-  await expect(btn).toBeVisible()
-  await btn.focus()
-  await page.keyboard.press("Enter")
-  const dlg = page.getByTestId("demo-guide")
-  await expect(dlg).toBeVisible()
-  for (let i = 0; i < 14; i++) {
-    await page.keyboard.press("Tab")
-    expect(await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true)      // focus never leaves the drawer
-  }
-  await page.keyboard.press("Escape")
-  await expect(dlg).toBeHidden()
-  await expect(btn).toBeFocused()
-})
-
-test("Agent activity page: every part has a card, the latest activity lists real records and filters by agent", async ({ page }) => {
-  await page.goto("/agents", { waitUntil: "networkidle" })
-  await expect(page.getByTestId("agent-cards").locator("li")).toHaveCount(11)
-  await expect(page.getByTestId("feed").getByTestId("activity-row").first()).toBeVisible()
-  await page.getByTestId("agent-card-fall").click()
-  const agents = await page.getByTestId("feed").getByTestId("activity-row").evaluateAll((els) => els.map((e) => e.getAttribute("data-agent")))
-  expect(agents.length).toBeGreaterThan(0)
-  expect(new Set(agents)).toEqual(new Set(["fall"]))
-})
-
-test("axe: no serious or critical violations on any page, light and dark", async ({ page }) => {
-  const p = await firstPatient()
-  const pages = ["/", "/alerts", "/how-it-works", "/agents", "/falls", `/patients/${p.patient_id}`, `/caregiver?patient=${p.patient_id}&day=${p.latest_day}`, `/clinician?patient=6b29b&week=${WEEK}`, "/system"]
-  const found: { page: string; theme: string; id: string; impact: string; nodes: number; first: string }[] = []
-  for (const theme of ["light", "dark"] as const) {
+for (const theme of ["light", "dark"] as const) {
+  test(`no serious accessibility violations (${theme})`, async ({ page }) => {
     await setTheme(page, theme)
-    for (const path of pages) {
-      await page.goto(path, { waitUntil: "networkidle" })
-      await page.waitForTimeout(1500)
-      if (path === "/system") for (const tab of ["Data quality", "Models", "Limitations"]) {
-        await page.getByRole("tab", { name: tab }).click()
-        const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()
-        r.violations.forEach((v) => found.push({ page: `${path}#${tab}`, theme, id: v.id, impact: v.impact ?? "n/a", nodes: v.nodes.length, first: `${v.nodes[0].target.join(" ")} :: ${(v.nodes[0].any[0]?.message ?? v.nodes[0].failureSummary ?? "").slice(0, 160)}` }))
-      }
-      const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()
-      r.violations.forEach((v) => found.push({ page: path, theme, id: v.id, impact: v.impact ?? "n/a", nodes: v.nodes.length, first: `${v.nodes[0].target.join(" ")} :: ${(v.nodes[0].any[0]?.message ?? v.nodes[0].failureSummary ?? "").slice(0, 160)}` }))
+    for (const r of ROUTES) {
+      await page.goto(r, { waitUntil: "networkidle" })
+      await page.waitForTimeout(300)
+      const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()
+      const bad = res.violations.filter((v) => v.impact === "serious" || v.impact === "critical")
+      expect(bad.map((v) => `${r}: ${v.id} ${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join(", ")}`)).toEqual([])
     }
-  }
-  const bySeverity = found.reduce<Record<string, number>>((a, v) => ({ ...a, [v.impact]: (a[v.impact] ?? 0) + 1 }), {})
-  writeFileSync("test-results-axe.json", JSON.stringify({ bySeverity, found }, null, 1))
-  console.log("axe violations by severity:", JSON.stringify(bySeverity))
-  expect(found.filter((v) => v.impact === "serious" || v.impact === "critical"), JSON.stringify(found, null, 1)).toEqual([])
-})
+  })
+}

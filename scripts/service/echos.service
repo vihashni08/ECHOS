@@ -9,7 +9,7 @@ After=network.target
 Type=simple
 User=__USER__
 WorkingDirectory=__ECHOS_DIR__
-ExecStart=/bin/bash __ECHOS_DIR__/scripts/run_api.sh --mode live --dry --no-llm
+ExecStart=/bin/bash __ECHOS_DIR__/scripts/run_api.sh --dry
 Restart=always
 RestartSec=10
 

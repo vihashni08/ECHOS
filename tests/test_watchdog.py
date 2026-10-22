@@ -1,4 +1,4 @@
-"""Watchdog: restarts the runtime process when it exits or stops reporting; emulator resumes after a restart. Throw-away child processes, no network."""
+"""Watchdog: restarts the runtime process when it exits or stops reporting. Throw-away child processes, no network."""
 import sys
 import time
 
@@ -46,23 +46,3 @@ def test_a_healthy_runtime_is_left_alone(tmp_path):
         S.upsert(c, S.sim_state, ["key"], key="updated", value=json.dumps(time.time()))
     assert w.check_once() is None and w.restarts == 0
     w.proc.kill()
-
-
-def test_emulator_resumes_paused_at_its_position_after_a_restart(tmp_path):
-    from echos.live.emulator import Emulator
-    eng = S.get_engine(tmp_path / "e.db")
-    e1 = Emulator(eng, cfg={"speed": 6 * 3600})
-    e1.load(start_day="2019-05-13", n_days=2, n_patients=1)
-    e1.status = "playing"
-    e1.tick(wall=0.0)
-    e1.tick(wall=3.0)
-    assert e1.cursor > 0
-    e2 = Emulator(eng)                               # the runtime was restarted
-    assert e2.resume() and e2.status == "paused" and e2.cursor == e1.cursor and e2.sim_now == e1.sim_now and e2.patients == e1.patients
-    e2.status = "playing"
-    e2.tick(wall=10.0)
-    e2.tick(wall=11.0)
-    assert e2.cursor > e1.cursor                     # continues, and the already-written events are not written twice
-    with eng.begin() as c:
-        n = c.execute(select(S.event_log.c.event_id)).fetchall()
-    assert len(n) == e2.cursor

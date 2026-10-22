@@ -10,44 +10,14 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-import sys
 import threading
 import time
 
-from sqlalchemy import func, select
-
-from echos.config import ROOT
 from echos.orchestrator import state as S
 from echos.orchestrator.supervisor import Supervisor
 from echos.sim.controller import SimController
-from echos.team.run_agent import AGENTS
 
 log = logging.getLogger("echos.team.runtime")
-PENDING = {"patient_monitor": ("event_log", ("day", "reading")), "review_coordinator": ("event_log", ("day_close",)), "care": ("event_log", ("outcome",))}
-
-
-class TeamSupervisor(Supervisor):
-    """The v2 agents: same detection and restart rules, a different process command."""
-
-    def __init__(self, db, **kw):
-        super().__init__(db, agents=AGENTS, **kw)
-
-    def _spawn(self, agent):
-        import subprocess
-        cmd = [sys.executable, "-W", "ignore", "-m", "echos.team.run_agent", "--agent", agent, "--hb", str(self.hb_s)]
-        if self.db:
-            cmd += ["--db", self.db]
-        env = {**os.environ, "PYTHONPATH": str(ROOT), "PYTHONWARNINGS": "ignore"}
-        self.proc[agent] = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self.started[agent] = S.now()
-        self.track[agent] = {"cursor": None, "since": S.now()}
-        return self.proc[agent].pid
-
-    def _pending(self, agent, last_id) -> bool:
-        _, kinds = PENDING[agent]
-        with self.eng.begin() as c:
-            n = c.execute(select(func.count()).select_from(S.event_log).where((S.event_log.c.event_id > (last_id or 0)) & S.event_log.c.kind.in_(kinds))).scalar()
-        return n > 0
 
 
 V2_WIPE = [S.patient_agent, S.review_list, S.agent_state]
@@ -62,7 +32,7 @@ class TeamRuntime:
     def __init__(self, db=None, n_patients: int = 8, max_days: int = 28):
         self.db = db
         self.eng = S.get_engine(db)
-        self.sup = TeamSupervisor(db)
+        self.sup = Supervisor(db)
         self.ctl = SimController(self.eng, n_patients=n_patients, max_days=max_days, on_reset=self._on_reset,
                                  builder=lambda: build_v2_events(n_patients, max_days), extra_wipe=V2_WIPE)
 
@@ -72,8 +42,7 @@ class TeamRuntime:
                 self.sup.restart(a, "sim_reset", S.now())
 
     def start(self):
-        self.ctl._ensure_events()
-        self.ctl._publish()
+        self.ctl.resume()                      # a restarted runtime continues the replay where the database says it was
         self.sup.start_all()
         threading.Thread(target=self.sup.run, daemon=True).start()
         threading.Thread(target=self.ctl.run, daemon=True).start()

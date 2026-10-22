@@ -1,14 +1,10 @@
-"""Simulation controller: replays TIHM events into event_log under remote control, and injects SisFall fall windows on request.
+"""Replay controller: replays the v2 TIHM events (echos/sim/replay_v2.py) into event_log under remote control.
 
 Commands come from the `sim_command` table (written by the API, which never loads models) and are consumed here:
-  play | pause | speed {eps} | reset | inject_fall {patient_id, file, win_start, subject, activity}
+  play | pause | speed {eps} | reset | inject_reading {patient_id, sys, dia, hr, temp}
 State is published in `sim_state` (status idle|playing|paused|finished, speed, cursor, total, sim_time, message).
-SYNTHETIC / SIMULATED data (see echos/sim/replay.py): for demos and systems tests only.
-
-Injected fall: the window is written as a 'sensor' event for the patient's CURRENT (next unclosed) day, at the current simulated time, and that day is
-closed immediately (its 'day' event is emitted now instead of at 23:59:59) so the orchestrator raises the alert now. The day-level features come from
-the same TIHM patient-day, so closing early only changes WHEN the report is made.
-`Runtime` wires the controller to the supervisor (worker processes) and the orchestrator thread: python -m echos.sim.controller [--db PATH]."""
+inject_reading is the only invented data: one demo reading for a replay patient at the current simulated time (payload marked injected).
+The runtime that owns the controller and the agent processes is echos.team.runtime (python -m echos.sim.controller starts it)."""
 from __future__ import annotations
 
 import argparse
@@ -24,15 +20,15 @@ from sqlalchemy import delete, func, select
 from echos.orchestrator import state as S
 
 log = logging.getLogger("echos.sim")
-WIPE = [S.event_log, S.agent_output, S.case_state, S.alerts, S.outbox, S.daily_facts, S.reports, S.gt_fall, S.agent_checkpoint,
-        S.alert_state, S.care_task, S.case_file, S.agent_message]
+WIPE = [S.event_log, S.agent_output, S.case_state, S.alerts, S.outbox, S.agent_checkpoint, S.alert_state, S.care_task, S.agent_message,
+        S.patient_agent, S.review_list, S.agent_state]
 
 
 class SimController:
     def __init__(self, eng, events: Optional[list] = None, speed_eps: float = 20.0, n_patients: int = 4, max_days: int = 28, on_reset=None,
                  builder=None, extra_wipe=()):
         self.eng, self.on_reset = eng, on_reset
-        self.builder, self.wipe = builder, list(WIPE) + list(extra_wipe)   # builder: v2 replay (echos/sim/replay_v2.py); None = v1 events
+        self.builder, self.wipe = builder, list(dict.fromkeys(list(WIPE) + list(extra_wipe)))   # builder: () -> events (echos/sim/replay_v2.py)
         self.n_patients, self.max_days = n_patients, max_days
         self.events = events
         self.done: list = []
@@ -51,22 +47,34 @@ class SimController:
 
     def _ensure_events(self) -> None:
         if self.events is None:
-            if self.builder is not None:
-                self.events = self.builder()
-            else:
-                from echos.sim.replay import build_events
-                self.events = build_events(self.n_patients, max_days=self.max_days)[0]
+            if self.builder is None:
+                from echos.sim.replay_v2 import build_events
+                self.builder = lambda: build_events(self.n_patients, self.max_days)
+            self.events = self.builder()
         if len(self.done) != len(self.events):
             self.done = [False] * len(self.events)
+
+    def resume(self) -> int:
+        """After a runtime restart (watchdog): the replay events are deterministic, so the events already in event_log are the first N of this
+        replay. Continue after them, paused (or finished), instead of starting again from event 0. Injected readings are not replay events."""
+        self._ensure_events()
+        with self.eng.begin() as c:
+            n = c.execute(select(func.count()).select_from(S.event_log).where(S.event_log.c.kind != "reading")).scalar() or 0
+            last = c.execute(select(S.event_log.c.ts).order_by(S.event_log.c.event_id.desc()).limit(1)).scalar()
+        if n:
+            n = min(n, len(self.events))
+            self.done = [True] * n + [False] * (len(self.events) - n)
+            self.cursor, self.sim_time = n, last
+            self.status = "finished" if n >= len(self.events) else "paused"
+            self.message = "resumed after a restart" if self.status == "paused" else "all events emitted"
+        self._publish()
+        return n
 
     # ---- emission
     def _insert(self, e: dict, ts: Optional[str] = None, payload: Optional[dict] = None, gt: Optional[bool] = None) -> int:
         with self.eng.begin() as c:
             eid = c.execute(S.event_log.insert().values(patient_id=e["patient_id"], day=e["day"], ts=ts or e["ts"], kind=e["kind"],
                                                        payload=S.j(payload if payload is not None else e["payload"]))).inserted_primary_key[0]
-            if e.get("_fall") if gt is None else gt:
-                S.insert_ignore(c, S.gt_fall, event_id=eid, patient_id=e["patient_id"], day=e["day"], ts=ts or e["ts"],
-                                subject=(payload or e["payload"]).get("subject"), file=(payload or e["payload"]).get("file"))
         self.sim_time = ts or e["ts"]
         return eid
 
@@ -82,23 +90,6 @@ class SimController:
         self.done[i] = True
         self.cursor = i + 1
         return True
-
-    def inject_fall(self, a: dict) -> dict:
-        self._ensure_events()
-        pid = a["patient_id"]
-        j = next((k for k in range(len(self.events)) if not self.done[k] and self.events[k]["patient_id"] == pid and self.events[k]["kind"] == "day"), None)
-        if j is None:
-            raise ValueError(f"no open day left for patient {pid} (simulation finished for this patient)")
-        day_ev = self.events[j]
-        d0 = pd.Timestamp(day_ev["day"])
-        now = pd.Timestamp(self.sim_time) if self.sim_time else d0 + pd.Timedelta(hours=12)
-        ts = now if d0 <= now < d0 + pd.Timedelta(days=1) else d0 + pd.Timedelta(hours=12)
-        pl = {"file": a["file"], "win_start": int(a["win_start"]), "subject": a["subject"], "activity": a["activity"], "injected": True}
-        eid = self._insert({"patient_id": pid, "day": day_ev["day"], "kind": "sensor", "payload": pl, "ts": ts.isoformat()}, ts=ts.isoformat(), payload=pl, gt=True)
-        self._insert(day_ev, ts=(d0 + pd.Timedelta(hours=23, minutes=59, seconds=59)).isoformat())
-        self.done[j] = True
-        self._publish()
-        return {"event_id": eid, "day": day_ev["day"], "ts": ts.isoformat()}
 
     def inject_reading(self, a: dict) -> dict:
         """Demo / live: one vitals reading for a patient at the current simulated time (kind 'reading'): the Patient Monitor checks it at once."""
@@ -145,8 +136,6 @@ class SimController:
             self.speed = v
         elif cmd == "reset":
             self.reset()
-        elif cmd == "inject_fall":
-            return self.inject_fall(a)
         elif cmd == "inject_reading":
             return self.inject_reading(a)
         else:
@@ -192,83 +181,9 @@ class SimController:
                 log.exception("controller tick failed")
 
 
-class Runtime:
-    """Workers (supervisor) + orchestrator thread + controller thread, for demos."""
-    def __init__(self, db=None, n_patients: int = 4, max_days: int = 28, report_llm="auto", weekly_pdf=None, report_root=None):
-        from echos.orchestrator.pipeline import build_pipeline
-        from echos.orchestrator.supervisor import Supervisor
-        from echos.sim.replay import train_replay_fall_model
-        self.db = db
-        self.eng = S.get_engine(db)
-        self.report_llm, self.weekly_pdf, self.report_root = report_llm, weekly_pdf, report_root
-        self._build_pipeline = build_pipeline
-        self.sup = Supervisor(db, fall_model=train_replay_fall_model())
-        self.ctl = SimController(self.eng, n_patients=n_patients, max_days=max_days, on_reset=self._on_reset)
-        self.stop_orch = threading.Event()
-        self.orch = None
-        self.coord = None
-        self.pipeline = None
-
-    def _start_orch(self):
-        from echos.orchestrator.pipeline import run_orchestrator
-        self.stop_orch = threading.Event()
-        self.pipeline = self._build_pipeline(self.eng, report_llm=self.report_llm, weekly_pdf=self.weekly_pdf, report_root=self.report_root)
-        from echos.team.coordinator import CareCoordinator
-        if self.coord is not None:
-            self.coord.stop()
-        self.coord = CareCoordinator(self.eng, self.pipeline.dispatcher)    # Care Coordinator agent: alert lifecycle, escalation, tasks
-        self.coord.start()
-        self.orch = threading.Thread(target=run_orchestrator, args=(self.eng, self.pipeline), kwargs={"stop": self.stop_orch, "poll_s": 0.2}, daemon=True)
-        self.orch.start()
-
-    def _on_reset(self, phase: str):
-        if phase == "before":
-            self.stop_orch.set()
-            if self.orch:
-                self.orch.join(30)
-        else:
-            for a in self.sup.agents:      # workers resume from the (now cleared) checkpoints: restart so their in-memory cursors reset
-                self.sup.restart(a, "sim_reset", S.now())
-            self._start_orch()
-
-    def start(self):
-        self.ctl._ensure_events()
-        self.ctl._publish()
-        self.sup.start_all()
-        threading.Thread(target=self.sup.run, daemon=True).start()
-        self._start_orch()
-        threading.Thread(target=self.ctl.run, daemon=True).start()
-
-    def close(self):
-        self.ctl.stop.set()
-        self.stop_orch.set()
-        if self.coord:
-            self.coord.stop()
-        self.sup.stop_all()
-
-
 def main():
-    import os
-    if os.environ.get("ECHOS_RUNTIME", "v2") == "v2":     # ECHOS v2 (three agents); ECHOS_RUNTIME=v1 starts the original pipeline
-        from echos.team.runtime import main as v2_main
-        return v2_main()
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default=os.environ.get("ECHOS_DB"))
-    ap.add_argument("--patients", type=int, default=4)
-    ap.add_argument("--days", type=int, default=28)
-    ap.add_argument("--no-llm", action="store_true", help="template reports only (no Gemini calls)")
-    ap.add_argument("--no-pubmed", action="store_true", help="no live PubMed (local guideline index only)")
-    a = ap.parse_args()
-    if a.no_llm or a.no_pubmed:
-        os.environ["ECHOS_PUBMED"] = "off"
-    rt = Runtime(a.db, a.patients, a.days, report_root=os.environ.get("ECHOS_REPORT_ROOT"), report_llm=None if (a.no_llm or os.environ.get("ECHOS_REPORT_LLM") == "off") else "auto")
-    rt.start()
-    print("runtime started (workers + orchestrator + controller); Ctrl-C to stop", flush=True)
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        rt.close()
+    from echos.team.runtime import main as team_main
+    return team_main()
 
 
 if __name__ == "__main__":

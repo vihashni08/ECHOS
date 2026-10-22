@@ -3,7 +3,7 @@
  "info": {
   "title": "ECHOS API",
   "description": "Decision-support demo API for ECHOS (not a diagnostic tool). **No authentication**: for local demos only, bound to 127.0.0.1. Lists are paginated with `limit` and `offset`. Errors have the shape `{\"error\": {\"status\": 404, \"message\": \"...\"}}`.",
-  "version": "1.0"
+  "version": "2.0"
  },
  "paths": {
   "/api/patients": {
@@ -92,94 +92,6 @@
     }
    }
   },
-  "/api/patients/{pid}/summary": {
-   "get": {
-    "tags": [
-     "patients"
-    ],
-    "summary": "Summary",
-    "operationId": "summary_api_patients__pid__summary_get",
-    "parameters": [
-     {
-      "name": "pid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Pid"
-      }
-     },
-     {
-      "name": "day",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Day"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/SummaryOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
   "/api/patients/{pid}/statuses": {
    "get": {
     "tags": [
@@ -205,7 +117,7 @@
        "type": "integer",
        "maximum": 120,
        "minimum": 1,
-       "default": 7,
+       "default": 28,
        "title": "Days"
       }
      }
@@ -221,708 +133,6 @@
           "$ref": "#/components/schemas/DayStatus"
          },
          "title": "Response Statuses Api Patients  Pid  Statuses Get"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/patients/{pid}/vitals": {
-   "get": {
-    "tags": [
-     "patients"
-    ],
-    "summary": "Vitals",
-    "operationId": "vitals_api_patients__pid__vitals_get",
-    "parameters": [
-     {
-      "name": "pid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Pid"
-      }
-     },
-     {
-      "name": "from",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "From"
-      }
-     },
-     {
-      "name": "to",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "To"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/VitalsOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/patients/{pid}/reports/daily": {
-   "get": {
-    "tags": [
-     "reports"
-    ],
-    "summary": "Daily",
-    "operationId": "daily_api_patients__pid__reports_daily_get",
-    "parameters": [
-     {
-      "name": "pid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Pid"
-      }
-     },
-     {
-      "name": "day",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Day"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/DailyReportOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/patients/{pid}/reports/weekly": {
-   "get": {
-    "tags": [
-     "reports"
-    ],
-    "summary": "Weekly",
-    "operationId": "weekly_api_patients__pid__reports_weekly_get",
-    "parameters": [
-     {
-      "name": "pid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Pid"
-      }
-     },
-     {
-      "name": "week",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "description": "ISO week, e.g. 2019-W19",
-       "title": "Week"
-      },
-      "description": "ISO week, e.g. 2019-W19"
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/WeeklyReportOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/patients/{pid}/reports/weekly-available": {
-   "get": {
-    "tags": [
-     "reports"
-    ],
-    "summary": "Weekly Available",
-    "description": "ISO weeks with a stored weekly report for this patient (the UI builds a missing one instead of probing for a 404).",
-    "operationId": "weekly_available_api_patients__pid__reports_weekly_available_get",
-    "parameters": [
-     {
-      "name": "pid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Pid"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "type": "array",
-         "items": {
-          "type": "string"
-         },
-         "title": "Response Weekly Available Api Patients  Pid  Reports Weekly Available Get"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/patients/{pid}/reports/weekly/pdf": {
-   "get": {
-    "tags": [
-     "reports"
-    ],
-    "summary": "Weekly Pdf",
-    "operationId": "weekly_pdf_api_patients__pid__reports_weekly_pdf_get",
-    "parameters": [
-     {
-      "name": "pid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Pid"
-      }
-     },
-     {
-      "name": "week",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Week"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response"
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/patients/{pid}/reports/weekly/build": {
-   "post": {
-    "tags": [
-     "reports"
-    ],
-    "summary": "Weekly Build",
-    "description": "Build (or rebuild) the weekly PDF and store it; nothing is emailed.",
-    "operationId": "weekly_build_api_patients__pid__reports_weekly_build_post",
-    "parameters": [
-     {
-      "name": "pid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Pid"
-      }
-     },
-     {
-      "name": "week",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Week"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/WeeklyReportOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/sources/{sid}": {
-   "get": {
-    "tags": [
-     "reports"
-    ],
-    "summary": "Source",
-    "operationId": "source_api_sources__sid__get",
-    "parameters": [
-     {
-      "name": "sid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Sid"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/SourceOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/patients/{pid}/reports/weekly/send": {
-   "post": {
-    "tags": [
-     "reports"
-    ],
-    "summary": "Weekly Send",
-    "description": "Build (or rebuild) the weekly PDF and email it to the CLINICIAN. Respects alerts.send_real (false = outbox only, DryRun).\nWithout `force` a week that was already sent is not sent again.",
-    "operationId": "weekly_send_api_patients__pid__reports_weekly_send_post",
-    "parameters": [
-     {
-      "name": "pid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Pid"
-      }
-     },
-     {
-      "name": "week",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Week"
-      }
-     }
-    ],
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/WeeklySendIn",
-        "default": {
-         "force": false
-        }
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/WeeklySendOut"
         }
        }
       }
@@ -1449,230 +659,6 @@
     }
    }
   },
-  "/api/ingest/events": {
-   "post": {
-    "tags": [
-     "live"
-    ],
-    "summary": "Ingest",
-    "description": "Ingestion contract for ANY source (device, hub, emulator): a batch of activity / vitals / accel / heartbeat events with DATA timestamps.\nIdempotent: an exact repeat counts as a duplicate. If ECHOS_INGEST_TOKEN is set, send it as X-Echos-Token. Limits (config `ingest`): 413 too large / too many events, 411 no Content-Length, 403 unregistered device, 429 rate limit (Retry-After).",
-    "operationId": "ingest_api_ingest_events_post",
-    "parameters": [
-     {
-      "name": "x-echos-token",
-      "in": "header",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "X-Echos-Token"
-      }
-     }
-    ],
-    "requestBody": {
-     "required": true,
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/IngestBatch"
-       }
-      }
-     }
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/IngestResultOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/live/status": {
-   "get": {
-    "tags": [
-     "live"
-    ],
-    "summary": "Live Status",
-    "description": "Data mode (replay / emulator / live), emulator state and, per patient, how fresh each stream is.",
-    "operationId": "live_status_api_live_status_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/LiveStatusOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Not Found",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "409": {
-      "description": "Conflict",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Unprocessable Entity",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "403": {
-      "description": "Forbidden",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/live/emulator": {
-   "post": {
-    "tags": [
-     "live"
-    ],
-    "summary": "Live Emulator",
-    "description": "Control the labelled device emulator: load | play | pause | speed | fall.",
-    "operationId": "live_emulator_api_live_emulator_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/EmulatorCmdIn"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/EmulatorCmdOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Not Found",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "409": {
-      "description": "Conflict",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Unprocessable Entity",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "403": {
-      "description": "Forbidden",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
   "/api/components": {
    "get": {
     "tags": [
@@ -1788,404 +774,6 @@
           "$ref": "#/components/schemas/AgentMessageOut"
          },
          "title": "Response Agent Messages Api Agents Messages Get"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/agents/summary": {
-   "get": {
-    "tags": [
-     "agents"
-    ],
-    "summary": "Agents Summary",
-    "description": "Every detector, agent and infrastructure part: live status, how many actions it has logged and its latest one.",
-    "operationId": "agents_summary_api_agents_summary_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "items": {
-          "$ref": "#/components/schemas/AgentSummaryOut"
-         },
-         "type": "array",
-         "title": "Response Agents Summary Api Agents Summary Get"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Not Found",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "409": {
-      "description": "Conflict",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Unprocessable Entity",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "403": {
-      "description": "Forbidden",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
-  "/api/agents/activity": {
-   "get": {
-    "tags": [
-     "agents"
-    ],
-    "summary": "Agents Activity",
-    "description": "What the agents did, newest first, from the tables they write. With `patient_id` + `day` (one case) the detector steps are included and the order can be oldest first.",
-    "operationId": "agents_activity_api_agents_activity_get",
-    "parameters": [
-     {
-      "name": "limit",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "type": "integer",
-       "maximum": 500,
-       "minimum": 1,
-       "default": 100,
-       "title": "Limit"
-      }
-     },
-     {
-      "name": "agent",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Agent"
-      }
-     },
-     {
-      "name": "patient_id",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Patient Id"
-      }
-     },
-     {
-      "name": "day",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Day"
-      }
-     },
-     {
-      "name": "oldest_first",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "type": "boolean",
-       "default": false,
-       "title": "Oldest First"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "type": "array",
-         "items": {
-          "$ref": "#/components/schemas/ActivityEventOut"
-         },
-         "title": "Response Agents Activity Api Agents Activity Get"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/patients/{pid}/case": {
-   "get": {
-    "tags": [
-     "patients"
-    ],
-    "summary": "Case File",
-    "description": "The Case Investigator's file for a changed or urgent day (latest day if none is given); null when that day has none (a normal day).",
-    "operationId": "case_file_api_patients__pid__case_get",
-    "parameters": [
-     {
-      "name": "pid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Pid"
-      }
-     },
-     {
-      "name": "day",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Day"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "anyOf": [
-          {
-           "$ref": "#/components/schemas/CaseFileOut"
-          },
-          {
-           "type": "null"
-          }
-         ],
-         "title": "Response Case File Api Patients  Pid  Case Get"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/patients/{pid}/team-plan": {
-   "get": {
-    "tags": [
-     "patients"
-    ],
-    "summary": "Team Plan",
-    "description": "Which agents the Team Planner called for on a day (latest day if none is given) and why; null when no plan was recorded.",
-    "operationId": "team_plan_api_patients__pid__team_plan_get",
-    "parameters": [
-     {
-      "name": "pid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "string",
-       "title": "Pid"
-      }
-     },
-     {
-      "name": "day",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "anyOf": [
-        {
-         "type": "string"
-        },
-        {
-         "type": "null"
-        }
-       ],
-       "title": "Day"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "anyOf": [
-          {
-           "$ref": "#/components/schemas/TeamPlanOut"
-          },
-          {
-           "type": "null"
-          }
-         ],
-         "title": "Response Team Plan Api Patients  Pid  Team Plan Get"
         }
        }
       }
@@ -2580,236 +1168,6 @@
        }
       },
       "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/falls": {
-   "get": {
-    "tags": [
-     "falls"
-    ],
-    "summary": "Falls",
-    "operationId": "falls_api_falls_get",
-    "parameters": [
-     {
-      "name": "limit",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "type": "integer",
-       "maximum": 500,
-       "minimum": 1,
-       "default": 50,
-       "title": "Limit"
-      }
-     },
-     {
-      "name": "offset",
-      "in": "query",
-      "required": false,
-      "schema": {
-       "type": "integer",
-       "minimum": 0,
-       "default": 0,
-       "title": "Offset"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/Page_FallItem_"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/falls/{fid}": {
-   "get": {
-    "tags": [
-     "falls"
-    ],
-    "summary": "Fall",
-    "operationId": "fall_api_falls__fid__get",
-    "parameters": [
-     {
-      "name": "fid",
-      "in": "path",
-      "required": true,
-      "schema": {
-       "type": "integer",
-       "title": "Fid"
-      }
-     }
-    ],
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/FallDetail"
-        }
-       }
-      }
-     },
-     "404": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Not Found"
-     },
-     "409": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Conflict"
-     },
-     "422": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Unprocessable Entity"
-     },
-     "403": {
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      },
-      "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/sim/fall": {
-   "post": {
-    "tags": [
-     "simulation"
-    ],
-    "summary": "Sim Fall",
-    "description": "Inject a SisFall fall window for a patient at the current simulated time. The response states which SisFall subject it came from and whether\nthat subject was in the training set of the model used by the Fall worker (the replay model excludes the held-out subjects) and of the final model.",
-    "operationId": "sim_fall_api_sim_fall_post",
-    "requestBody": {
-     "content": {
-      "application/json": {
-       "schema": {
-        "$ref": "#/components/schemas/SimFallIn"
-       }
-      }
-     },
-     "required": true
-    },
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/SimFallOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Not Found",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "409": {
-      "description": "Conflict",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Unprocessable Entity",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "403": {
-      "description": "Forbidden",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
      }
     }
    }
@@ -3267,67 +1625,6 @@
     }
    }
   },
-  "/api/system/quality": {
-   "get": {
-    "tags": [
-     "system"
-    ],
-    "summary": "Sys Quality",
-    "operationId": "sys_quality_api_system_quality_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/QualityOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Not Found",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "409": {
-      "description": "Conflict",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Unprocessable Entity",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "403": {
-      "description": "Forbidden",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     }
-    }
-   }
-  },
   "/api/system/metrics": {
    "get": {
     "tags": [
@@ -3349,10 +1646,10 @@
          "type": "null"
         }
        ],
-       "description": "comma-separated metrics file names (default model_selection,calibration,fall_audit)",
+       "description": "comma-separated metrics file names (default: the v2_* evaluation files)",
        "title": "Names"
       },
-      "description": "comma-separated metrics file names (default model_selection,calibration,fall_audit)"
+      "description": "comma-separated metrics file names (default: the v2_* evaluation files)"
      }
     ],
     "responses": {
@@ -3405,67 +1702,6 @@
        }
       },
       "description": "Forbidden"
-     }
-    }
-   }
-  },
-  "/api/system/llm-budget": {
-   "get": {
-    "tags": [
-     "system"
-    ],
-    "summary": "Sys Llm",
-    "operationId": "sys_llm_api_system_llm_budget_get",
-    "responses": {
-     "200": {
-      "description": "Successful Response",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/LLMBudgetOut"
-        }
-       }
-      }
-     },
-     "404": {
-      "description": "Not Found",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "409": {
-      "description": "Conflict",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "422": {
-      "description": "Unprocessable Entity",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
-     },
-     "403": {
-      "description": "Forbidden",
-      "content": {
-       "application/json": {
-        "schema": {
-         "$ref": "#/components/schemas/ErrorOut"
-        }
-       }
-      }
      }
     }
    }
@@ -3530,53 +1766,379 @@
      }
     }
    }
+  },
+  "/api/v2/review": {
+   "get": {
+    "tags": [
+     "v2"
+    ],
+    "summary": "Review Day",
+    "description": "The Review Coordinator's list for a day (latest allocated day if none is given), plus the patients it deferred.",
+    "operationId": "review_day_api_v2_review_get",
+    "parameters": [
+     {
+      "name": "day",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Day"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReviewDay"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/v2/patients/{pid}/monitor": {
+   "get": {
+    "tags": [
+     "v2"
+    ],
+    "summary": "Monitor Timeline",
+    "description": "What this person's Patient Monitor saw and concluded, newest day first: readings vs personal usual, urgent / attention flags,\nagitation windows with reasons, the personal event rate with its 95% credible interval, and whether the Coordinator picked them.",
+    "operationId": "monitor_timeline_api_v2_patients__pid__monitor_get",
+    "parameters": [
+     {
+      "name": "pid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Pid"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 120,
+       "minimum": 1,
+       "default": 28,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/MonitorDay"
+         },
+         "title": "Response Monitor Timeline Api V2 Patients  Pid  Monitor Get"
+        }
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
+  "/api/v2/reviews/outcome": {
+   "post": {
+    "tags": [
+     "v2"
+    ],
+    "summary": "Review Outcome",
+    "description": "A clinician's answer after a review (confirmed problem or not). It goes to the Care agent, which passes it to the patient's Patient\nMonitor as FEEDBACK: the monitor updates its personal event rate and episode history from it.",
+    "operationId": "review_outcome_api_v2_reviews_outcome_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OutcomeIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/sim/reading": {
+   "post": {
+    "tags": [
+     "simulation"
+    ],
+    "summary": "Sim Reading",
+    "description": "Demo: inject one vitals reading for a replay patient at the current simulated time. The Patient Monitor checks it at once; a red-flag\nvalue (NEWS2 red score, BP >= 180/120) becomes an URGENT alert through the Care agent.",
+    "operationId": "sim_reading_api_sim_reading_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReadingIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v2/summary": {
+   "get": {
+    "tags": [
+     "v2"
+    ],
+    "summary": "V2 Summary",
+    "description": "Counts for the dashboard header: days scored, urgent alerts, reviews (and how many found a confirmed event), messages per topic.",
+    "operationId": "v2_summary_api_v2_summary_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "404": {
+      "description": "Not Found",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "Conflict",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Unprocessable Entity",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "Forbidden",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
   "schemas": {
-   "ActivityEventOut": {
-    "properties": {
-     "ts": {
-      "type": "number",
-      "title": "Ts"
-     },
-     "agent": {
-      "type": "string",
-      "title": "Agent"
-     },
-     "action": {
-      "type": "string",
-      "title": "Action"
-     },
-     "text": {
-      "type": "string",
-      "title": "Text"
-     },
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id",
-      "default": ""
-     },
-     "day": {
-      "type": "string",
-      "title": "Day",
-      "default": ""
-     },
-     "ref": {
-      "type": "string",
-      "title": "Ref",
-      "default": ""
-     }
-    },
-    "type": "object",
-    "required": [
-     "ts",
-     "agent",
-     "action",
-     "text"
-    ],
-    "title": "ActivityEventOut"
-   },
    "AgentHealth": {
     "properties": {
      "agent": {
@@ -3697,133 +2259,6 @@
      "topic"
     ],
     "title": "AgentMessageOut"
-   },
-   "AgentPickOut": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "title": "Id"
-     },
-     "active": {
-      "type": "boolean",
-      "title": "Active"
-     },
-     "role": {
-      "type": "string",
-      "title": "Role",
-      "default": ""
-     },
-     "reason": {
-      "type": "string",
-      "title": "Reason"
-     },
-     "need": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Need"
-     },
-     "threshold": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Threshold"
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "active",
-     "reason"
-    ],
-    "title": "AgentPickOut"
-   },
-   "AgentSummaryOut": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "title": "Id"
-     },
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "kind": {
-      "type": "string",
-      "title": "Kind"
-     },
-     "status": {
-      "type": "string",
-      "title": "Status"
-     },
-     "detail": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Detail"
-     },
-     "heartbeat_age_s": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Heartbeat Age S"
-     },
-     "actions": {
-      "type": "integer",
-      "title": "Actions"
-     },
-     "last_ts": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Last Ts"
-     },
-     "last_text": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Last Text"
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "name",
-     "kind",
-     "status",
-     "actions"
-    ],
-    "title": "AgentSummaryOut"
    },
    "AlertAckIn": {
     "properties": {
@@ -4119,125 +2554,6 @@
     ],
     "title": "CareTaskOut"
    },
-   "CaseFileOut": {
-    "properties": {
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "day": {
-      "type": "string",
-      "title": "Day"
-     },
-     "status": {
-      "type": "string",
-      "title": "Status"
-     },
-     "headline": {
-      "type": "string",
-      "title": "Headline"
-     },
-     "evidence_level": {
-      "type": "string",
-      "title": "Evidence Level"
-     },
-     "reasons": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Reasons"
-     },
-     "specifics": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Specifics"
-     },
-     "caveats": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Caveats"
-     },
-     "next_checks": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Next Checks"
-     },
-     "trace": {
-      "items": {
-       "additionalProperties": true,
-       "type": "object"
-      },
-      "type": "array",
-      "title": "Trace"
-     },
-     "detectors": {
-      "additionalProperties": true,
-      "type": "object",
-      "title": "Detectors"
-     },
-     "history": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "History"
-     },
-     "agreement": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Agreement"
-     },
-     "disclaimer": {
-      "type": "string",
-      "title": "Disclaimer",
-      "default": ""
-     }
-    },
-    "type": "object",
-    "required": [
-     "patient_id",
-     "day",
-     "status",
-     "headline",
-     "evidence_level"
-    ],
-    "title": "CaseFileOut"
-   },
-   "Completeness": {
-    "properties": {
-     "days": {
-      "type": "integer",
-      "title": "Days",
-      "default": 0
-     },
-     "days_with_vitals": {
-      "type": "integer",
-      "title": "Days With Vitals",
-      "default": 0
-     }
-    },
-    "type": "object",
-    "title": "Completeness"
-   },
    "ComponentOut": {
     "properties": {
      "id": {
@@ -4313,153 +2629,6 @@
     ],
     "title": "ComponentOut"
    },
-   "DailyReportOut": {
-    "properties": {
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "day": {
-      "type": "string",
-      "title": "Day"
-     },
-     "mode": {
-      "type": "string",
-      "title": "Mode"
-     },
-     "text": {
-      "type": "string",
-      "title": "Text"
-     },
-     "status": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Status"
-     },
-     "alerts": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Alerts",
-      "default": []
-     },
-     "changes": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Changes",
-      "default": []
-     },
-     "monitor": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Monitor",
-      "default": []
-     },
-     "data_note": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Data Note"
-     },
-     "doc": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Doc"
-     },
-     "created_ts": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Created Ts"
-     },
-     "validation": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Validation"
-     },
-     "provenance": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/Provenance"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     }
-    },
-    "type": "object",
-    "required": [
-     "patient_id",
-     "day",
-     "mode",
-     "text"
-    ],
-    "title": "DailyReportOut"
-   },
-   "DayBand": {
-    "properties": {
-     "day": {
-      "type": "string",
-      "title": "Day"
-     },
-     "lo": {
-      "type": "number",
-      "title": "Lo"
-     },
-     "hi": {
-      "type": "number",
-      "title": "Hi"
-     },
-     "base": {
-      "type": "number",
-      "title": "Base"
-     }
-    },
-    "type": "object",
-    "required": [
-     "day",
-     "lo",
-     "hi",
-     "base"
-    ],
-    "title": "DayBand"
-   },
    "DayStatus": {
     "properties": {
      "day": {
@@ -4485,195 +2654,6 @@
      "reasons"
     ],
     "title": "DayStatus"
-   },
-   "EmulatorCmdIn": {
-    "properties": {
-     "action": {
-      "type": "string",
-      "title": "Action",
-      "description": "load | play | pause | speed | fall"
-     },
-     "speed": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Speed"
-     },
-     "patient_id": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Patient Id"
-     },
-     "subject": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Subject"
-     },
-     "activity": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Activity"
-     },
-     "start_day": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Start Day"
-     },
-     "n_days": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "N Days"
-     },
-     "n_patients": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "N Patients"
-     }
-    },
-    "type": "object",
-    "required": [
-     "action"
-    ],
-    "title": "EmulatorCmdIn"
-   },
-   "EmulatorCmdOut": {
-    "properties": {
-     "status": {
-      "type": "string",
-      "title": "Status"
-     },
-     "result": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Result"
-     },
-     "note": {
-      "type": "string",
-      "title": "Note",
-      "default": ""
-     }
-    },
-    "type": "object",
-    "required": [
-     "status"
-    ],
-    "title": "EmulatorCmdOut"
-   },
-   "EmulatorOut": {
-    "properties": {
-     "status": {
-      "type": "string",
-      "title": "Status"
-     },
-     "speed": {
-      "type": "number",
-      "title": "Speed"
-     },
-     "sim_now": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Sim Now"
-     },
-     "cursor": {
-      "type": "integer",
-      "title": "Cursor",
-      "default": 0
-     },
-     "total": {
-      "type": "integer",
-      "title": "Total",
-      "default": 0
-     },
-     "start": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Start"
-     },
-     "end": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "End"
-     },
-     "patients": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Patients"
-     }
-    },
-    "type": "object",
-    "required": [
-     "status",
-     "speed"
-    ],
-    "title": "EmulatorOut"
    },
    "ErrorBody": {
     "properties": {
@@ -4704,427 +2684,6 @@
      "error"
     ],
     "title": "ErrorOut"
-   },
-   "FallDetail": {
-    "properties": {
-     "id": {
-      "type": "integer",
-      "title": "Id"
-     },
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "day": {
-      "type": "string",
-      "title": "Day"
-     },
-     "ts": {
-      "type": "string",
-      "title": "Ts"
-     },
-     "sisfall_subject": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Sisfall Subject"
-     },
-     "probability": {
-      "type": "number",
-      "title": "Probability"
-     },
-     "probability_text": {
-      "type": "string",
-      "title": "Probability Text"
-     },
-     "peak_g": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Peak G"
-     },
-     "inactivity": {
-      "type": "boolean",
-      "title": "Inactivity"
-     },
-     "day_status": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Day Status"
-     },
-     "alert_status": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Alert Status"
-     },
-     "inactivity_observed_s": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Inactivity Observed S"
-     },
-     "inactivity_required_s": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Inactivity Required S"
-     },
-     "threshold": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Threshold"
-     },
-     "injected": {
-      "type": "boolean",
-      "title": "Injected",
-      "default": false
-     },
-     "in_training_set_of_worker_model": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "In Training Set Of Worker Model"
-     },
-     "in_training_set_of_final_model": {
-      "anyOf": [
-       {
-        "type": "boolean"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "In Training Set Of Final Model"
-     },
-     "waveform": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/Waveform"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "alert": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/AlertOut"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "outbox": {
-      "items": {
-       "$ref": "#/components/schemas/OutboxOut"
-      },
-      "type": "array",
-      "title": "Outbox",
-      "default": []
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "patient_id",
-     "day",
-     "ts",
-     "probability",
-     "probability_text",
-     "inactivity"
-    ],
-    "title": "FallDetail"
-   },
-   "FallItem": {
-    "properties": {
-     "id": {
-      "type": "integer",
-      "title": "Id"
-     },
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "day": {
-      "type": "string",
-      "title": "Day"
-     },
-     "ts": {
-      "type": "string",
-      "title": "Ts"
-     },
-     "sisfall_subject": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Sisfall Subject"
-     },
-     "probability": {
-      "type": "number",
-      "title": "Probability"
-     },
-     "probability_text": {
-      "type": "string",
-      "title": "Probability Text"
-     },
-     "peak_g": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Peak G"
-     },
-     "inactivity": {
-      "type": "boolean",
-      "title": "Inactivity"
-     },
-     "day_status": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Day Status"
-     },
-     "alert_status": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Alert Status"
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "patient_id",
-     "day",
-     "ts",
-     "probability",
-     "probability_text",
-     "inactivity"
-    ],
-    "title": "FallItem"
-   },
-   "IngestBatch": {
-    "properties": {
-     "events": {
-      "items": {
-       "$ref": "#/components/schemas/IngestEvent"
-      },
-      "type": "array",
-      "maxItems": 10000,
-      "minItems": 1,
-      "title": "Events"
-     }
-    },
-    "type": "object",
-    "required": [
-     "events"
-    ],
-    "title": "IngestBatch"
-   },
-   "IngestEvent": {
-    "properties": {
-     "patient_id": {
-      "type": "string",
-      "maxLength": 64,
-      "minLength": 1,
-      "title": "Patient Id"
-     },
-     "device_id": {
-      "type": "string",
-      "maxLength": 64,
-      "title": "Device Id",
-      "default": "device-1"
-     },
-     "ts": {
-      "type": "string",
-      "format": "date-time",
-      "title": "Ts"
-     },
-     "kind": {
-      "type": "string",
-      "enum": [
-       "vitals",
-       "accel",
-       "heartbeat"
-      ],
-      "title": "Kind"
-     },
-     "device_type": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Device Type"
-     },
-     "value": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Value"
-     },
-     "unit": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Unit"
-     },
-     "fs": {
-      "anyOf": [
-       {
-        "type": "integer",
-        "maximum": 1000.0,
-        "minimum": 10.0
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Fs"
-     },
-     "samples": {
-      "anyOf": [
-       {
-        "items": {
-         "items": {
-          "type": "number"
-         },
-         "type": "array"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Samples"
-     },
-     "source": {
-      "type": "string",
-      "enum": [
-       "device",
-       "hub",
-       "emulator"
-      ],
-      "title": "Source",
-      "default": "device"
-     }
-    },
-    "type": "object",
-    "required": [
-     "patient_id",
-     "ts",
-     "kind"
-    ],
-    "title": "IngestEvent"
-   },
-   "IngestResultOut": {
-    "properties": {
-     "accepted": {
-      "type": "integer",
-      "title": "Accepted"
-     },
-     "duplicates": {
-      "type": "integer",
-      "title": "Duplicates"
-     },
-     "rejected": {
-      "type": "integer",
-      "title": "Rejected",
-      "default": 0
-     },
-     "patients": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Patients"
-     }
-    },
-    "type": "object",
-    "required": [
-     "accepted",
-     "duplicates",
-     "patients"
-    ],
-    "title": "IngestResultOut"
    },
    "KillOut": {
     "properties": {
@@ -5160,52 +2719,6 @@
     ],
     "title": "KillOut"
    },
-   "LLMBudgetOut": {
-    "properties": {
-     "models": {
-      "items": {
-       "$ref": "#/components/schemas/ModelBudget"
-      },
-      "type": "array",
-      "title": "Models"
-     },
-     "cache_hits": {
-      "type": "integer",
-      "title": "Cache Hits"
-     },
-     "model_requests": {
-      "type": "integer",
-      "title": "Model Requests"
-     },
-     "cache_hit_rate": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Cache Hit Rate"
-     },
-     "recent_events": {
-      "items": {
-       "additionalProperties": true,
-       "type": "object"
-      },
-      "type": "array",
-      "title": "Recent Events"
-     }
-    },
-    "type": "object",
-    "required": [
-     "models",
-     "cache_hits",
-     "model_requests",
-     "recent_events"
-    ],
-    "title": "LLMBudgetOut"
-   },
    "LimitationsOut": {
     "properties": {
      "source": {
@@ -5223,115 +2736,6 @@
      "text"
     ],
     "title": "LimitationsOut"
-   },
-   "LivePatientOut": {
-    "properties": {
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "last_event_ts": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Last Event Ts"
-     },
-     "open_day": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Open Day"
-     },
-     "status": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Status"
-     },
-     "provisional": {
-      "type": "boolean",
-      "title": "Provisional",
-      "default": true
-     },
-     "as_of": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "As Of"
-     },
-     "streams": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/StreamOut"
-      },
-      "type": "object",
-      "title": "Streams"
-     }
-    },
-    "type": "object",
-    "required": [
-     "patient_id"
-    ],
-    "title": "LivePatientOut"
-   },
-   "LiveStatusOut": {
-    "properties": {
-     "mode": {
-      "type": "string",
-      "title": "Mode"
-     },
-     "label": {
-      "type": "string",
-      "title": "Label"
-     },
-     "emulator": {
-      "anyOf": [
-       {
-        "$ref": "#/components/schemas/EmulatorOut"
-       },
-       {
-        "type": "null"
-       }
-      ]
-     },
-     "patients": {
-      "items": {
-       "$ref": "#/components/schemas/LivePatientOut"
-      },
-      "type": "array",
-      "title": "Patients"
-     },
-     "now": {
-      "type": "number",
-      "title": "Now"
-     }
-    },
-    "type": "object",
-    "required": [
-     "mode",
-     "label",
-     "now"
-    ],
-    "title": "LiveStatusOut"
    },
    "LoginIn": {
     "properties": {
@@ -5370,13 +2774,55 @@
     ],
     "title": "MetricsOut"
    },
-   "ModelBudget": {
+   "MonitorDay": {
     "properties": {
-     "model": {
+     "day": {
       "type": "string",
-      "title": "Model"
+      "title": "Day"
      },
-     "rpm_limit": {
+     "status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
+     "vitals": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Vitals",
+      "default": {}
+     },
+     "urgent": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Urgent",
+      "default": []
+     },
+     "attention": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Attention",
+      "default": []
+     },
+     "agitation": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Agitation",
+      "default": []
+     },
+     "agitation_max": {
       "anyOf": [
        {
         "type": "number"
@@ -5385,9 +2831,53 @@
         "type": "null"
        }
       ],
-      "title": "Rpm Limit"
+      "title": "Agitation Max"
      },
-     "effective_rpm_cap": {
+     "vitals_risk": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vitals Risk"
+     },
+     "rate": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rate"
+     },
+     "rate_ci95": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "number"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rate Ci95"
+     },
+     "reasons": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Reasons",
+      "default": []
+     },
+     "reviewed": {
       "anyOf": [
        {
         "type": "integer"
@@ -5396,34 +2886,15 @@
         "type": "null"
        }
       ],
-      "title": "Effective Rpm Cap"
-     },
-     "requests_last_minute": {
-      "type": "integer",
-      "title": "Requests Last Minute"
-     },
-     "requests_last_24h": {
-      "type": "integer",
-      "title": "Requests Last 24H"
-     },
-     "cooldown_remaining_s": {
-      "type": "number",
-      "title": "Cooldown Remaining S"
-     },
-     "failures_last_24h": {
-      "type": "integer",
-      "title": "Failures Last 24H"
+      "title": "Reviewed",
+      "description": "rank on the review list that day, if selected"
      }
     },
     "type": "object",
     "required": [
-     "model",
-     "requests_last_minute",
-     "requests_last_24h",
-     "cooldown_remaining_s",
-     "failures_last_24h"
+     "day"
     ],
-    "title": "ModelBudget"
+    "title": "MonitorDay"
    },
    "OutboxOut": {
     "properties": {
@@ -5587,17 +3058,6 @@
       "type": "string",
       "title": "Delivery",
       "default": "dry_run"
-     },
-     "body": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Body"
      }
     },
     "type": "object",
@@ -5609,6 +3069,38 @@
      "status"
     ],
     "title": "OutboxOut"
+   },
+   "OutcomeIn": {
+    "properties": {
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "vitals_event": {
+      "type": "boolean",
+      "title": "Vitals Event",
+      "description": "the clinician confirmed a BP / pulse problem",
+      "default": false
+     },
+     "agitation_windows": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Agitation Windows",
+      "description": "window end times (ISO) with confirmed agitation"
+     }
+    },
+    "type": "object",
+    "required": [
+     "patient_id",
+     "day"
+    ],
+    "title": "OutcomeIn"
    },
    "Page_AlertOut_": {
     "properties": {
@@ -5671,37 +3163,6 @@
      "offset"
     ],
     "title": "Page[CareTaskOut]"
-   },
-   "Page_FallItem_": {
-    "properties": {
-     "items": {
-      "items": {
-       "$ref": "#/components/schemas/FallItem"
-      },
-      "type": "array",
-      "title": "Items"
-     },
-     "total": {
-      "type": "integer",
-      "title": "Total"
-     },
-     "limit": {
-      "type": "integer",
-      "title": "Limit"
-     },
-     "offset": {
-      "type": "integer",
-      "title": "Offset"
-     }
-    },
-    "type": "object",
-    "required": [
-     "items",
-     "total",
-     "limit",
-     "offset"
-    ],
-    "title": "Page[FallItem]"
    },
    "Page_OutboxOut_": {
     "properties": {
@@ -5823,174 +3284,237 @@
       ],
       "title": "Last Alert Type"
      },
-     "attention_kind": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Attention Kind"
+     "days": {
+      "type": "integer",
+      "title": "Days",
+      "default": 0
      },
-     "completeness": {
-      "$ref": "#/components/schemas/Completeness"
+     "reviews": {
+      "type": "integer",
+      "title": "Reviews",
+      "default": 0
      }
     },
     "type": "object",
     "required": [
      "patient_id",
      "age_band",
-     "sex",
-     "completeness"
+     "sex"
     ],
     "title": "PatientOut"
    },
-   "Provenance": {
+   "ReadingIn": {
     "properties": {
-     "model": {
+     "patient_id": {
       "type": "string",
-      "title": "Model",
-      "default": "template"
+      "title": "Patient Id"
      },
-     "mode": {
-      "type": "string",
-      "title": "Mode",
-      "default": "template"
-     },
-     "cache_hit": {
-      "type": "boolean",
-      "title": "Cache Hit",
-      "default": false
-     },
-     "tools": {
-      "items": {
-       "additionalProperties": true,
-       "type": "object"
-      },
-      "type": "array",
-      "title": "Tools",
-      "default": []
-     },
-     "sources_retrieved": {
-      "items": {
-       "additionalProperties": true,
-       "type": "object"
-      },
-      "type": "array",
-      "title": "Sources Retrieved",
-      "default": []
-     },
-     "sources_cited": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Sources Cited",
-      "default": []
-     },
-     "validator": {
+     "sys": {
       "anyOf": [
        {
-        "additionalProperties": true,
-        "type": "object"
+        "type": "number",
+        "maximum": 300.0,
+        "minimum": 40.0
        },
        {
         "type": "null"
        }
       ],
-      "title": "Validator"
+      "title": "Sys"
      },
-     "fallback_reason": {
+     "dia": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "number",
+        "maximum": 200.0,
+        "minimum": 20.0
        },
        {
         "type": "null"
        }
       ],
-      "title": "Fallback Reason"
+      "title": "Dia"
      },
-     "requests": {
-      "type": "integer",
-      "title": "Requests",
-      "default": 0
-     },
-     "tokens": {
-      "additionalProperties": {
-       "type": "integer"
-      },
-      "type": "object",
-      "title": "Tokens",
-      "default": {}
-     },
-     "models_tried": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Models Tried",
-      "default": []
-     },
-     "events": {
-      "items": {
-       "additionalProperties": true,
-       "type": "object"
-      },
-      "type": "array",
-      "title": "Events",
-      "default": []
-     },
-     "retrieval_events": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Retrieval Events",
-      "default": []
-     },
-     "pubmed_failure": {
+     "hr": {
       "anyOf": [
        {
-        "type": "string"
+        "type": "number",
+        "maximum": 250.0,
+        "minimum": 20.0
        },
        {
         "type": "null"
        }
       ],
-      "title": "Pubmed Failure"
-     }
-    },
-    "type": "object",
-    "title": "Provenance"
-   },
-   "QualityOut": {
-    "properties": {
-     "live": {
-      "additionalProperties": true,
-      "type": "object",
-      "title": "Live"
+      "title": "Hr"
      },
-     "static": {
+     "temp": {
       "anyOf": [
        {
-        "additionalProperties": true,
-        "type": "object"
+        "type": "number",
+        "maximum": 45.0,
+        "minimum": 30.0
        },
        {
         "type": "null"
        }
       ],
-      "title": "Static"
+      "title": "Temp"
      }
     },
     "type": "object",
     "required": [
-     "live"
+     "patient_id"
     ],
-    "title": "QualityOut"
+    "title": "ReadingIn"
+   },
+   "ReviewDay": {
+    "properties": {
+     "day": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Day"
+     },
+     "k": {
+      "type": "integer",
+      "title": "K"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/ReviewItem"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "deferred": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Deferred",
+      "default": []
+     },
+     "days": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Days",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "k",
+     "items"
+    ],
+    "title": "ReviewDay"
+   },
+   "ReviewItem": {
+    "properties": {
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "patient_id": {
+      "type": "string",
+      "title": "Patient Id"
+     },
+     "rank": {
+      "type": "integer",
+      "title": "Rank"
+     },
+     "reason": {
+      "type": "string",
+      "title": "Reason",
+      "description": "'priority' (highest lift) or 'fairness' (not reviewed for >= review.fairness_days)"
+     },
+     "priority": {
+      "type": "number",
+      "title": "Priority",
+      "description": "max(vitals risk / its base rate, agitation risk / its base rate)"
+     },
+     "vitals_risk": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vitals Risk"
+     },
+     "agitation_risk": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Agitation Risk"
+     },
+     "lift_vitals": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lift Vitals"
+     },
+     "lift_agitation": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Lift Agitation"
+     },
+     "why": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Why",
+      "default": []
+     },
+     "outcome": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Outcome",
+      "description": "CONFIRMED / NO_EVENT once the clinician (or the TIHM record in replay) has answered"
+     }
+    },
+    "type": "object",
+    "required": [
+     "day",
+     "patient_id",
+     "rank",
+     "reason",
+     "priority"
+    ],
+    "title": "ReviewItem"
    },
    "SimControlIn": {
     "properties": {
@@ -6022,122 +3546,6 @@
      "action"
     ],
     "title": "SimControlIn"
-   },
-   "SimFallIn": {
-    "properties": {
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "subject": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Subject",
-      "description": "optional held-out SisFall subject (SA03, SA11, SA19, SE06)"
-     },
-     "activity": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Activity",
-      "description": "optional SisFall fall type, e.g. F02 (default: random)"
-     }
-    },
-    "type": "object",
-    "required": [
-     "patient_id"
-    ],
-    "title": "SimFallIn"
-   },
-   "SimFallOut": {
-    "properties": {
-     "command_id": {
-      "type": "integer",
-      "title": "Command Id"
-     },
-     "status": {
-      "type": "string",
-      "enum": [
-       "DONE",
-       "QUEUED"
-      ],
-      "title": "Status"
-     },
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "day": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Day"
-     },
-     "event_id": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Event Id"
-     },
-     "sisfall_subject": {
-      "type": "string",
-      "title": "Sisfall Subject"
-     },
-     "activity": {
-      "type": "string",
-      "title": "Activity"
-     },
-     "file": {
-      "type": "string",
-      "title": "File"
-     },
-     "in_training_set_of_worker_model": {
-      "type": "boolean",
-      "title": "In Training Set Of Worker Model"
-     },
-     "in_training_set_of_final_model": {
-      "type": "boolean",
-      "title": "In Training Set Of Final Model"
-     },
-     "note": {
-      "type": "string",
-      "title": "Note"
-     }
-    },
-    "type": "object",
-    "required": [
-     "command_id",
-     "status",
-     "patient_id",
-     "sisfall_subject",
-     "activity",
-     "file",
-     "in_training_set_of_worker_model",
-     "in_training_set_of_final_model",
-     "note"
-    ],
-    "title": "SimFallOut"
    },
    "SimStateOut": {
     "properties": {
@@ -6206,168 +3614,6 @@
     ],
     "title": "SimStateOut"
    },
-   "SourceOut": {
-    "properties": {
-     "id": {
-      "type": "string",
-      "title": "Id"
-     },
-     "origin": {
-      "type": "string",
-      "title": "Origin"
-     },
-     "title": {
-      "type": "string",
-      "title": "Title"
-     },
-     "source": {
-      "type": "string",
-      "title": "Source"
-     },
-     "year": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Year"
-     },
-     "page": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Page"
-     },
-     "journal": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Journal"
-     },
-     "url": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Url"
-     },
-     "excerpt": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Excerpt"
-     }
-    },
-    "type": "object",
-    "required": [
-     "id",
-     "origin",
-     "title",
-     "source"
-    ],
-    "title": "SourceOut"
-   },
-   "StreamOut": {
-    "properties": {
-     "last_wall_age_s": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Last Wall Age S"
-     },
-     "state": {
-      "type": "string",
-      "title": "State"
-     }
-    },
-    "type": "object",
-    "required": [
-     "state"
-    ],
-    "title": "StreamOut"
-   },
-   "SummaryOut": {
-    "properties": {
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "day": {
-      "type": "string",
-      "title": "Day"
-     },
-     "status": {
-      "type": "string",
-      "title": "Status"
-     },
-     "status_text": {
-      "type": "string",
-      "title": "Status Text"
-     },
-     "reasons": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Reasons"
-     },
-     "alerts": {
-      "items": {
-       "type": "string"
-      },
-      "type": "array",
-      "title": "Alerts",
-      "default": []
-     },
-     "data_note": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Data Note"
-     }
-    },
-    "type": "object",
-    "required": [
-     "patient_id",
-     "day",
-     "status",
-     "status_text",
-     "reasons"
-    ],
-    "title": "SummaryOut"
-   },
    "SystemConfigOut": {
     "properties": {
      "demo": {
@@ -6395,488 +3641,6 @@
      "llm_enabled"
     ],
     "title": "SystemConfigOut"
-   },
-   "TeamPlanOut": {
-    "properties": {
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "day": {
-      "type": "string",
-      "title": "Day"
-     },
-     "status": {
-      "type": "string",
-      "title": "Status"
-     },
-     "team_size": {
-      "type": "integer",
-      "title": "Team Size"
-     },
-     "max_llm_requests": {
-      "type": "integer",
-      "title": "Max Llm Requests"
-     },
-     "summary": {
-      "type": "string",
-      "title": "Summary"
-     },
-     "agents": {
-      "items": {
-       "$ref": "#/components/schemas/AgentPickOut"
-      },
-      "type": "array",
-      "title": "Agents"
-     },
-     "rules_version": {
-      "type": "string",
-      "title": "Rules Version",
-      "default": ""
-     },
-     "needs": {
-      "additionalProperties": true,
-      "type": "object",
-      "title": "Needs"
-     },
-     "thresholds": {
-      "additionalProperties": true,
-      "type": "object",
-      "title": "Thresholds"
-     },
-     "watch": {
-      "type": "boolean",
-      "title": "Watch",
-      "default": false
-     },
-     "closest": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Closest"
-     }
-    },
-    "type": "object",
-    "required": [
-     "patient_id",
-     "day",
-     "status",
-     "team_size",
-     "max_llm_requests",
-     "summary",
-     "agents"
-    ],
-    "title": "TeamPlanOut",
-    "description": "The Team Planner's record for one patient-day: which of the four agents the case needed and why (a ratio and a cutoff, not a model)."
-   },
-   "VitalPoint": {
-    "properties": {
-     "t": {
-      "type": "string",
-      "title": "T"
-     },
-     "value": {
-      "type": "number",
-      "title": "Value"
-     },
-     "flagged": {
-      "type": "boolean",
-      "title": "Flagged"
-     },
-     "base": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Base"
-     },
-     "lo": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Lo"
-     },
-     "hi": {
-      "anyOf": [
-       {
-        "type": "number"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Hi"
-     }
-    },
-    "type": "object",
-    "required": [
-     "t",
-     "value",
-     "flagged"
-    ],
-    "title": "VitalPoint"
-   },
-   "VitalSeries": {
-    "properties": {
-     "name": {
-      "type": "string",
-      "title": "Name"
-     },
-     "unit": {
-      "type": "string",
-      "title": "Unit"
-     },
-     "baseline_established": {
-      "type": "boolean",
-      "title": "Baseline Established"
-     },
-     "baseline_note": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Baseline Note"
-     },
-     "points": {
-      "items": {
-       "$ref": "#/components/schemas/VitalPoint"
-      },
-      "type": "array",
-      "title": "Points"
-     },
-     "bands": {
-      "items": {
-       "$ref": "#/components/schemas/DayBand"
-      },
-      "type": "array",
-      "title": "Bands"
-     }
-    },
-    "type": "object",
-    "required": [
-     "name",
-     "unit",
-     "baseline_established",
-     "points",
-     "bands"
-    ],
-    "title": "VitalSeries"
-   },
-   "VitalsOut": {
-    "properties": {
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "start": {
-      "type": "string",
-      "title": "Start"
-     },
-     "end": {
-      "type": "string",
-      "title": "End"
-     },
-     "min_history_readings": {
-      "type": "integer",
-      "title": "Min History Readings"
-     },
-     "series": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/VitalSeries"
-      },
-      "type": "object",
-      "title": "Series"
-     }
-    },
-    "type": "object",
-    "required": [
-     "patient_id",
-     "start",
-     "end",
-     "min_history_readings",
-     "series"
-    ],
-    "title": "VitalsOut"
-   },
-   "Waveform": {
-    "properties": {
-     "fs_hz": {
-      "type": "integer",
-      "title": "Fs Hz"
-     },
-     "downsample_stride": {
-      "type": "integer",
-      "title": "Downsample Stride"
-     },
-     "t_s": {
-      "items": {
-       "type": "number"
-      },
-      "type": "array",
-      "title": "T S"
-     },
-     "x_g": {
-      "items": {
-       "type": "number"
-      },
-      "type": "array",
-      "title": "X G"
-     },
-     "y_g": {
-      "items": {
-       "type": "number"
-      },
-      "type": "array",
-      "title": "Y G"
-     },
-     "z_g": {
-      "items": {
-       "type": "number"
-      },
-      "type": "array",
-      "title": "Z G"
-     },
-     "magnitude_g": {
-      "items": {
-       "type": "number"
-      },
-      "type": "array",
-      "title": "Magnitude G"
-     },
-     "impact_index": {
-      "type": "integer",
-      "title": "Impact Index"
-     },
-     "impact_time_s": {
-      "type": "number",
-      "title": "Impact Time S"
-     }
-    },
-    "type": "object",
-    "required": [
-     "fs_hz",
-     "downsample_stride",
-     "t_s",
-     "x_g",
-     "y_g",
-     "z_g",
-     "magnitude_g",
-     "impact_index",
-     "impact_time_s"
-    ],
-    "title": "Waveform"
-   },
-   "WeeklyReportOut": {
-    "properties": {
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "week": {
-      "type": "string",
-      "title": "Week"
-     },
-     "week_start": {
-      "type": "string",
-      "title": "Week Start"
-     },
-     "week_end": {
-      "type": "string",
-      "title": "Week End"
-     },
-     "mode": {
-      "type": "string",
-      "title": "Mode"
-     },
-     "narrative": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Narrative"
-     },
-     "provenance": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Provenance"
-     },
-     "validation": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Validation"
-     },
-     "pdf_available": {
-      "type": "boolean",
-      "title": "Pdf Available"
-     },
-     "pdf_pages": {
-      "anyOf": [
-       {
-        "type": "integer"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Pdf Pages"
-     },
-     "data": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Data"
-     },
-     "findings": {
-      "anyOf": [
-       {
-        "items": {
-         "additionalProperties": true,
-         "type": "object"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Findings"
-     },
-     "considerations": {
-      "anyOf": [
-       {
-        "items": {
-         "additionalProperties": true,
-         "type": "object"
-        },
-        "type": "array"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Considerations"
-     }
-    },
-    "type": "object",
-    "required": [
-     "patient_id",
-     "week",
-     "week_start",
-     "week_end",
-     "mode",
-     "pdf_available"
-    ],
-    "title": "WeeklyReportOut"
-   },
-   "WeeklySendIn": {
-    "properties": {
-     "force": {
-      "type": "boolean",
-      "title": "Force",
-      "default": false
-     }
-    },
-    "type": "object",
-    "title": "WeeklySendIn"
-   },
-   "WeeklySendOut": {
-    "properties": {
-     "patient_id": {
-      "type": "string",
-      "title": "Patient Id"
-     },
-     "week": {
-      "type": "string",
-      "title": "Week"
-     },
-     "queued": {
-      "type": "boolean",
-      "title": "Queued"
-     },
-     "deduplicated": {
-      "type": "boolean",
-      "title": "Deduplicated"
-     },
-     "alert_id": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Alert Id"
-     },
-     "send_real": {
-      "type": "boolean",
-      "title": "Send Real"
-     },
-     "mode": {
-      "type": "string",
-      "title": "Mode"
-     },
-     "outbox": {
-      "items": {
-       "$ref": "#/components/schemas/OutboxOut"
-      },
-      "type": "array",
-      "title": "Outbox"
-     }
-    },
-    "type": "object",
-    "required": [
-     "patient_id",
-     "week",
-     "queued",
-     "deduplicated",
-     "send_real",
-     "mode",
-     "outbox"
-    ],
-    "title": "WeeklySendOut"
    }
   }
  }

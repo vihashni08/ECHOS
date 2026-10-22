@@ -19,23 +19,29 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     const es = new EventSource(`${API_URL}/api/events${token ? `?token=${encodeURIComponent(token)}` : ""}`)
     es.onopen = () => setConn("open")
     es.onerror = () => setConn(es.readyState === EventSource.CLOSED ? "connecting" : "reconnecting")
-    const refresh = (keys: string[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }))
+    // a fast replay emits many events per second: collect the query keys and refetch each at most once a second
+    const pending = new Set<string>()
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const refresh = (keys: string[]) => {
+      keys.forEach((k) => pending.add(k))
+      if (!timer) timer = setTimeout(() => { pending.forEach((k) => qc.invalidateQueries({ queryKey: [k] })); pending.clear(); timer = null }, 1000)
+    }
     es.addEventListener("alert", (ev) => {
       const d = JSON.parse((ev as MessageEvent).data) as AlertRow
       if (!seen.current.has(d.alert_id)) {
         seen.current.add(d.alert_id)
         setFeed((f) => [{ id: (ev as MessageEvent).lastEventId, kind: "alert" as const, alert_id: d.alert_id, patient_id: d.patient_id, type: d.type, event_time: d.event_time ?? null, seen: Date.now() }, ...f].slice(0, 50))
       }
-      refresh(["alerts", "falls", "patients", "fall", "live", "case"])
+      refresh(["alerts", "patients", "summary", "monitor"])
     })
-    es.addEventListener("day_status", () => refresh(["patients", "summary", "statuses", "falls", "sim", "live", "case"]))
-    es.addEventListener("outbox_status", () => refresh(["falls", "fall"]))
-    es.addEventListener("report_ready", () => refresh(["patients"]))
+    es.addEventListener("day_status", () => refresh(["patients", "summary", "statuses", "sim", "monitor"]))
+    es.addEventListener("outbox_status", () => refresh(["outbox", "alerts"]))
+    es.addEventListener("review_list", () => refresh(["review", "summary", "statuses"]))
     es.addEventListener("agent_health", () => refresh(["agents", "components"]))
     es.addEventListener("alert_state", () => refresh(["alerts", "tasks", "components"]))
-    es.addEventListener("agent_message", () => refresh(["messages"]))
+    es.addEventListener("agent_message", () => refresh(["messages", "monitor"]))
     es.addEventListener("care_task", () => refresh(["tasks"]))
-    return () => es.close()
+    return () => { es.close(); if (timer) clearTimeout(timer) }
   }, [qc, token])
   return <Ctx.Provider value={{ conn, feed }}>{children}</Ctx.Provider>
 }

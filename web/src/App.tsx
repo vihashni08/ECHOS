@@ -4,12 +4,11 @@ import Login from "@/pages/Login"
 import { useMe } from "@/lib/queries"
 import { atLeast, type Role } from "@/lib/auth"
 import Today from "@/pages/Today"
+import Review from "@/pages/Review"
 import Alerts from "@/pages/Alerts"
-import FallMonitor from "@/pages/FallMonitor"
+import Agents from "@/pages/Agents"
+import HowItWorks from "@/pages/HowItWorks"
 import PatientPage, { PatientRedirect } from "@/pages/PatientPage"
-import Caregiver from "@/pages/Caregiver"
-import Clinician from "@/pages/Clinician"
-import System from "@/pages/System"
 
 function Need({ role, children }: { role: Role; children: React.ReactNode }) {
   const me = useMe()
@@ -23,15 +22,12 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Today />} />
+        <Route path="review" element={<Review />} />
         <Route path="alerts" element={<Alerts />} />
-        <Route path="agents" element={<Navigate to="/system?tab=agents" replace />} />
-        <Route path="how-it-works" element={<Navigate to="/system?tab=how" replace />} />
-        <Route path="falls" element={<FallMonitor />} />
+        <Route path="agents" element={<Need role="clinician"><Agents /></Need>} />
+        <Route path="how" element={<HowItWorks />} />
         <Route path="patient" element={<PatientRedirect />} />
         <Route path="patients/:id" element={<PatientPage />} />
-        <Route path="caregiver" element={<Caregiver />} />
-        <Route path="clinician" element={<Need role="clinician"><Clinician /></Need>} />
-        <Route path="system" element={<System />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

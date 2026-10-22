@@ -115,29 +115,6 @@ class AlertDispatcher:
                                   "attempts": 0, "window_start": now})
         return "escalation"
 
-    def dispatch_weekly(self, patient_id: str, week: str, subject: str, body: str, body_html: str, pdf_path: str, week_end: str = "",
-                        force: bool = False) -> Optional[str]:
-        """Queue the weekly report email to the CLINICIAN only, PDF attached. Unique per (patient, ISO week): a second call returns None unless
-        force=True (send now), which queues a new 'resend-N' row. Same worker pool and retry/backoff as alerts; send_real=false -> DryRunMailer."""
-        base = f"weekly|{patient_id}|{week}"
-        addr = self.to.get("clinician", "")
-        with self.eng.begin() as c:
-            n = c.execute(select(func.count()).select_from(S.outbox).where((S.outbox.c.alert_id == base) | S.outbox.c.alert_id.like(base + "|resend-%"))).scalar()
-            if n and not force:
-                return None
-            aid = base if not n else f"{base}|resend-{n}"
-            st, err = ("PENDING", None) if addr else ("FAILED", "no recipient address configured")
-            r = c.execute(S.outbox.insert().values(alert_id=aid, recipient_role="clinician", address=addr, channel=self.mailer.channel, subject=subject, body=body,
-                                                   body_html=body_html, status=st, attempts=0, error=err, event_time=week_end, queued_time=self.clock(), window_start=self.clock(),
-                                                   attachment_name=Path(pdf_path).name, attachment_path=str(pdf_path)))
-            oid = r.inserted_primary_key[0]
-        if st == "PENDING":
-            self._push(oid, 0.0, {"address": addr, "subject": subject, "body": body, "body_html": body_html, "alert_id": aid, "role": "clinician",
-                                  "attempts": 0, "attachment": {"name": Path(pdf_path).name, "path": str(pdf_path)}})
-        else:
-            log.error("weekly report %s: clinician address missing", aid)
-        return aid
-
     def _in_cooldown(self, p: P.AlertPayload) -> bool:
         try:
             t = datetime.fromisoformat(p.event_time)
@@ -282,7 +259,7 @@ class AlertDispatcher:
                     self._cv.notify_all()
 
     def _attempt(self, oid: int, job: dict):
-        """One send attempt. Alert mails (FALL / CRITICAL_VITALS): PENDING -> RETRYING with exponential backoff 1, 2, 4, 8 ... capped at backoff_cap_s until
+        """One send attempt. Alert mails (CRITICAL_VITALS): PENDING -> RETRYING with exponential backoff 1, 2, 4, 8 ... capped at backoff_cap_s until
         retry_window_s after the window start, then FAILED (the sweeper tries again later). Weekly mails keep max_attempts with the fixed backoff list.
         A row that is already SENT is never sent again (no duplicate email)."""
         with self._cv:

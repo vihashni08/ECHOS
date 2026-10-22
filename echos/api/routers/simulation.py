@@ -13,32 +13,13 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 
 from echos.api import services as V
-from echos.api.models import SimControlIn, SimFallIn, SimFallOut, SimStateOut
+from echos.api.models import SimControlIn, SimStateOut
 from echos.orchestrator import state as S
 
 from echos.api.deps import ERR, ctx_of
 
 router = APIRouter(prefix="/api", responses=ERR)
 
-
-@router.post("/sim/fall", response_model=SimFallOut, tags=["simulation"])
-def sim_fall(request: Request, body: SimFallIn):
-    """Inject a SisFall fall window for a patient at the current simulated time. The response states which SisFall subject it came from and whether
-    that subject was in the training set of the model used by the Fall worker (the replay model excludes the held-out subjects) and of the final model."""
-    ctx = ctx_of(request)
-    V.require_patient(ctx, body.patient_id)
-    w = V.pick_fall_window(ctx, body.subject, body.activity)
-    hold = set(ctx.cfg["replay"]["holdout_subjects"])
-    cid, st, res = V.send_command(ctx, "inject_fall", {"patient_id": body.patient_id, **w}, wait_s=5.0)
-    if st == "ERROR":
-        raise HTTPException(409, res or "injection failed")
-    out = json.loads(res) if st == "DONE" and res else {}
-    return {"command_id": cid, "status": "DONE" if st == "DONE" else "QUEUED", "patient_id": body.patient_id, "day": out.get("day"), "event_id": out.get("event_id"),
-            "sisfall_subject": w["subject"], "activity": w["activity"], "file": os.path.basename(w["file"]),
-            "in_training_set_of_worker_model": w["subject"] not in hold, "in_training_set_of_final_model": True,
-            "note": ("SYNTHETIC: a SisFall recording (young volunteers on mats) injected into a real TIHM patient-day. The Fall worker's model excludes the held-out subjects; "
-                     "the final model (models/fall_v2.joblib) was trained on all subjects, so it has seen this subject. The patient's current day closes now so the alert is raised now."
-                     + ("" if st == "DONE" else " The runtime has not acknowledged the command yet (is it running?)."))}
 
 @router.get("/sim/state", response_model=SimStateOut, tags=["simulation"])
 def sim_state(request: Request):

@@ -1,4 +1,4 @@
-"""Supervisor: spawns agent workers, detects dead/stalled ones from SQLite heartbeats, restarts them.
+"""Supervisor: spawns the agent processes (python -m echos.team.run_agent), detects dead/stalled ones from SQLite heartbeats, restarts them.
 
 Dead  = no heartbeat for `missed_heartbeats` x heartbeat interval (after a startup grace), or
 Stall = last_event_id unchanged for `stall_s` while events of the agent's kinds are pending.
@@ -17,10 +17,12 @@ from sqlalchemy import func, select
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 
+KINDS = {"patient_monitor": ("day", "reading"), "review_coordinator": ("day_close",), "care": ("outcome",)}   # event_log kinds each agent consumes (stall check)
+
 
 class Supervisor:
-    def __init__(self, db, agents=("quality", "health_monitoring", "fall"), hb_s=None, ck_s=None, stall_s=None,
-                 poll_s=None, missed=None, startup_grace_s=45.0, worker_args=None, fall_model=None, no_restart=()):
+    def __init__(self, db, agents=("patient_monitor", "review_coordinator", "care"), hb_s=None, ck_s=None, stall_s=None,
+                 poll_s=None, missed=None, startup_grace_s=45.0, no_restart=()):
         cfg = load_config()
         self.db, self.agents = str(db) if db else None, list(agents)
         self.eng = S.get_engine(db)
@@ -29,21 +31,16 @@ class Supervisor:
         self.stall_s = stall_s or cfg["supervisor"]["stall_s"]
         self.poll_s = poll_s or cfg["supervisor"]["poll_s"]
         self.missed = missed or cfg["supervisor"]["missed_heartbeats"]
-        self.grace, self.worker_args, self.fall_model = startup_grace_s, worker_args or {}, fall_model
+        self.grace = startup_grace_s
         self.proc, self.started, self.track = {}, {}, {}
         self.no_restart = set(no_restart)  # fault tests only: agents left dead (permanent outage)
         self.stop = threading.Event()
 
     # --- process control
     def _spawn(self, agent):
-        cmd = [sys.executable, "-W", "ignore", "-m", "echos.orchestrator.runtime", "--agent", agent,
-               "--hb", str(self.hb_s), "--ck", str(self.ck_s)]
+        cmd = [sys.executable, "-W", "ignore", "-m", "echos.team.run_agent", "--agent", agent, "--hb", str(self.hb_s)]
         if self.db:
             cmd += ["--db", self.db]
-        if agent == "fall" and self.fall_model:
-            cmd += ["--fall-model", str(self.fall_model)]
-        for k, v in self.worker_args.get(agent, {}).items():
-            cmd += [f"--{k}", str(v)]
         env = {**os.environ, "PYTHONPATH": str(ROOT), "PYTHONWARNINGS": "ignore"}
         self.proc[agent] = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.started[agent] = S.now()
@@ -69,7 +66,7 @@ class Supervisor:
     def _pending(self, agent, last_id) -> bool:
         with self.eng.begin() as c:
             n = c.execute(select(func.count()).select_from(S.event_log).where(
-                (S.event_log.c.event_id > (last_id or 0)) & S.event_log.c.kind.in_(S.AGENT_KINDS[agent]))).scalar()
+                (S.event_log.c.event_id > (last_id or 0)) & S.event_log.c.kind.in_(KINDS.get(agent, ())))).scalar()
         return n > 0
 
     def check_once(self) -> list:

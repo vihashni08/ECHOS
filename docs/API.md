@@ -1,37 +1,35 @@
-# ECHOS API (demo)
+# ECHOS API
 
-FastAPI app `echos.api.app:app`; interactive docs at `/docs`, schema at `/openapi.json`. **Authentication is off by default** (local demo only; `--auth` turns on three roles, see LIMITATIONS): bound to 127.0.0.1, CORS allows
-`http://localhost:5173` only. The API process never imports xgboost or torch; it reads `data/echos.db`, saved reports and `reports/metrics/*.json`, and talks to the
-runtime (`python -m echos.sim.controller` for replay, `python -m echos.live.runtime` for live / emulator mode) via the `sim_command` table. Server-sent events come from `event_feed` (SQLite triggers on alerts, case_state, reports,
-outbox, agent_heartbeat). Lists take `limit` (1-500) and `offset`; errors look like `{"error": {"status": 404, "message": "..."}}`; e-mail addresses are masked (`ab***@domain`).
+FastAPI app `echos.api.app:app`. Interactive docs are at `/docs` and the schema at `/openapi.json` (the web client is generated from it: `cd web && npm run gen:api`).
 
-| Method | Path | Notes |
-|---|---|---|
-| GET | /api/patients | id, age band, sex, latest status/day, last alert, completeness |
-| GET | /api/patients/{id}/summary?day= | status, plain-language reasons (never a model probability), data note |
-| GET | /api/patients/{id}/statuses?days=7 | day, status, reasons |
-| GET | /api/patients/{id}/vitals?from=&to= | series with past-only personal band (>= 5 earlier readings) and flagged points |
-| GET | /api/patients/{id}/reports/daily?day= | report text + provenance ("How this report was made") |
-| GET | /api/patients/{id}/reports/weekly?week= | JSON of the stored weekly report |
-| GET | /api/patients/{id}/reports/weekly/pdf?week= | PDF download |
-| POST | /api/patients/{id}/reports/weekly/send?week= | body `{force}`; respects `alerts.send_real`; returns the outbox rows |
-| POST / GET | /api/auth/login, /api/auth/me | token -> role (caregiver / clinician / operator); only when authentication is on (`--auth`); failed logins are rate-limited. Send `Authorization: Bearer <token>`; the event stream takes `?token=` |
-| GET | /api/alerts, /api/outbox | paginated; alerts carry the lifecycle state (NEW / SENT / ACKNOWLEDGED / RESOLVED / ESCALATED / EXPIRED), deadline and acknowledgement |
-| POST | /api/alerts/{id}/ack, /resolve | acknowledge (stops the escalation timer) / mark as handled; idempotent |
-| GET | /api/ack/{token} | the signed, expiring "I have seen this" link in alert e-mails (`ECHOS_LINK_SECRET`, `ECHOS_PUBLIC_URL`; `alerts.ack_link_ttl_s`): no login even with auth on, acknowledges only, idempotent; HTML page (200 done, 400 not valid, 404 alert not registered yet, 410 expired, 503 not configured) |
-| GET | /api/tasks?status=OPEN, POST /api/tasks/{id}/done | care tasks opened by the Care Coordinator (check-in after a fall, clinician review after repeated changes) |
-| GET | /api/patients/{id}/case?day= | the Case Investigator's file (headline, evidence level, next checks, caveats, trace); `null` when that day has none |
-| GET | /api/agents/summary, /api/agents/activity?agent=&patient_id=&day=&oldest_first= | the *Agent activity* tab: per part its status, action count and latest action; a time-ordered list of what each part did, assembled from the records the agents write (`patient_id` + `day` = one case, detector steps included) |
-| GET | /api/components, /api/agents/messages | the detector / agent / infrastructure registry with live status; the message bus |
-| POST | /api/ingest/events | ingestion contract for any source (activity, vitals, accel, heartbeat; data timestamps; idempotent); optional `X-Echos-Token` when `ECHOS_INGEST_TOKEN` is set; limits (config `ingest`): 413 too large / too many events, 411 no Content-Length, 403 unregistered device, 429 rate limit with Retry-After; see [INGESTION.md](INGESTION.md) |
-| GET | /api/live/status | data mode (replay / emulator / live), emulator state, per-patient stream freshness |
-| POST | /api/live/emulator | `{action: load / play / pause / speed / fall}`: control the labelled device emulator |
-| GET | /api/falls, /api/falls/{id} | detail: downsampled 3-axis waveform, impact, probability, inactivity, alert + outbox rows |
-| POST | /api/sim/fall | inject a SisFall fall window (synthetic); states the subject and training-set membership |
-| GET / POST | /api/sim/state, /api/sim/control | play / pause / speed / reset |
-| GET | /api/events | SSE; heartbeat comment every 15 s; reconnect with Last-Event-ID |
-| GET | /api/agents/health | heartbeat age and status |
-| POST | /api/agents/{name}/kill | only when `api.allow_kill: true` |
-| GET | /api/system/quality, /metrics, /llm-budget, /limitations | metrics are read from the JSON files |
+**Bound to 127.0.0.1**, with CORS for `http://localhost:5173` only. **Authentication is optional** (`--auth`), with three roles: caregiver < clinician < operator (`echos/api/auth.py`).
 
-An injected fall closes the patient's current simulated day at once, so the alert is raised now rather than at 23:59:59.
+The API never loads a model. It reads SQLite and `reports/metrics/*.json`, and talks to the runtime through the `sim_command` table.
+
+**Conventions:**
+- Lists take `limit` (1–500) and `offset`.
+- Errors look like `{"error": {"status": 404, "message": "..."}}`.
+- E-mail addresses are masked.
+
+| Method | Path | Role | Notes |
+|---|---|---|---|
+| GET | /api/v2/review?day= | caregiver | Review Coordinator's list (latest day by default): rank, reason, priority, risks, lifts, plain-words why, outcome; deferred patients; allocated days |
+| GET | /api/v2/patients/{id}/monitor?limit= | caregiver | Patient Monitor's days, newest first: readings vs personal usual, urgent / attention flags, agitation windows, event rate + 95% CI, review rank |
+| POST | /api/v2/reviews/outcome | clinician | Clinician's answer `{patient_id, day, vitals_event, agitation_windows}` → Care agent → Patient Monitor feedback |
+| GET | /api/v2/summary | caregiver | Counts for the dashboard |
+| GET | /api/patients | caregiver | Id, age band, sex, latest day / status, last alert, days scored, reviews |
+| GET | /api/patients/{id}/statuses?days= | caregiver | Day statuses with reasons |
+| GET | /api/alerts | caregiver | Alerts with their lifecycle state (NEW / SENT / ACKNOWLEDGED / RESOLVED / ESCALATED / EXPIRED) |
+| POST | /api/alerts/{id}/ack, /resolve | caregiver | Stops the escalation timer / closes the alert |
+| GET | /api/ack/{token} | public | Signed, expiring "I have seen this" link from the alert e-mail |
+| GET | /api/tasks, POST /api/tasks/{id}/done | caregiver | Care tasks (review assignments) |
+| GET | /api/outbox, POST /api/outbox/{id}/retry | clinician | Delivery log; resend one row |
+| GET | /api/agents/messages?patient_id= | caregiver | The bus: who told whom what |
+| GET | /api/components | caregiver | Agents, tools, infrastructure with live status |
+| GET | /api/agents/health | clinician | Heartbeats, restarts |
+| POST | /api/agents/{name}/kill | operator | Demo fault (needs `api.allow_kill` / `--demo`) |
+| GET | /api/sim/state, POST /api/sim/control | caregiver / operator | Replay state; play / pause / speed / reset |
+| POST | /api/sim/reading | operator | Demo: inject one reading for a replay patient now |
+| GET | /api/events | caregiver | Server-sent events: alert, day_status, review_list, agent_message, care_task, outbox_status, alert_state, agent_health |
+| GET | /api/system/metrics, /limitations, /config | caregiver | Evaluation results, limitations text, UI flags |
+| POST | /api/auth/login, GET /api/auth/me | public | Optional authentication |

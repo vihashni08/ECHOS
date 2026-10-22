@@ -16,11 +16,3 @@ def patient_folds(df: pd.DataFrame, n_folds: int = 5, seed: int = 42
     perm = dict(zip(pids, rng.permutation(len(pids))))
     groups = df["patient_id"].map(perm).values
     yield from GroupKFold(n_splits=n_folds).split(df, groups=groups)
-
-
-def subject_folds(df: pd.DataFrame, n_folds: int = 5, seed: int = 42
-                  ) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
-    """Subject-level GroupKFold for SisFall (column `subject`); no subject spans train and test."""
-    subs = np.array(sorted(df["subject"].unique()))
-    perm = dict(zip(subs, np.random.RandomState(seed).permutation(len(subs))))
-    yield from GroupKFold(n_splits=n_folds).split(df, groups=df["subject"].map(perm).values)

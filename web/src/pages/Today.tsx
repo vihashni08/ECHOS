@@ -1,159 +1,76 @@
 import { Link } from "react-router-dom"
-import { Activity, ArrowRight, ClipboardList, MessageSquare, Radio } from "lucide-react"
 import { AlertCard, isOpen } from "@/components/AlertCard"
-import { Empty, ErrorNote, CardSkeleton } from "@/components/States"
-import Timeline from "@/components/Timeline"
-import { Button } from "@/components/ui/button"
+import ReviewList from "@/components/ReviewList"
+import { CardSkeleton, Empty, ErrorNote } from "@/components/States"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ago, personLabel, useMode } from "@/lib/live"
-import { useAlertList, useCase, useLive, useMessages, usePatients, useSummary, useTaskDone, useTasks } from "@/lib/queries"
-import { fmtDay } from "@/lib/format"
+import { personLabel } from "@/lib/live"
+import { useAlertList, usePatients, useReview, useSummary } from "@/lib/queries"
 import { StatusBadge } from "@/lib/status"
-import type { Patient } from "@/lib/api"
 
-function AttentionRow({ p, provisional }: { p: Patient; provisional: boolean }) {
-  const sum = useSummary(p.patient_id)
-  const c = useCase(p.patient_id)
-  const reasons = sum.data?.reasons ?? []
+function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <li>
-      <Link to={`/patients/${p.patient_id}`} className="block rounded-xl border p-3 transition-shadow hover:shadow-md" data-testid="attention-row" aria-label={`Open ${personLabel(p.patient_id)}`}>
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div><div className="text-base font-semibold">{personLabel(p.patient_id)} <span className="text-sm font-normal text-muted-foreground">· age {p.age_band} · {p.sex}</span></div>
-            <div className="num text-sm text-muted-foreground">{fmtDay(p.latest_day)}{provisional ? " · so far today (day still open)" : ""}</div></div>
-          <div className="flex items-center gap-2"><StatusBadge status={p.latest_status} />
-            {c.data && <span className="rounded-full border px-2 py-0.5 text-xs font-semibold" data-testid="row-evidence">{c.data.evidence_level.toLowerCase()} evidence</span>}</div>
-        </div>
-        <p className="mt-2 text-sm">{c.data?.headline ?? (reasons[0] ?? "Changes from this person's usual were noticed.")}</p>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><Timeline pid={p.patient_id} days={14} /><span className="inline-flex items-center gap-1 text-sm font-medium">Open case<ArrowRight className="size-4" aria-hidden="true" /></span></div>
-      </Link>
-    </li>
-  )
-}
-
-function DataRow({ p }: { p: Patient }) {
-  const sum = useSummary(p.patient_id)
-  return (
-    <li><Link to={`/patients/${p.patient_id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 hover:shadow-md" aria-label={`Open ${personLabel(p.patient_id)}`}>
-      <div><div className="font-semibold">{personLabel(p.patient_id)} <span className="text-sm font-normal text-muted-foreground">· {fmtDay(p.latest_day)}</span></div>
-        <div className="text-sm">{sum.data?.data_note ?? sum.data?.reasons?.[0] ?? "Some data is missing."}</div></div>
-      <StatusBadge status="DATA_GAP" /></Link></li>
-  )
-}
-
-function Tasks() {
-  const t = useTasks("OPEN")
-  const done = useTaskDone()
-  return (
-    <Card>
-      <CardHeader><CardTitle className="flex items-center gap-2"><ClipboardList className="size-4" aria-hidden="true" />Open tasks</CardTitle></CardHeader>
-      <CardContent>
-        {!t.data?.items.length ? <p className="text-sm text-muted-foreground" data-testid="no-tasks">Nothing waiting. The Care Coordinator opens a check-in after an acknowledged fall and a review after repeated changes.</p> : (
-          <ul className="flex flex-col gap-2" data-testid="tasks">
-            {t.data.items.map((x) => (
-              <li key={x.id} className="rounded-lg border p-2.5 text-sm"><div className="font-medium">{x.title}</div>
-                <div className="text-muted-foreground"><Link to={`/patients/${x.patient_id}`} className="underline">{personLabel(x.patient_id)}</Link> · {x.kind === "CHECK_IN" ? "check-in" : "clinician review"}</div>
-                <Button size="sm" variant="outline" className="mt-1.5" onClick={() => done.mutate(x.id)} disabled={done.isPending}>Mark done</Button></li>))}
-          </ul>)}
-      </CardContent>
-    </Card>
-  )
-}
-
-function Freshness() {
-  const live = useLive()
-  const ps = live.data?.patients ?? []
-  return (
-    <Card>
-      <CardHeader><CardTitle className="flex items-center gap-2"><Radio className="size-4" aria-hidden="true" />Is the data arriving?</CardTitle></CardHeader>
-      <CardContent>
-        {!ps.length ? <p className="text-sm text-muted-foreground">No device has sent data yet.</p> : (
-          <ul className="flex flex-col gap-2 text-sm" data-testid="freshness">
-            {ps.map((p) => {
-              const stale = Object.entries(p.streams ?? {}).filter(([, s]) => s.state === "stale").map(([k]) => k)
-              return (
-                <li key={p.patient_id} className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="num">{personLabel(p.patient_id)}</span>
-                  <span className={stale.length ? "font-semibold text-urgent-fg" : "text-muted-foreground"}>{stale.length ? `${stale.join(", ")} silent` : `last event ${ago(Math.min(...Object.values(p.streams ?? {}).map((s) => s.last_wall_age_s ?? 1e9)))}`}</span>
-                </li>)
-            })}
-          </ul>)}
-      </CardContent>
-    </Card>
-  )
-}
-
-const WHO: Record<string, string> = { triage: "Triage", investigator: "Case Investigator", coordinator: "Care Coordinator", report: "Report agent", all: "everyone" }
-const TOPIC: Record<string, string> = { case_opened: "opened a case for", case_file_ready: "finished the case file for", alert_escalated: "escalated an alert for" }
-function Activity_() {
-  const m = useMessages(8)
-  return (
-    <Card>
-      <CardHeader><CardTitle className="flex items-center gap-2"><MessageSquare className="size-4" aria-hidden="true" />What the agents are doing</CardTitle></CardHeader>
-      <CardContent>
-        {!m.data?.length ? <p className="text-sm text-muted-foreground">No hand-overs yet. They appear when a case is opened.</p> : (
-          <ol className="flex flex-col gap-1.5 text-sm" data-testid="agent-activity">
-            {m.data.map((x) => <li key={x.id}><strong>{WHO[x.sender] ?? x.sender}</strong> {TOPIC[x.topic] ?? x.topic} <span className="num">{x.patient_id ? personLabel(x.patient_id) : ""}</span> <span className="text-muted-foreground">→ {WHO[x.recipient] ?? x.recipient}</span></li>)}
-          </ol>)}
-        <Link to="/system?tab=how" className="mt-2 inline-block text-sm underline">How the agents work together</Link>
-      </CardContent>
-    </Card>
+    <div className="rounded-xl border bg-card p-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="num text-2xl font-semibold">{value}</div>
+      {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
+    </div>
   )
 }
 
 export default function Today() {
-  const patients = usePatients()
-  const alerts = useAlertList(50)
-  const live = useLive()
-  const tasks = useTasks("OPEN")
-  const { mode } = useMode()
-  const items = patients.data?.items ?? []
-  const open = (alerts.data?.items ?? []).filter(isOpen)
-  const rank = (s?: string | null) => (s === "URGENT" ? 0 : s === "MONITOR" ? 1 : 2)
-  const attention = items.filter((p) => p.attention_kind === "change").sort((a, b) => rank(a.latest_status) - rank(b.latest_status))
-  const dataIssues = items.filter((p) => p.attention_kind === "data")
-  const fine = items.filter((p) => !attention.includes(p) && !dataIssues.includes(p))
-  const prov = new Set((live.data?.patients ?? []).filter((p) => p.provisional).map((p) => p.patient_id))
+  const r = useReview()
+  const s = useSummary()
+  const a = useAlertList(50)
+  const p = usePatients()
+  const open = (a.data?.items ?? []).filter(isOpen)
+  const sum = s.data
   return (
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-2xl font-semibold">Today</h1>
-        <p className="text-sm text-muted-foreground" data-testid="today-summary" aria-live="polite">
-          {patients.isLoading ? "Loading…" : `${attention.length} ${attention.length === 1 ? "person needs" : "people need"} attention${dataIssues.length ? ` · ${dataIssues.length} with data to check` : ""} · ${open.length} alert${open.length === 1 ? "" : "s"} waiting for acknowledgement · ${tasks.data?.total ?? 0} open task${tasks.data?.total === 1 ? "" : "s"}`}
-        </p>
+        <p className="max-w-3xl text-sm text-muted-foreground">Who the clinical team should look at today, and why. The Review Coordinator picks {r.data?.k ?? 4} people a day from every Patient Monitor's request; red-flag readings never wait for this list (see Alerts).</p>
       </div>
-      {patients.isError && <ErrorNote error={patients.error} />}
-      <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
-        <div className="flex min-w-0 flex-col gap-5">
-          {open.length > 0 && (
-            <section aria-labelledby="act" className="flex flex-col gap-2"><h2 id="act" className="text-lg font-semibold">Needs action now</h2>
-              <div className="flex flex-col gap-2" data-testid="open-alerts">{open.map((a) => <AlertCard key={a.alert_id} a={a} compact />)}</div></section>)}
-          <section aria-labelledby="chg" className="flex flex-col gap-2"><h2 id="chg" className="text-lg font-semibold">Changed from their usual</h2>
-            {patients.isLoading ? <CardSkeleton h="h-28" /> : attention.length === 0 ? (
-              items.length === 0
-                ? <Empty title="No data yet">{mode === "emulator" ? "Open Demo tools and start the emulator: events arrive and each person gets a status as the data comes in." : mode === "replay" ? "Open Demo tools and press Play to replay the study." : "Waiting for the first device to send events to /api/ingest/events."}</Empty>
-                : <Empty title="Everyone looks as usual">No one differs from their own pattern right now.</Empty>)
-              : <ul className="flex flex-col gap-2" data-testid="attention-list">{attention.map((p) => <AttentionRow key={p.patient_id} p={p} provisional={prov.has(p.patient_id)} />)}</ul>}
-          </section>
-          {dataIssues.length > 0 && (
-            <section aria-labelledby="dat" className="flex flex-col gap-2"><h2 id="dat" className="text-lg font-semibold">Data needs checking</h2>
-              <p className="text-sm text-muted-foreground">Nothing suggests a change in the person. A reading is missing or the data could not be checked, so ECHOS cannot say the day is normal.</p>
-              <ul className="flex flex-col gap-2" data-testid="data-list">{dataIssues.map((p) => <DataRow key={p.patient_id} p={p} />)}</ul></section>)}
-          {fine.length > 0 && (
-            <section aria-labelledby="ok" className="flex flex-col gap-2"><h2 id="ok" className="text-lg font-semibold">As usual</h2>
-              <ul className="grid gap-2 sm:grid-cols-2" data-testid="fine-list">
-                {fine.map((p) => (
-                  <li key={p.patient_id}><Link to={`/patients/${p.patient_id}`} className="flex items-center justify-between gap-2 rounded-xl border p-3 hover:shadow-md" aria-label={`Open ${personLabel(p.patient_id)}`}>
-                    <div><div className="font-semibold">{personLabel(p.patient_id)}</div><div className="text-xs text-muted-foreground">age {p.age_band} · {p.sex} · {fmtDay(p.latest_day)}</div></div>
-                    <div className="flex flex-col items-end gap-1"><StatusBadge status={p.latest_status} /><Timeline pid={p.patient_id} days={7} /></div></Link></li>))}
-              </ul></section>)}
+      <section aria-label="Summary" className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="stats">
+        <Stat label="Patient-days scored" value={sum?.patient_days_scored ?? "–"} />
+        <Stat label="Urgent alerts" value={sum?.urgent_alerts ?? "–"} sub="red-flag readings" />
+        <Stat label="Reviews assigned" value={sum?.reviews ?? "–"} sub={sum ? `${sum.reviews_confirmed} found a confirmed event` : undefined} />
+        <Stat label="Agent messages" value={sum ? Object.values(sum.messages).reduce((x, y) => x + y, 0) : "–"} sub="on the bus" />
+      </section>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <Card>
+          <CardHeader><CardTitle>Review list {r.data?.day ? <span className="num font-normal text-muted-foreground">· {r.data.day}</span> : null}</CardTitle></CardHeader>
+          <CardContent>
+            {r.isError ? <ErrorNote error={r.error} /> : !r.data ? <CardSkeleton /> : r.data.items.length === 0
+              ? <Empty title="No review list yet">Press Play in Demo tools: the first list appears when the first replayed day closes.</Empty>
+              : <ReviewList items={r.data.items} />}
+            {r.data?.day && <p className="mt-3 text-sm"><Link to={`/review?day=${r.data.day}`} className="underline">Open the review board</Link> to record outcomes or see earlier days.</p>}
+          </CardContent>
+        </Card>
+        <div className="flex flex-col gap-5">
+          <Card>
+            <CardHeader><CardTitle>Urgent alerts waiting</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {open.length === 0 ? <p className="text-sm text-muted-foreground">None waiting for acknowledgement.</p> : open.slice(0, 3).map((x) => <AlertCard key={x.alert_id} a={x} compact />)}
+              {open.length > 3 && <Link to="/alerts" className="text-sm underline">{open.length - 3} more on the Alerts page</Link>}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Caseload</CardTitle></CardHeader>
+            <CardContent>
+              {!p.data ? <CardSkeleton h="h-24" /> : (
+                <table className="w-full text-sm" data-testid="caseload">
+                  <thead><tr className="text-left text-xs text-muted-foreground"><th className="py-1 font-medium">Person</th><th className="font-medium">Latest day</th><th className="font-medium">Status</th><th className="text-right font-medium">Reviews</th></tr></thead>
+                  <tbody>{p.data.items.map((x) => (
+                    <tr key={x.patient_id} className="border-t">
+                      <td className="py-1.5"><Link to={`/patients/${x.patient_id}`} className="num underline">{personLabel(x.patient_id)}</Link><div className="text-xs text-muted-foreground">{x.age_band}</div></td>
+                      <td className="num">{x.latest_day ?? "–"}</td>
+                      <td><StatusBadge status={x.latest_status} className="text-xs" /></td>
+                      <td className="num text-right">{x.reviews}</td>
+                    </tr>))}</tbody>
+                </table>)}
+            </CardContent>
+          </Card>
         </div>
-        <aside className="flex flex-col gap-4" aria-label="Side information">
-          <Tasks />
-          <Freshness />
-          <Activity_ />
-          <p className="flex items-start gap-1.5 text-xs text-muted-foreground"><Activity className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />Decision support, not a diagnosis. Status compares each person with their own usual pattern.</p>
-        </aside>
       </div>
     </div>
   )

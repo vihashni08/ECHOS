@@ -1,13 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { Activity, BellRing, LogOut, HeartPulse, LayoutDashboard, Moon, Settings2, Stethoscope, Sun, User, Users, WifiOff } from "lucide-react"
+import { BellRing, Bot, ClipboardList, LogOut, HeartPulse, LayoutDashboard, Moon, Settings2, Sun, User, WifiOff } from "lucide-react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import ErrorBoundary from "./ErrorBoundary"
-import { DemoGuideButton } from "./DemoGuide"
 import { DemoToolsButton } from "./DemoTools"
 import { ModeBadge, ModeBanner } from "./ModeBadge"
 import { useSimState } from "@/lib/queries"
-import { useMode } from "@/lib/live"
 import { atLeast, setToken, type Role } from "@/lib/auth"
 import { useMe } from "@/lib/queries"
 import { useEvents } from "@/lib/events"
@@ -16,12 +14,11 @@ import { cn } from "@/lib/utils"
 
 const NAV: { to: string; label: string; icon: typeof User; end?: boolean; need?: Role }[] = [
   { to: "/", label: "Today", icon: LayoutDashboard, end: true },
+  { to: "/review", label: "Review board", icon: ClipboardList },
+  { to: "/patient", label: "Patients", icon: User },
   { to: "/alerts", label: "Alerts", icon: BellRing },
-  { to: "/patient", label: "Patient", icon: User },
-  { to: "/caregiver", label: "Daily report", icon: Users },
-  { to: "/clinician", label: "Weekly report", icon: Stethoscope, need: "clinician" },
-  { to: "/falls", label: "Fall details", icon: Activity },
-  { to: "/system", label: "How it works", icon: Settings2 },
+  { to: "/agents", label: "Agents", icon: Bot, need: "clinician" },
+  { to: "/how", label: "How it works", icon: Settings2 },
 ]
 
 function NavItems({ row }: { row?: boolean }) {
@@ -52,9 +49,7 @@ export function ThemeToggle() {
 function TopBar() {
   const sim = useSimState()
   const { conn } = useEvents()
-  const { mode, live } = useMode()
   const s = sim.data
-  const e = live.data?.emulator
   const me = useMe()
   const qc = useQueryClient()
   return (
@@ -65,12 +60,9 @@ function TopBar() {
       </div>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-sm" aria-live="polite" data-testid="sim-state">
         <ModeBadge />
-        {mode === "replay" && <span className="font-medium">Simulation: {s ? s.status : sim.isError ? "unknown" : "loading"}</span>}
-        {mode === "replay" && s && s.total != null && <span className="num hidden text-muted-foreground sm:inline">{s.cursor ?? 0}/{s.total} events</span>}
-        {mode === "replay" && s?.sim_time && <span className="num hidden text-muted-foreground md:inline">{s.sim_time.replace("T", " ").slice(0, 16)}</span>}
-        {mode === "emulator" && <span className="font-medium">Emulator: {e ? e.status : "not started"}</span>}
-        {mode === "emulator" && e?.sim_now && <span className="num hidden text-muted-foreground md:inline">data time {e.sim_now.replace("T", " ").slice(0, 16)}</span>}
-        {mode === "live" && <span className="font-medium">Receiving from devices</span>}
+        <span className="font-medium">Replay: {s ? s.status : sim.isError ? "unknown" : "loading"}</span>
+        {s && s.total != null && <span className="num hidden text-muted-foreground sm:inline">{s.cursor ?? 0}/{s.total} events</span>}
+        {s?.sim_time && <span className="num hidden text-muted-foreground md:inline">data time {s.sim_time.replace("T", " ").slice(0, 16)}</span>}
         {s && !s.runtime_alive && <span className="text-destructive">runtime not running</span>}
       </div>
       <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground" data-testid="conn">
@@ -81,7 +73,6 @@ function TopBar() {
         <span className="inline-flex items-center gap-2 text-sm" data-testid="role"><span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold">{me.data.role}</span>
           <Button variant="outline" size="sm" onClick={() => { setToken(null); qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" }); qc.invalidateQueries({ queryKey: ["me"] }) }} data-testid="logout"><LogOut className="size-4" aria-hidden="true" />Log out</Button></span>)}
       {atLeast(me.data?.role, "operator") && <DemoToolsButton />}
-      {mode === "replay" && <DemoGuideButton />}
       <ThemeToggle />
     </header>
   )
