@@ -70,9 +70,31 @@ def add_targets(d: pd.DataFrame, horizon: int | None = None) -> pd.DataFrame:
     return d.reset_index(drop=True)
 
 
+def urgent_flags(row: dict, cfg: dict | None = None) -> list[str]:
+    """Red-flag limits (config monitor.urgent: NEWS2 red scores + NICE severe hypertension) -> reasons; empty = not urgent. Inclusive limits."""
+    s = (cfg or _cfg())["urgent"]
+    out = []
+
+    def val(k):
+        x = row.get(k)
+        return None if x is None or (isinstance(x, float) and np.isnan(x)) else float(x)
+    sys_, dia, hr, temp = (val(k) for k in ("sys", "dia", "hr", "temp"))
+    if sys_ is not None and sys_ <= s["sys_low"]:
+        out.append(f"systolic {sys_:.0f} at or below {s['sys_low']} mmHg")
+    if sys_ is not None and sys_ >= s["sys_high"]:
+        out.append(f"systolic {sys_:.0f} at or above {s['sys_high']} mmHg")
+    if dia is not None and dia >= s["dia_high"]:
+        out.append(f"diastolic {dia:.0f} at or above {s['dia_high']} mmHg")
+    if hr is not None and (hr <= s["hr_low"] or hr >= s["hr_high"]):
+        out.append(f"pulse {hr:.0f} outside {s['hr_low'] + 1}-{s['hr_high'] - 1} bpm")
+    if temp is not None and (temp <= s["temp_low"] or temp >= s["temp_high"]):
+        out.append(f"temperature {temp:.1f} C outside {s['temp_low']}-{s['temp_high']} C")
+    return out
+
+
 def safety_flags(row: dict, cfg: dict | None = None) -> list[str]:
-    """TIHM Table 5 limits on one day's readings -> list of reasons (empty = nothing urgent). Missing values never fire."""
-    s = (cfg or _cfg())["safety"]
+    """TIHM Table 5 attention limits (config monitor.attention) -> reasons. Shown to the clinician; they do not trigger an URGENT email."""
+    s = (cfg or _cfg())["attention"]
     out = []
 
     def val(k):

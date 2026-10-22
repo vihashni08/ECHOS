@@ -1,0 +1,168 @@
+"""ECHOS v2 agents on a temporary database (synthetic events, fake models directory): message flow, URGENT path, allocation, feedback,
+idempotency after a restart, and the v2 API endpoints."""
+import json
+
+import joblib
+import numpy as np
+import pandas as pd
+import pytest
+from sqlalchemy import func, select
+
+from echos.alerts.dispatcher import AlertDispatcher
+from echos.alerts.mailer import DryRunMailer
+from echos.monitor import agitation as A, store
+from echos.orchestrator import state as S
+from echos.team import bus
+from echos.team.care_agent import CareAgent
+from echos.team.patient_monitor import PatientMonitor, PatientMonitorAgent
+from echos.team.review_coordinator import ReviewCoordinatorAgent
+
+
+class ConstModel:
+    """Stands in for the agitation model: probability grows with the 'total' events of a window."""
+    def __init__(self):
+        self.features = A.feature_sets()["full"]
+
+    def predict_proba(self, df):
+        return np.clip(df["total"].values / 100.0, 0, 1)
+
+    def top_reasons(self, row, k=3):
+        return [f"total {row.get('total', 0):.0f}"]
+
+
+@pytest.fixture()
+def models_dir(tmp_path, monkeypatch):
+    d = tmp_path / "v2"
+    d.mkdir()
+    nig = {v: {"mu0": m, "kappa0": 2.0, "alpha0": 3.0, "beta0": 2 * s ** 2} for v, m, s in (("sys", 135, 12), ("dia", 75, 8), ("hr", 70, 8))}
+    meta = {"vitals_fold_of": {}, "agitation_fold_of": {}, "agitation_features": [],
+            "folds": {"all": {"nig": nig, "beta": {"a0": 1.0, "b0": 4.0}}}, "base_rates": {"v_bar": 0.3, "a_bar": 0.05}}
+    (d / "meta.json").write_text(json.dumps(meta))
+    joblib.dump(ConstModel(), d / "agitation_all.joblib")
+    store.clear_cache()
+    monkeypatch.setattr(store, "DIR", d)
+    yield d
+    store.clear_cache()
+
+
+def _events(days=6, patients=("p1", "p2", "p3")):
+    ev = []
+    for i in range(days):
+        ds = f"2019-05-{i + 1:02d}"
+        for p in patients:
+            sys_ = 195 if (p == "p1" and i == 2) else 130 + (i % 3)
+            wins = [{"w": f"{ds}T{h:02d}:00:00", "slot": h, **{c: 0.0 for c in A.RAW}, "total": 60.0 if (p == "p2" and h == 12) else 10.0}
+                    for h in (8, 12, 18)]
+            ev.append(dict(patient_id=p, day=ds, ts=f"{ds}T18:00:00", kind="day", payload={"vitals": {"sys": sys_, "dia": 80, "hr": 72}, "windows": wins}))
+        for p in patients:
+            ev.append(dict(patient_id=p, day=ds, ts=f"{ds}T20:00:00", kind="outcome",
+                           payload={"vitals_event": p == "p3", "agitation_windows": [f"{ds}T12:00:00"] if p == "p2" else []}))
+        ev.append(dict(patient_id="", day=ds, ts=f"{ds}T23:59:59", kind="day_close", payload={"day": ds, "patients": list(patients)}))
+    return ev
+
+
+def _run(eng, models_dir, k=1):
+    disp = AlertDispatcher(eng, DryRunMailer(), to={"caregiver": "cg@example.test", "clinician": "cl@example.test"}, threaded=False)
+    pm = PatientMonitorAgent(eng, models_dir=models_dir)
+    rc = ReviewCoordinatorAgent(eng, models_dir=models_dir, cfg={"k_per_day": k, "fairness_days": 3, "fair_share": 0.5, "watch_lift": 1.5, "wait_s": 0})
+    ca = CareAgent(eng, disp)
+    for _ in range(200):
+        if not (pm.step() + ca.step() + rc.step()):
+            break
+    disp.run_due()
+    return pm, rc, ca
+
+
+@pytest.fixture()
+def eng(tmp_path):
+    e = S.get_engine(tmp_path / "t.db")
+    return e
+
+
+def _insert(eng, ev):
+    with eng.begin() as c:
+        for e in ev:
+            c.execute(S.event_log.insert().values(patient_id=e["patient_id"], day=e["day"], ts=e["ts"], kind=e["kind"], payload=S.j(e["payload"])))
+
+
+def test_full_flow(eng, models_dir):
+    _insert(eng, _events())
+    _run(eng, models_dir, k=1)
+    with eng.begin() as c:
+        alerts = c.execute(select(S.alerts.c.alert_id)).fetchall()
+        reviews = c.execute(select(S.review_list)).fetchall()
+        topics = dict(c.execute(select(S.agent_message.c.topic, func.count()).group_by(S.agent_message.c.topic)).fetchall())
+        new = c.execute(select(func.count()).select_from(S.agent_message).where((S.agent_message.c.status == "NEW") & (S.agent_message.c.recipient != "all"))).scalar()
+        st = dict(c.execute(select(S.case_state.c.day, S.case_state.c.status).where(S.case_state.c.patient_id == "p1")).fetchall())
+    assert [a.alert_id.split("|")[:3] for a in alerts] == [["p1", "2019-05-03", "critical_vitals"]]     # one red-flag reading -> one alert
+    assert st["2019-05-03"] == "URGENT"                                                                 # the Coordinator never downgrades it
+    assert len(reviews) == 6 and len({r.day for r in reviews}) == 6                                      # K=1 per day, every day allocated
+    assert topics["review_request"] == 18 and topics["feedback"] == 18 and topics["assign"] == 6 and topics["urgent"] == 1
+    assert new == 0                                                                                       # every message consumed
+
+
+def test_feedback_is_learned_and_drives_priority(eng, models_dir):
+    _insert(eng, _events())
+    _run(eng, models_dir, k=1)
+    with eng.begin() as c:
+        states = {r.patient_id: PatientMonitor.from_json(r.state) for r in c.execute(select(S.patient_agent))}
+        last = c.execute(select(S.review_list).where(S.review_list.c.day == "2019-05-06")).fetchall()
+    assert states["p3"].k == 6 and states["p3"].n == 6          # p3: a confirmed vitals event every day
+    assert states["p1"].k == 0
+    assert len(states["p2"].episode_windows) == 6               # p2: a confirmed agitation window every day
+    assert {r.patient_id for r in last} <= {"p2", "p3", "p1"}
+
+
+def test_fairness_floor_reaches_quiet_patient(eng, models_dir):
+    _insert(eng, _events(days=8))
+    _run(eng, models_dir, k=2)
+    with eng.begin() as c:
+        picked = {r.patient_id for r in c.execute(select(S.review_list))}
+        reasons = {r.reason for r in c.execute(select(S.review_list))}
+    assert picked == {"p1", "p2", "p3"} and "fairness" in reasons
+
+
+def test_restart_is_idempotent(eng, models_dir):
+    _insert(eng, _events())
+    _run(eng, models_dir, k=1)
+    with eng.begin() as c:                                       # forget the cursors (a crash before the checkpoint): re-reading must change nothing
+        c.execute(S.agent_checkpoint.delete())
+        before = (c.execute(select(func.count()).select_from(S.alerts)).scalar(), c.execute(select(func.count()).select_from(S.agent_output)).scalar())
+        k_before = {r.patient_id: PatientMonitor.from_json(r.state).k for r in c.execute(select(S.patient_agent))}
+    pm = PatientMonitorAgent(eng, models_dir=models_dir)
+    pm.run_until_idle()
+    with eng.begin() as c:
+        after = (c.execute(select(func.count()).select_from(S.alerts)).scalar(), c.execute(select(func.count()).select_from(S.agent_output)).scalar())
+        k_after = {r.patient_id: PatientMonitor.from_json(r.state).k for r in c.execute(select(S.patient_agent))}
+    assert before == after and k_before == k_after
+
+
+def test_next_day_waits_for_previous_outcome(eng, models_dir):
+    ev = _events(days=2)
+    _insert(eng, [e for e in ev if not (e["kind"] == "outcome" and e["day"] == "2019-05-01")] )
+    pm = PatientMonitorAgent(eng, models_dir=models_dir)
+    pm.max_wait_s = 3600
+    pm.run_until_idle()
+    with eng.begin() as c:                                       # day 1 has no outcome event -> nothing to wait for, day 2 is scored
+        n = c.execute(select(func.count()).select_from(S.agent_output)).scalar()
+    assert n == 6
+
+
+def test_v2_api(eng, models_dir, tmp_path):
+    from fastapi.testclient import TestClient
+    from echos.api.app import create_app
+    _insert(eng, _events())
+    _run(eng, models_dir, k=1)
+    from echos.api.services import Ctx
+    app = create_app(Ctx(eng=eng))
+    cl = TestClient(app)
+    r = cl.get("/api/v2/review").json()
+    assert r["day"] == "2019-05-06" and len(r["items"]) == 1 and r["items"][0]["outcome"] in ("CONFIRMED", "NO_EVENT")
+    t = cl.get("/api/v2/patients/p1/monitor").json()
+    assert t[0]["day"] == "2019-05-06" and any(d["urgent"] for d in t)
+    assert t[0]["rate_ci95"][0] <= t[0]["rate"] <= t[0]["rate_ci95"][1]
+    o = cl.post("/api/v2/reviews/outcome", json={"patient_id": "p1", "day": "2019-05-06", "vitals_event": True}).json()
+    assert o["status"] == "QUEUED"
+    assert bus.poll(eng, "care", ["clinician_outcome"])[0]["payload"]["vitals_event"] is True
+    s = cl.get("/api/v2/summary").json()
+    assert s["urgent_alerts"] == 1 and s["reviews"] == 6

@@ -1,0 +1,85 @@
+{
+  "reference": {
+    "events": 470,
+    "days_scored": 222,
+    "alerts": 21,
+    "urgent_latency_s": {
+      "event_to_queued_median": 0.21288514137268066,
+      "event_to_queued_max": 0.39086413383483887,
+      "event_to_sent_median": 0.22679686546325684,
+      "event_to_sent_max": 0.40006089210510254
+    },
+    "reviews": 112,
+    "days_allocated": 28,
+    "case_status": {
+      "NORMAL": 5,
+      "REVIEW": 102,
+      "URGENT": 21,
+      "WATCH": 93
+    },
+    "messages": {
+      "care:feedback": 221,
+      "care:urgent_sent": 21,
+      "patient_monitor:review_request": 221,
+      "patient_monitor:urgent": 21,
+      "review_coordinator:assign": 112,
+      "review_coordinator:review_decision": 28
+    },
+    "unconsumed_messages": 0,
+    "injected_reading": {
+      "event_id": 120,
+      "day": "2019-05-27",
+      "ts": "2019-05-27T18:00:00"
+    },
+    "wall_s": 31.0
+  },
+  "kill_run": {
+    "events": 470,
+    "days_scored": 222,
+    "alerts": 21,
+    "urgent_latency_s": {
+      "event_to_queued_median": 0.2542121410369873,
+      "event_to_queued_max": 10.86130404472351,
+      "event_to_sent_median": 0.26579928398132324,
+      "event_to_sent_max": 10.867455959320068
+    },
+    "reviews": 112,
+    "days_allocated": 28,
+    "case_status": {
+      "NORMAL": 5,
+      "REVIEW": 102,
+      "URGENT": 21,
+      "WATCH": 93
+    },
+    "messages": {
+      "care:feedback": 221,
+      "care:urgent_sent": 21,
+      "patient_monitor:review_request": 221,
+      "patient_monitor:urgent": 21,
+      "review_coordinator:assign": 112,
+      "review_coordinator:review_decision": 28
+    },
+    "unconsumed_messages": 0,
+    "injected_reading": {
+      "event_id": 121,
+      "day": "2019-05-27",
+      "ts": "2019-05-27T18:00:00"
+    },
+    "wall_s": 33.1,
+    "kill": {
+      "agent": "patient_monitor",
+      "at_event": 239,
+      "detected_and_restarted": true,
+      "restart_s": 11.9,
+      "new_pid": 21922,
+      "reason": "missed_heartbeats"
+    }
+  },
+  "kill_vs_reference": {
+    "lost_alerts": 0,
+    "extra_alerts": 0,
+    "identical_review_picks": true,
+    "identical_case_statuses": true,
+    "same_days_scored": true
+  }
+}

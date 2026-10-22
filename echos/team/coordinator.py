@@ -24,8 +24,9 @@ AGENT = "coordinator"
 
 
 class CareCoordinator:
-    def __init__(self, eng, dispatcher=None, clock=time.time, cfg: Optional[dict] = None):
+    def __init__(self, eng, dispatcher=None, clock=time.time, cfg: Optional[dict] = None, agent: str = AGENT):
         self.eng, self.dispatcher, self.clock = eng, dispatcher, clock
+        self.agent = agent      # name on the bus / tasks ('care' when run inside the v2 Care agent)
         self.cfg = cfg or load_config().get("coordinator", {})
         self._stop = threading.Event()
         self._thread = None
@@ -104,7 +105,7 @@ class CareCoordinator:
                     state="ESCALATED", escalated_ts=now, escalation_to="escalation contact"))
             if u.rowcount:
                 k += 1
-                bus.post(self.eng, AGENT, "all", "alert_escalated", r.patient_id, "", {"alert_id": r.alert_id, "waited_s": round(waited)})
+                bus.post(self.eng, self.agent, "all", "alert_escalated", r.patient_id, "", {"alert_id": r.alert_id, "waited_s": round(waited)})
                 log.warning("alert %s escalated after %.0f s without acknowledgement", r.alert_id, waited)
         return k
 
@@ -114,7 +115,7 @@ class CareCoordinator:
         with self.eng.begin() as c:
             rows = c.execute(select(S.alert_state).where((S.alert_state.c.state == "ACKNOWLEDGED") & (S.alert_state.c.type == "FALL"))).fetchall()
             for r in rows:
-                if S.insert_ignore(c, S.care_task, patient_id=r.patient_id, day="", kind="CHECK_IN", alert_id=r.alert_id, created_by=AGENT, created_ts=self.clock(),
+                if S.insert_ignore(c, S.care_task, patient_id=r.patient_id, day="", kind="CHECK_IN", alert_id=r.alert_id, created_by=self.agent, created_ts=self.clock(),
                                    due_ts=(r.ack_ts or self.clock()) + delay, status="OPEN", title="Confirm the person is well after the fall",
                                    detail="Phone or visit and note whether they need a clinician."):
                     k += 1
@@ -122,7 +123,7 @@ class CareCoordinator:
 
     def _reviews(self) -> int:
         k = 0
-        msgs = bus.poll(self.eng, AGENT, ["case_file_ready"])
+        msgs = bus.poll(self.eng, self.agent, ["case_file_ready"])
         win, need = int(self.cfg.get("review_window_days", 5)), int(self.cfg.get("review_min_days", 3))
         for m in msgs:
             with self.eng.begin() as c:
@@ -130,7 +131,7 @@ class CareCoordinator:
                     (S.case_state.c.patient_id == m["patient_id"]) & (S.case_state.c.day <= m["day"]) & (S.case_state.c.status != "NORMAL")
                     & (S.case_state.c.day > func.date(m["day"], f"-{win} day")))).scalar()
                 if n >= need and S.insert_ignore(
-                        c, S.care_task, patient_id=m["patient_id"], day=m["day"], kind="CLINICIAN_REVIEW", alert_id="", created_by=AGENT, created_ts=self.clock(),
+                        c, S.care_task, patient_id=m["patient_id"], day=m["day"], kind="CLINICIAN_REVIEW", alert_id="", created_by=self.agent, created_ts=self.clock(),
                         due_ts=self.clock() + 86400, status="OPEN", title=f"Clinician review: {n} changed days in the last {win}",
                         detail="Repeated changes from the person's usual: see the case files."):
                     k += 1

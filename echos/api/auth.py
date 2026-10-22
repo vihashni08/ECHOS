@@ -19,6 +19,7 @@ PUBLIC = (("POST", re.compile(r"^/api/auth/login$")), ("GET", re.compile(r"^/api
 RULES = [
     ("POST", re.compile(r"^/api/alerts/.+/(ack|resolve)$"), "caregiver"),
     ("POST", re.compile(r"^/api/tasks/\d+/done$"), "caregiver"),
+    ("POST", re.compile(r"^/api/v2/reviews/outcome$"), "clinician"),
     ("POST", re.compile(r"^/api/patients/[^/]+/reports/weekly/(build|send)$"), "clinician"),
     ("POST", re.compile(r"^/api/outbox/\d+/retry$"), "clinician"),
     ("GET", re.compile(r"^/api/patients/[^/]+/reports/weekly"), "clinician"),

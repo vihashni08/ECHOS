@@ -17,7 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from echos.api import services as V
 from echos.api import auth as A
 from echos.api import ingest_limits as IL
-from echos.api.routers import patients, reports, alerts, session, live, team, simulation, agents, system
+from echos.api.routers import patients, reports, alerts, session, live, team, simulation, agents, system, v2
 from echos.config import load_config
 from echos.orchestrator import state as S
 
@@ -83,6 +83,7 @@ def create_app(ctx: Optional[V.Ctx] = None) -> FastAPI:
     app.include_router(simulation.router)
     app.include_router(agents.router)
     app.include_router(system.router)
+    app.include_router(v2.router)
     return app
 
 

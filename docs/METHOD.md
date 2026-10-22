@@ -89,18 +89,26 @@ $$r_i=\max\!\left(\frac{v_i}{\bar v},\ \frac{a_i}{\bar a}\right)$$
 
 Today's K review slots go to the highest $r_i$. A fairness floor lets patients unseen for ≥ 7 days take up to half the slots. Safety-rule (URGENT) cases sit outside the budget.
 
-### 3.5 Safety rules (`echos/monitor/cohort.py: safety_flags`)
-These are TIHM's own daily-check limits (Table 5):
+### 3.5 Alert rules: two tiers (`echos/monitor/cohort.py`)
+No model is involved in either tier.
 
-| Measurement | Alert when |
+**URGENT** (immediate email to caregiver and clinician) fires on red flags only (`urgent_flags`):
+
+| Rule | Source |
 |---|---|
-| Systolic | < 80 or > 190 mmHg |
-| Diastolic | < 50 or > 110 mmHg |
-| Pulse | < 55 or > 100 bpm |
-| Temperature | < 35 or > 37.6 °C |
-| Body water | < 40% or > 70% |
+| Systolic ≤ 90 mmHg | NEWS2 single-parameter red score (RCP 2017) |
+| Pulse ≤ 40 or ≥ 131 bpm | NEWS2 red score |
+| Temperature ≤ 35.0 or ≥ 39.1 °C | NEWS2 |
+| BP ≥ 180/120 mmHg | NICE NG136 severe hypertension |
 
-No model is involved. A crossing sends an URGENT alert immediately.
+**Attention** flags are TIHM's own daily-check limits (Table 5, `safety_flags`): systolic < 80 or > 190, diastolic < 50 or > 110, pulse < 55 or > 100, temperature < 35 or > 37.6, body water < 40% or > 70%. They are shown in the review reasons and never email.
+
+Why two tiers (`scripts/evaluation/label_audit.py`, q5):
+
+| Tier | Share of reading days | Per patient-week | Days the study confirmed an event |
+|---|---|---|---|
+| URGENT red flags | 3.5% | 0.18 | 86% |
+| TIHM attention limits | 11.5% | 0.60 | 60% |
 
 ### 3.6 Episode tracker: two-state hidden Markov model (`echos/monitor/episode.py`, ablation)
 - **States:** stable / unstable.
@@ -175,9 +183,38 @@ EM learned a near-permanent unstable state ($b\approx0.97$). The HMM therefore d
 - ECHOS gets 1.8× the events per review of random, and covers both conditions.
 - The fairness floor cuts never-reviewed patients from 22 to 8 at about 6% fewer events per review.
 
-## 6. Limitations
+## 6. The agents at run time (`echos/team/`, `python -m echos.team.runtime`)
+
+Three agent processes run under a supervisor that restarts any process whose heartbeat stops. They share no memory and talk only over the SQLite message bus.
+
+| Agent | Belief it keeps | Decides | Sends |
+|---|---|---|---|
+| Patient Monitor (one per person, `patient_monitor.py`) | Personal vitals history (NIG); confirmed event counts (Beta); same-slot activity history and episode history | Whether today's reading is a red flag; today's agitation probability per window; its 3-day vitals risk after the day's feedback | `urgent` → Care; `review_request` → Coordinator |
+| Review Coordinator (`review_coordinator.py`) | Last review day per patient | Which K patients are reviewed today (lift priority, fairness floor) | `assign` → Care; `review_decision` → Monitors |
+| Care agent (`care_agent.py`) | Alert lifecycle (NEW → SENT → ACKNOWLEDGED / ESCALATED) | Send, resend or escalate; open review tasks | URGENT emails (fixed template); `feedback` → Monitor |
+
+**The learning loop.** The clinician's outcome (in replay, TIHM's record of what the monitoring team confirmed) goes Care → Monitor as `feedback`. The monitor updates its event rate and episode history from it before it scores the next day.
+
+**Out-of-fold models.** Each patient is scored by the models of the cross-validation fold that excluded them (`scripts/train_v2.py`, `echos/monitor/store.py`), so the replay demo is not in-sample.
+
+**Replay.** `echos/sim/replay_v2.py` replays the demo cohort: 8 patients, 28 days, 470 events.
+
+**End-to-end check with real processes** (`scripts/evaluation/team_e2e.py` → `reports/metrics/v2_runtime.json`):
+
+| Check | Result |
+|---|---|
+| Patient-days scored | 222 |
+| Days allocated | 28 (112 reviews) |
+| Messages left unconsumed | 0 |
+| URGENT latency, reading → alert queued | median 0.21 s, max 0.39 s |
+| URGENT latency, reading → dry-run email sent | median 0.23 s |
+| Patient Monitor killed (SIGKILL) half-way | detected and restarted after 12 s (missed heartbeats) |
+| Kill run vs uninterrupted run | 0 lost alerts, 0 extra alerts, identical review picks and case statuses |
+
+## 7. Limitations
 - **Small cohort:** 41 / 56 patients over 3 months, so CIs are wide.
 - **Labels are confirmed alerts:** they come from the study's own rules and models, so the agitation detector partly re-learns the study model (each label was confirmed by a person).
 - **No forecasting of new vitals episodes.**
 - **The allocation study is a replay:** a review cannot change what happened in the data.
+- **Replay feedback is the study record:** in replay, a monitor learns from TIHM's confirmations of each day. In live use that signal would come from clinicians answering review tasks (`POST /api/v2/reviews/outcome`), which has not been tested with real clinicians.
 - **Logistic regression ties with the XGBoost agitation detector.**

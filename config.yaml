@@ -147,7 +147,15 @@ monitor:   # ECHOS v2 core (echos/monitor/): personal Bayesian episode tracker +
   baseline_window_days: 28   # personal NIG model uses the last 28 reading-days (past only)
   horizon_days: 3            # vitals target: a BP / pulse event on days t+1..t+3, from data up to day t
   alert_budget_per_patient_week: 1.0
-  safety:                    # TIHM's own daily-check limits (Palermo et al. 2023, Sci Data, Table 5): URGENT, no model involved
+  urgent:                    # URGENT = immediate email to caregiver + clinician, no model involved. Red flags only:
+    sys_low: 90              #   NEWS2 single-parameter red score (RCP 2017): systolic <= 90, pulse <= 40 or >= 131, temperature <= 35.0
+    sys_high: 180            #   NICE NG136: blood pressure >= 180/120 (severe hypertension)
+    dia_high: 120
+    hr_low: 40
+    hr_high: 131
+    temp_low: 35.0
+    temp_high: 39.1          #   NEWS2 temperature >= 39.1
+  attention:                 # TIHM's own daily-check limits (Palermo et al. 2023, Table 5): shown as attention flags in the review reasons
     sys_low: 80
     sys_high: 190
     dia_low: 50
@@ -164,3 +172,10 @@ monitor:   # ECHOS v2 core (echos/monitor/): personal Bayesian episode tracker +
     baseline_slots: 14       # personal baseline = the same slot on the previous 14 days
     min_baseline_slots: 4
     history_days: 21
+review:   # Review Coordinator (echos/team/review_coordinator.py); K and the fairness floor chosen from reports/metrics/v2_allocation.json
+  k_per_day: 4              # clinician review slots per day for the whole caseload
+  fairness_days: 7          # a patient not reviewed for >= 7 days is due ...
+  fair_share: 0.5           # ... and due patients may take at most half of the slots
+  watch_lift: 1.5           # not selected but >= 1.5x a base rate -> WATCH (dashboard only, no notification)
+  wait_s: 20                # wait this long (wall clock) for every Patient Monitor's request before allocating with what has arrived ...
+  max_wait_s: 300           # ... or up to this long while the agent being waited for is down (stale heartbeat, supervisor restarting it)

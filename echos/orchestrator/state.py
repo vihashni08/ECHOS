@@ -151,6 +151,8 @@ _TRIGGERS = [
      "json_object('outbox_id', NEW.outbox_id, 'alert_id', NEW.alert_id, 'role', NEW.recipient_role, 'status', NEW.status)"),
     ("feed_outbox_upd", "AFTER UPDATE OF status ON outbox", "WHEN OLD.status IS NOT NEW.status", "'outbox_status'",
      "json_object('outbox_id', NEW.outbox_id, 'alert_id', NEW.alert_id, 'role', NEW.recipient_role, 'status', NEW.status)"),
+    ("feed_review_list", "AFTER INSERT ON review_list", "", "'review_list'",
+     "json_object('day', NEW.day, 'patient_id', NEW.patient_id, 'rank', NEW.rank, 'reason', NEW.reason)"),
     ("feed_agent_status", "AFTER UPDATE OF status ON agent_heartbeat", "WHEN OLD.status IS NOT NEW.status", "'agent_health'",
      "json_object('agent', NEW.agent_id, 'status', NEW.status, 'alive', 1)"),
 ]
@@ -168,3 +170,13 @@ def create_feed_triggers(conn) -> None:
     for name, when, cond, kind, data in _TRIGGERS:
         conn.execute(text(f"CREATE TRIGGER IF NOT EXISTS {name} {when} {cond} BEGIN INSERT INTO event_feed (ts, kind, data) "
                           f"VALUES (strftime('%s','now') + 0.0, {kind}, {data}); END"))
+
+# ---- ECHOS v2 agents (echos/team/patient_monitor.py, review_coordinator.py, care_agent.py)
+patient_agent = Table("patient_agent", md, Column("patient_id", String, primary_key=True), Column("state", Text),    # one Patient Monitor's memory (JSON)
+                      Column("last_event_id", Integer), Column("updated_ts", Float))
+review_list = Table("review_list", md, Column("day", String, primary_key=True), Column("patient_id", String, primary_key=True),
+                    Column("rank", Integer), Column("reason", String),            # 'priority' | 'fairness'
+                    Column("priority", Float), Column("vitals_risk", Float), Column("agitation_risk", Float), Column("lift_vitals", Float),
+                    Column("lift_agitation", Float), Column("why", Text), Column("created_ts", Float),
+                    Column("outcome", String), Column("outcome_ts", Float))          # CONFIRMED / NO_EVENT, set from the clinician's feedback
+agent_state = Table("agent_state", md, Column("agent_id", String, primary_key=True), Column("key", String, primary_key=True), Column("value", Text))

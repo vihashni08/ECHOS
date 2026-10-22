@@ -66,7 +66,7 @@ def main() -> dict:
                            "max_labels_one_patient": int(ag.groupby("patient_id").size().max())}
 
     # 4. new-episode onset predictability
-    s = load_config()["monitor"]["safety"]
+    s = load_config()["monitor"]["attention"]
     d = d.sort_values(["patient_id", "day"]).reset_index(drop=True)
     d["cross"] = ((d.sys > s["sys_high"]) | (d.dia > s["dia_high"]) | (d.hr > s["hr_high"]) | (d.hr < s["hr_low"]) | (d.sys >= 160) | (d.dia >= 100)).astype(int)
     g = d.groupby("patient_id")
@@ -89,6 +89,15 @@ def main() -> dict:
     out["q4_new_episode_onsets"] = {"onsets": int(d.onset.sum()), "quiet_rows": int(len(q)), "positives": int(yq.sum()), "prevalence": float(yq.mean()),
                                     "logistic_pr_auc": float(M.summary(yq, oof, 7, prob=False)["pr_auc"]),
                                     "label_rate_pr_auc": float(M.summary(yq, q["label_rate"].values, 7, prob=False)["pr_auc"])}
+    # 5. the URGENT rule (red flags) vs TIHM's attention limits: how often each fires and how often the study confirmed an event that day
+    rd2 = d[d.has_reading == 1]
+    u = np.array([bool(cohort.urgent_flags(r)) for r in rd2[["sys", "dia", "hr", "temp"]].to_dict("records")])
+    at = np.array([bool(cohort.safety_flags(r)) for r in rd2[["sys", "dia", "hr", "temp", "water"]].to_dict("records")])
+    pw = len(d) / 7
+    out["q5_alert_rules"] = {"urgent_red_flags": {"share_of_reading_days": float(u.mean()), "per_patient_week": float(u.sum() / pw),
+                                                  "share_confirmed_by_study": float(rd2.event.values[u].mean()) if u.any() else None},
+                             "tihm_attention_limits": {"share_of_reading_days": float(at.mean()), "per_patient_week": float(at.sum() / pw),
+                                                       "share_confirmed_by_study": float(rd2.event.values[at].mean()) if at.any() else None}}
     out["conclusions"] = [
         "BP labels concentrate on days with sys>=160 or dia>=100: same-day detection would re-learn a threshold.",
         "Labels sit close in time to a reading: the study's daily check produced them.",

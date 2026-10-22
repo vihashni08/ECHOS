@@ -93,7 +93,7 @@ def main(n_boot: int = 1000) -> dict:
         if name != "full":
             other = cohort.add_targets(pd.concat(scored[name]), H)[["patient_id", "day", "forecast"]].rename(columns={"forecast": f"fc_{name}"})
             full = full.merge(other, on=["patient_id", "day"], how="left")
-    s = cfg["safety"]
+    s = cfg["attention"]
     full["threshold_today"] = (((full.sys > s["sys_high"]) | (full.sys < s["sys_low"]) | (full.dia > s["dia_high"]) | (full.dia < s["dia_low"])
                                 | (full.hr > s["hr_high"]) | (full.hr < s["hr_low"])).astype(float))
     full["high_bp_160_100"] = ((full.sys >= 160) | (full.dia >= 100)).astype(float)

@@ -164,6 +164,13 @@ def test_select_budget_fairness_and_determinism():
     assert [c.patient_id for c, _ in AL.select(cands, 3, None)] == ["p9", "p8", "p7"]
 
 
+def test_urgent_flags_red_limits():
+    assert cohort.urgent_flags({"sys": 182, "dia": 95, "hr": 70}) == ["systolic 182 at or above 180 mmHg"]
+    assert cohort.urgent_flags({"sys": 150, "dia": 85, "hr": 131})[0].startswith("pulse 131")
+    assert cohort.urgent_flags({"sys": 150, "dia": 85, "hr": 102}) == []          # TIHM attention, not urgent
+    assert cohort.urgent_flags({"sys": float("nan"), "temp": 34.9})[0].startswith("temperature 34.9")
+
+
 def test_safety_flags_tihm_limits():
     assert cohort.safety_flags({"sys": 195, "dia": 80, "hr": 70}) == ["systolic 195 outside 80-190 mmHg"]
     assert cohort.safety_flags({"sys": 150, "dia": 85, "hr": 52})[0].startswith("pulse 52")

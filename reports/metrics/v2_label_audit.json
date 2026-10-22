@@ -73,6 +73,18 @@
     "logistic_pr_auc": 0.118855334839187,
     "label_rate_pr_auc": 0.1511982552632786
   },
+  "q5_alert_rules": {
+    "urgent_red_flags": {
+      "share_of_reading_days": 0.035045317220543805,
+      "per_patient_week": 0.18446160835983644,
+      "share_confirmed_by_study": 0.8620689655172413
+    },
+    "tihm_attention_limits": {
+      "share_of_reading_days": 0.1148036253776435,
+      "per_patient_week": 0.6042707860063607,
+      "share_confirmed_by_study": 0.6
+    }
+  },
   "conclusions": [
     "BP labels concentrate on days with sys>=160 or dia>=100: same-day detection would re-learn a threshold.",
     "Labels sit close in time to a reading: the study's daily check produced them.",

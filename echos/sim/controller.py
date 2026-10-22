@@ -29,8 +29,10 @@ WIPE = [S.event_log, S.agent_output, S.case_state, S.alerts, S.outbox, S.daily_f
 
 
 class SimController:
-    def __init__(self, eng, events: Optional[list] = None, speed_eps: float = 20.0, n_patients: int = 4, max_days: int = 28, on_reset=None):
+    def __init__(self, eng, events: Optional[list] = None, speed_eps: float = 20.0, n_patients: int = 4, max_days: int = 28, on_reset=None,
+                 builder=None, extra_wipe=()):
         self.eng, self.on_reset = eng, on_reset
+        self.builder, self.wipe = builder, list(WIPE) + list(extra_wipe)   # builder: v2 replay (echos/sim/replay_v2.py); None = v1 events
         self.n_patients, self.max_days = n_patients, max_days
         self.events = events
         self.done: list = []
@@ -49,8 +51,11 @@ class SimController:
 
     def _ensure_events(self) -> None:
         if self.events is None:
-            from echos.sim.replay import build_events
-            self.events = build_events(self.n_patients, max_days=self.max_days)[0]
+            if self.builder is not None:
+                self.events = self.builder()
+            else:
+                from echos.sim.replay import build_events
+                self.events = build_events(self.n_patients, max_days=self.max_days)[0]
         if len(self.done) != len(self.events):
             self.done = [False] * len(self.events)
 
@@ -95,12 +100,26 @@ class SimController:
         self._publish()
         return {"event_id": eid, "day": day_ev["day"], "ts": ts.isoformat()}
 
+    def inject_reading(self, a: dict) -> dict:
+        """Demo / live: one vitals reading for a patient at the current simulated time (kind 'reading'): the Patient Monitor checks it at once."""
+        self._ensure_events()
+        pid = a["patient_id"]
+        if pid not in {e["patient_id"] for e in self.events}:
+            raise ValueError(f"patient {pid} is not in this replay")
+        now = pd.Timestamp(self.sim_time) if self.sim_time else pd.Timestamp(next(e["ts"] for e in self.events if e["patient_id"] == pid))
+        pl = {k: float(a[k]) for k in ("sys", "dia", "hr", "temp") if a.get(k) is not None}
+        pl["injected"] = True
+        eid = self._insert({"patient_id": pid, "day": now.strftime("%Y-%m-%d"), "kind": "reading", "payload": pl, "ts": now.isoformat()},
+                           ts=now.isoformat(), payload=pl, gt=False)
+        self._publish()
+        return {"event_id": eid, "day": now.strftime("%Y-%m-%d"), "ts": now.isoformat()}
+
     # ---- commands
     def reset(self) -> None:
         if self.on_reset:
             self.on_reset("before")
         with self.eng.begin() as c:
-            for t in WIPE:
+            for t in self.wipe:
                 c.execute(delete(t))
         self.cursor, self.sim_time, self.status, self.message = 0, None, "idle", "reset"
         self.done = [False] * len(self.events) if self.events is not None else []
@@ -128,6 +147,8 @@ class SimController:
             self.reset()
         elif cmd == "inject_fall":
             return self.inject_fall(a)
+        elif cmd == "inject_reading":
+            return self.inject_reading(a)
         else:
             raise ValueError(f"unknown command {cmd}")
         self._publish()
@@ -228,6 +249,9 @@ class Runtime:
 
 def main():
     import os
+    if os.environ.get("ECHOS_RUNTIME", "v2") == "v2":     # ECHOS v2 (three agents); ECHOS_RUNTIME=v1 starts the original pipeline
+        from echos.team.runtime import main as v2_main
+        return v2_main()
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=os.environ.get("ECHOS_DB"))
     ap.add_argument("--patients", type=int, default=4)
