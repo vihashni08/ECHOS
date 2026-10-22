@@ -142,3 +142,25 @@ live:   # live / emulator mode (echos/live). Raw events -> ingestion API -> even
     start_day: "2019-05-13"
     n_days: 14
     n_patients: 4
+monitor:   # ECHOS v2 core (echos/monitor/): personal Bayesian episode tracker + agitation detector. Equations: docs/METHOD.md
+  min_bp_days: 14            # inclusion: a personal baseline needs history (fixed before any result was seen)
+  baseline_window_days: 28   # personal NIG model uses the last 28 reading-days (past only)
+  horizon_days: 3            # vitals target: a BP / pulse event on days t+1..t+3, from data up to day t
+  alert_budget_per_patient_week: 1.0
+  safety:                    # TIHM's own daily-check limits (Palermo et al. 2023, Sci Data, Table 5): URGENT, no model involved
+    sys_low: 80
+    sys_high: 190
+    dia_low: 50
+    dia_high: 110
+    hr_low: 55
+    hr_high: 100
+    temp_low: 35.0
+    temp_high: 37.6
+    water_low: 40
+    water_high: 70
+    weight_loss_pct: 5
+  agitation:
+    slot_hours: [8, 12, 18]  # TIHM's agitation model ran every ~6 h; windows end at these hours (night window 18:00 -> 08:00)
+    baseline_slots: 14       # personal baseline = the same slot on the previous 14 days
+    min_baseline_slots: 4
+    history_days: 21

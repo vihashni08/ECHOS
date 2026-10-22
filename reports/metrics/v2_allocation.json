@@ -1,0 +1,283 @@
+{
+  "priority": "r = max(v / v_bar, a / a_bar)",
+  "setup": {
+    "patients": 56,
+    "days": 92,
+    "median_active_patients_per_day": 40.0,
+    "agitation_episodes": 135,
+    "vitals_events": 280,
+    "definition": "agitation followed up = reviewed the same day; vitals event anticipated = reviewed 1-3 days before"
+  },
+  "by_k": {
+    "2": {
+      "random": {
+        "reviews": 184.0,
+        "agitation_followed_up": 0.07703703703703704,
+        "agitation_episodes": 135.0,
+        "vitals_anticipated": 0.14,
+        "vitals_events": 280.0,
+        "events_per_review": 0.2695652173913043,
+        "max_days_without_review": 69.0,
+        "patients_never_reviewed": 9.2,
+        "patients": 56.0
+      },
+      "round_robin": {
+        "reviews": 184,
+        "agitation_followed_up": 0.08148148148148149,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.15714285714285714,
+        "vitals_events": 280,
+        "events_per_review": 0.29891304347826086,
+        "max_days_without_review": 51,
+        "patients_never_reviewed": 9,
+        "patients": 56
+      },
+      "vitals_only": {
+        "reviews": 184,
+        "agitation_followed_up": 0.007407407407407408,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.29285714285714287,
+        "vitals_events": 280,
+        "events_per_review": 0.45108695652173914,
+        "max_days_without_review": 91,
+        "patients_never_reviewed": 40,
+        "patients": 56
+      },
+      "agitation_only": {
+        "reviews": 184,
+        "agitation_followed_up": 0.4074074074074074,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.075,
+        "vitals_events": 280,
+        "events_per_review": 0.41304347826086957,
+        "max_days_without_review": 79,
+        "patients_never_reviewed": 30,
+        "patients": 56
+      },
+      "prob_union": {
+        "reviews": 184,
+        "agitation_followed_up": 0.02962962962962963,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.3,
+        "vitals_events": 280,
+        "events_per_review": 0.4782608695652174,
+        "max_days_without_review": 87,
+        "patients_never_reviewed": 37,
+        "patients": 56
+      },
+      "echos": {
+        "reviews": 184,
+        "agitation_followed_up": 0.3925925925925926,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.11071428571428571,
+        "vitals_events": 280,
+        "events_per_review": 0.45652173913043476,
+        "max_days_without_review": 75,
+        "patients_never_reviewed": 27,
+        "patients": 56
+      },
+      "echos+fairness7": {
+        "reviews": 184,
+        "agitation_followed_up": 0.34074074074074073,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.16071428571428573,
+        "vitals_events": 280,
+        "events_per_review": 0.4945652173913043,
+        "max_days_without_review": 75,
+        "patients_never_reviewed": 24,
+        "patients": 56
+      },
+      "oracle": {
+        "reviews": 184,
+        "agitation_followed_up": 0.18518518518518517,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.55,
+        "vitals_events": 280,
+        "events_per_review": 0.9728260869565217,
+        "max_days_without_review": 81,
+        "patients_never_reviewed": 30,
+        "patients": 56
+      }
+    },
+    "4": {
+      "random": {
+        "reviews": 361.0,
+        "agitation_followed_up": 0.10518518518518519,
+        "agitation_episodes": 135.0,
+        "vitals_anticipated": 0.27214285714285713,
+        "vitals_events": 280.0,
+        "events_per_review": 0.25041551246537397,
+        "max_days_without_review": 49.2,
+        "patients_never_reviewed": 5.0,
+        "patients": 56.0
+      },
+      "round_robin": {
+        "reviews": 361,
+        "agitation_followed_up": 0.11851851851851852,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.2785714285714286,
+        "vitals_events": 280,
+        "events_per_review": 0.26038781163434904,
+        "max_days_without_review": 42,
+        "patients_never_reviewed": 7,
+        "patients": 56
+      },
+      "vitals_only": {
+        "reviews": 361,
+        "agitation_followed_up": 0.044444444444444446,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.4857142857142857,
+        "vitals_events": 280,
+        "events_per_review": 0.39335180055401664,
+        "max_days_without_review": 78,
+        "patients_never_reviewed": 29,
+        "patients": 56
+      },
+      "agitation_only": {
+        "reviews": 361,
+        "agitation_followed_up": 0.6444444444444445,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.16428571428571428,
+        "vitals_events": 280,
+        "events_per_review": 0.3684210526315789,
+        "max_days_without_review": 77,
+        "patients_never_reviewed": 23,
+        "patients": 56
+      },
+      "prob_union": {
+        "reviews": 361,
+        "agitation_followed_up": 0.1111111111111111,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.5,
+        "vitals_events": 280,
+        "events_per_review": 0.4293628808864266,
+        "max_days_without_review": 76,
+        "patients_never_reviewed": 28,
+        "patients": 56
+      },
+      "echos": {
+        "reviews": 361,
+        "agitation_followed_up": 0.6148148148148148,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.2857142857142857,
+        "vitals_events": 280,
+        "events_per_review": 0.4515235457063712,
+        "max_days_without_review": 72,
+        "patients_never_reviewed": 22,
+        "patients": 56
+      },
+      "echos+fairness7": {
+        "reviews": 361,
+        "agitation_followed_up": 0.5111111111111111,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.3,
+        "vitals_events": 280,
+        "events_per_review": 0.42382271468144045,
+        "max_days_without_review": 63,
+        "patients_never_reviewed": 8,
+        "patients": 56
+      },
+      "oracle": {
+        "reviews": 361,
+        "agitation_followed_up": 0.32592592592592595,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.7678571428571429,
+        "vitals_events": 280,
+        "events_per_review": 0.7174515235457064,
+        "max_days_without_review": 78,
+        "patients_never_reviewed": 23,
+        "patients": 56
+      }
+    },
+    "6": {
+      "random": {
+        "reviews": 517.0,
+        "agitation_followed_up": 0.1762962962962963,
+        "agitation_episodes": 135.0,
+        "vitals_anticipated": 0.3921428571428571,
+        "vitals_events": 280.0,
+        "events_per_review": 0.2584139264990329,
+        "max_days_without_review": 40.8,
+        "patients_never_reviewed": 3.2,
+        "patients": 56.0
+      },
+      "round_robin": {
+        "reviews": 517,
+        "agitation_followed_up": 0.16296296296296298,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.4142857142857143,
+        "vitals_events": 280,
+        "events_per_review": 0.26692456479690524,
+        "max_days_without_review": 38,
+        "patients_never_reviewed": 6,
+        "patients": 56
+      },
+      "vitals_only": {
+        "reviews": 517,
+        "agitation_followed_up": 0.11851851851851852,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.5964285714285714,
+        "vitals_events": 280,
+        "events_per_review": 0.3539651837524178,
+        "max_days_without_review": 77,
+        "patients_never_reviewed": 19,
+        "patients": 56
+      },
+      "agitation_only": {
+        "reviews": 517,
+        "agitation_followed_up": 0.7703703703703704,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.225,
+        "vitals_events": 280,
+        "events_per_review": 0.3230174081237911,
+        "max_days_without_review": 70,
+        "patients_never_reviewed": 16,
+        "patients": 56
+      },
+      "prob_union": {
+        "reviews": 517,
+        "agitation_followed_up": 0.22962962962962963,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.6107142857142858,
+        "vitals_events": 280,
+        "events_per_review": 0.390715667311412,
+        "max_days_without_review": 75,
+        "patients_never_reviewed": 19,
+        "patients": 56
+      },
+      "echos": {
+        "reviews": 517,
+        "agitation_followed_up": 0.725925925925926,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.43214285714285716,
+        "vitals_events": 280,
+        "events_per_review": 0.42359767891682787,
+        "max_days_without_review": 70,
+        "patients_never_reviewed": 18,
+        "patients": 56
+      },
+      "echos+fairness7": {
+        "reviews": 517,
+        "agitation_followed_up": 0.6148148148148148,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.45714285714285713,
+        "vitals_events": 280,
+        "events_per_review": 0.4081237911025145,
+        "max_days_without_review": 52,
+        "patients_never_reviewed": 6,
+        "patients": 56
+      },
+      "oracle": {
+        "reviews": 517,
+        "agitation_followed_up": 0.3925925925925926,
+        "agitation_episodes": 135,
+        "vitals_anticipated": 0.85,
+        "vitals_events": 280,
+        "events_per_review": 0.562862669245648,
+        "max_days_without_review": 76,
+        "patients_never_reviewed": 17,
+        "patients": 56
+      }
+    }
+  }
+}

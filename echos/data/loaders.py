@@ -25,3 +25,10 @@ def load_labels() -> pd.DataFrame:
 
 def load_demographics() -> pd.DataFrame:
     return pd.read_csv(_dir() / "Demographics.csv").rename(columns={"age": "age_band"})
+
+
+def load_activity() -> pd.DataFrame:
+    """Room / door sensor events (patient_id, location_name, date). ~1M rows; used by the v2 agitation detector only."""
+    df = pd.read_csv(_dir() / "Activity.csv")
+    df["date"] = pd.to_datetime(df["date"])
+    return df

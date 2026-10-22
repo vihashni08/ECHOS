@@ -1,0 +1,82 @@
+{
+  "cohort": {
+    "patients": 41,
+    "patient_days": 2201,
+    "reading_days": 1655
+  },
+  "q1_bp_labels_vs_thresholds": [
+    {
+      "rule": "sys>=140 or dia>=90",
+      "days_crossing": 786,
+      "share_labelled": 0.2430025445292621,
+      "share_of_bp_labels_on_crossing_days": 0.8127659574468085
+    },
+    {
+      "rule": "sys>=150 or dia>=95",
+      "days_crossing": 442,
+      "share_labelled": 0.42081447963800905,
+      "share_of_bp_labels_on_crossing_days": 0.7914893617021277
+    },
+    {
+      "rule": "sys>=160 or dia>=100",
+      "days_crossing": 207,
+      "share_labelled": 0.8792270531400966,
+      "share_of_bp_labels_on_crossing_days": 0.774468085106383
+    },
+    {
+      "rule": "sys>=170 or dia>=105",
+      "days_crossing": 95,
+      "share_labelled": 0.8947368421052632,
+      "share_of_bp_labels_on_crossing_days": 0.3617021276595745
+    },
+    {
+      "rule": "sys>=190 or dia>=110",
+      "days_crossing": 33,
+      "share_labelled": 0.9393939393939394,
+      "share_of_bp_labels_on_crossing_days": 0.13191489361702127
+    }
+  ],
+  "q1_median_readings": {
+    "unlabelled_days": {
+      "sys": 136.0,
+      "dia": 74.0,
+      "hr": 71.0
+    },
+    "bp_labelled_days": {
+      "sys": 163.0,
+      "dia": 91.0,
+      "hr": 73.0
+    }
+  },
+  "q2_bp_label_timing_hours": {
+    "since_previous_reading_median": 22.33652777777778,
+    "to_next_reading_median": 0.7388888888888889,
+    "share_with_a_reading_within_1h": 0.9245901639344263
+  },
+  "q3_agitation_label_hours": {
+    "8": 10,
+    "9": 1,
+    "12": 79,
+    "18": 45
+  },
+  "q3_agitation": {
+    "labels": 135,
+    "patients": 27,
+    "distinct_dates": 50,
+    "max_labels_one_patient": 33
+  },
+  "q4_new_episode_onsets": {
+    "onsets": 41,
+    "quiet_rows": 1120,
+    "positives": 117,
+    "prevalence": 0.10446428571428572,
+    "logistic_pr_auc": 0.118855334839187,
+    "label_rate_pr_auc": 0.1511982552632786
+  },
+  "conclusions": [
+    "BP labels concentrate on days with sys>=160 or dia>=100: same-day detection would re-learn a threshold.",
+    "Labels sit close in time to a reading: the study's daily check produced them.",
+    "Agitation labels carry only the batch times of the study's ~6-hourly model, so ECHOS scores the same windows.",
+    "New vitals episodes are close to unpredictable from daily vitals; ECHOS does not claim to forecast them."
+  ]
+}
