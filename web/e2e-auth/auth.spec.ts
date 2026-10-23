@@ -19,8 +19,8 @@ test("a caregiver sees the care pages only and is stopped from the rest; log out
   await page.goto("/", { waitUntil: "networkidle" })
   await login(page, "e2e-care")
   await expect(page.getByTestId("role")).toContainText("caregiver")
-  for (const n of ["Today", "Review board", "Alerts", "How it works"]) await expect(page.getByRole("link", { name: n }).first()).toBeVisible()
-  await expect(page.getByRole("link", { name: "Agents" })).toHaveCount(0)
+  for (const n of ["Morning briefing", "Decision trace", "Test it yourself", "Review board", "Alerts", "How it works"]) await expect(page.getByRole("link", { name: n }).first()).toBeVisible()
+  await expect(page.getByRole("link", { name: "Under the hood" })).toHaveCount(0)
   await expect(page.getByTestId("demo-tools-button")).toHaveCount(0)
   await page.goto("/how", { waitUntil: "networkidle" })
   await expect(page.getByTestId("results")).toBeVisible()           // evaluation results are open to every role
@@ -34,7 +34,7 @@ test("an operator sees everything and can drive the replay", async ({ page }) =>
   await page.goto("/", { waitUntil: "networkidle" })
   await login(page, "e2e-oper")
   await expect(page.getByTestId("role")).toContainText("operator")
-  await expect(page.getByRole("link", { name: "Agents" }).first()).toBeVisible()
+  await expect(page.getByRole("link", { name: "Under the hood" }).first()).toBeVisible()
   await page.getByTestId("demo-tools-button").click()
   await page.getByTestId("play-pause").click()
   await expect(page.getByTestId("sim-state")).toContainText(/playing|finished/, { timeout: 20000 })     // API calls work with the bearer token
