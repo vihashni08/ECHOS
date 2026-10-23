@@ -21,6 +21,7 @@ test("Morning briefing shows the three claims, the review list with evidence car
   await expect(page.getByTestId("review-item")).toHaveCount(r.items.length)
   await expect(page.getByTestId("review-list")).toContainText(r.items[0].patient_id)
   await expect(page.getByTestId("claims")).toContainText("Audit first")
+  await expect(page.getByTestId("briefing-day")).toBeVisible()
   await expect(page.getByTestId("evidence-card").first()).toBeVisible({ timeout: 20000 })
   await expect(page.getByTestId("stats")).toContainText("Patient-days scored")
   await expect(page.getByTestId("caseload").locator("tbody tr")).toHaveCount((await json<{ items: unknown[] }>("/patients")).items.length)

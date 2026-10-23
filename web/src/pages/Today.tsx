@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { AlertCard, isOpen } from "@/components/AlertCard"
 import EvidenceCard from "@/components/EvidenceCard"
 import ReviewList from "@/components/ReviewList"
@@ -25,13 +25,17 @@ const CLAIMS = [
 ]
 
 export default function Today() {
-  const r = useReview()
+  const [sp, setSp] = useSearchParams()
+  const chosen = sp.get("day") ?? undefined
+  const r = useReview(chosen)
   const s = useSummary()
   const a = useAlertList(50)
   const p = usePatients()
   const ev = useEvidence(r.data?.day ?? undefined)
   const evUrgent = useEvidence()
-  const open = (a.data?.items ?? []).filter(isOpen)
+  const open = (a.data?.items ?? []).filter(isOpen).filter((x) => !chosen || x.alert_id.split("|")[1] === chosen)
+  const silent = (r.data?.items ?? []).filter((i) => i.why.some((w) => w.startsWith("data check:"))).length
+  const outage = silent >= 2 && silent * 2 >= (r.data?.items.length ?? 0)
   const sum = s.data
   const cutoff = r.data?.items.filter((i) => i.reason !== "fairness").reduce((m, i) => Math.min(m, i.priority), Infinity)
   return (
@@ -39,6 +43,10 @@ export default function Today() {
       <div>
         <h1 className="text-2xl font-semibold">Morning briefing</h1>
         <p className="max-w-3xl text-sm text-muted-foreground">Who the clinical team should look at today, and why. The Review Coordinator picks {r.data?.k ?? 4} people a day from every Patient Monitor's request; red-flag readings never wait for this list.</p>
+        {(r.data?.days.length ?? 0) > 1 && (
+          <label className="mt-2 inline-flex items-center gap-2 text-sm font-medium">Day
+            <select className="num rounded-md border bg-card px-2 py-1" value={r.data?.day ?? ""} onChange={(e) => setSp({ day: e.target.value })} data-testid="briefing-day">
+              {r.data!.days.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>)}
       </div>
       <section aria-label="What is new" className="grid gap-3 md:grid-cols-3" data-testid="claims">
         {CLAIMS.map((c) => (
@@ -51,6 +59,9 @@ export default function Today() {
         <Stat label="Reviews assigned" value={sum?.reviews ?? "–"} sub={sum ? `${sum.reviews_confirmed} found a confirmed event` : undefined} />
         <Stat label="Evidence cards" value={sum ? Object.values((sum as unknown as { evidence_cards?: Record<string, number> }).evidence_cards ?? {}).reduce((x, y) => x + y, 0) : "–"} sub="cited explanations" />
       </section>
+      {outage && (
+        <p role="status" className="rounded-lg border border-monitor-line bg-monitor-bg px-3 py-2 text-sm text-monitor-fg" data-testid="outage-banner">
+          <b>Probable device outage:</b> {silent} of {r.data?.items.length} people on today's list have silent sensors where they are usually active. Read these cards as a data problem first, not a change in the person.</p>)}
       {open.length > 0 && (
         <section aria-label="Urgent alerts" className="flex flex-col gap-2" data-testid="urgent-pinned">
           <h2 className="text-lg font-semibold">Urgent, outside the budget</h2>

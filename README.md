@@ -19,7 +19,8 @@ Four cooperating agents run as separate processes and talk only through a messag
 | Agitation detection (activity sensors) | PR-AUC 0.27 (0.20–0.35), ROC 0.96; 88 of 135 episodes at 1 alert / patient-week | chance 0.016 |
 | BP / pulse review priority (personal Bayesian rate) | PR-AUC 0.62 (0.43–0.72) | chance 0.28; significantly above the study's own threshold rule (+0.050) |
 | Review Coordinator, 4 reviews / day | 0.45 confirmed events per review (follows up 61% of agitation episodes) | random 0.25; a plain BP-limit rule gets 0.47 but follows up 8% of agitation |
-| URGENT alert, reading → queued | 0.26 s median | killing an agent: 0 lost, 0 extra alerts |
+| Evidence agent (cited explanations) | retrieval hit@3 1.00 on 31 hand-built cases, 6/6 correct abstentions; validated Gemini text 26/31, of which 22 fully supported, 4 partly, 0 unsupported | naive retrieval hit@3 0.55; small, single annotator |
+| URGENT alert, reading → queued | 0.29 s median | killing an agent: 0 lost, 0 extra alerts |
 
 **Label audit.** 88% of days with BP ≥ 160/100 carry a BP label. The labels are confirmed threshold alerts, so ECHOS does not claim same-day vitals "detection" or forecasting of new episodes.
 

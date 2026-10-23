@@ -1,4 +1,4 @@
-// Screenshots of every page, light + dark, desktop + phone. Starts NOTHING: scripts/start.sh must be running (play the replay first).
+// Screenshots of every page (Morning briefing, Decision trace, Test it yourself x3, Review board, Patient, Alerts, Under the hood, How it works, Demo tools), light + dark, desktop + phone. Starts NOTHING: scripts/start.sh must be running (play the replay first).
 // Usage: node scripts/ui_screenshots.mjs [baseUrl]   -> web/screenshots/*.png
 import { createRequire } from "node:module"
 import { mkdirSync } from "node:fs"
@@ -12,14 +12,38 @@ const OUT = fileURLToPath(new URL("../web/screenshots/", import.meta.url))
 mkdirSync(OUT, { recursive: true })
 
 const patients = (await (await fetch(`${API}/patients`)).json()).items
-const pid = patients.find((p) => p.last_alert_type)?.patient_id ?? patients[0]?.patient_id
+const pid0 = patients.find((p) => p.last_alert_type)?.patient_id ?? patients[0]?.patient_id
+// An informative day for the briefing and the trace: many evidence cards written by Gemini, personal-baseline or urgent reasons, and no cohort-wide sensor outage.
+const reviewDays = (await (await fetch(`${API}/v2/review`)).json()).days
+let best = { score: -1, day: reviewDays[0], pid: pid0 }
+for (const d of reviewDays) {
+  const r = await (await fetch(`${API}/v2/review?day=${d}`)).json()
+  const cards = await (await fetch(`${API}/v2/evidence?day=${d}`)).json()
+  const silent = r.items.filter((i) => i.why.some((w) => w.startsWith("data check:"))).length
+  if (silent * 2 >= r.items.length && silent >= 2) continue
+  const good = r.items.filter((i) => i.why.some((w) => /URGENT|vs usual|agitation risk/.test(w)))
+  const gem = cards.filter((c) => c.source === "gemini" && c.kind === "review").length
+  const score = gem + 2 * good.length
+  if (score > best.score) best = { score, day: d, pid: (good[0] ?? r.items[0])?.patient_id ?? pid0 }
+}
+console.log(`briefing / trace day: ${best.day}, person ${best.pid}`)
+const pid = best.pid
 // [name, path, action(page)]
+const pickFour = async (p) => {                                   // You vs ECHOS: pick four people and reveal what happened
+  const boxes = p.getByTestId("game-table").getByRole("checkbox")
+  for (let i = 0; i < 4; i++) await boxes.nth(i).check()
+  await p.getByTestId("reveal").click()
+}
 const pages = [
-  ["today", "/"],
+  ["briefing", `/?day=${best.day}`],
+  ["decision-trace", `/trace/${best.pid}/${best.day}`],
+  ["test-audit", "/test?tab=audit"],
+  ["test-game", "/test?tab=game", pickFour],
+  ["test-budget", "/test?tab=budget"],
   ["review-board", "/review"],
   ["patient", `/patients/${pid}`],
   ["alerts", "/alerts"],
-  ["agents", "/agents"],
+  ["under-the-hood", "/agents"],
   ["how-it-works", "/how"],
   ["demo-tools", "/", async (p) => p.getByTestId("demo-tools-button").click()],
 ]

@@ -1,0 +1,679 @@
+{
+ "description": "Hand-built evaluation cases for the Evidence agent. Reasons use the exact wording the Patient Monitor writes; numbers are varied. A retrieved passage counts as relevant when it comes from a gold document AND contains at least one key phrase (case-insensitive). expect_source=false means no indexed guideline supports the reason, so the right behaviour is to say so.",
+ "annotator": "Claude (Sonnet 5.5), drafted from the guideline text and the reason types the system emits; to be spot-checked by the project team",
+ "cases": [
+  {
+   "id": "c01",
+   "category": "urgent_bp_high",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: systolic 192 at or above 180 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "severe hypertension",
+    "180/120",
+    "same-day",
+    "specialist review",
+    "target organ damage"
+   ]
+  },
+  {
+   "id": "c02",
+   "category": "urgent_bp_high",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: diastolic 152 at or above 120 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "severe hypertension",
+    "180/120",
+    "same-day",
+    "specialist review",
+    "target organ damage"
+   ]
+  },
+  {
+   "id": "c03",
+   "category": "urgent_bp_high",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: systolic 187 at or above 180 mmHg",
+    "URGENT: diastolic 124 at or above 120 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "severe hypertension",
+    "180/120",
+    "same-day",
+    "specialist review",
+    "target organ damage"
+   ]
+  },
+  {
+   "id": "c04",
+   "category": "urgent_bp_high",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: diastolic 131 at or above 120 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "severe hypertension",
+    "180/120",
+    "same-day",
+    "specialist review",
+    "target organ damage"
+   ]
+  },
+  {
+   "id": "c05",
+   "category": "urgent_systolic_low",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: systolic 87 at or below 90 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "systolic",
+    "red score",
+    "single parameter",
+    "urgent response",
+    "clinical response"
+   ]
+  },
+  {
+   "id": "c06",
+   "category": "urgent_systolic_low",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: systolic 81 at or below 90 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "systolic",
+    "red score",
+    "single parameter",
+    "urgent response",
+    "clinical response"
+   ]
+  },
+  {
+   "id": "c07",
+   "category": "urgent_systolic_low",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: systolic 76 at or below 90 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "systolic",
+    "red score",
+    "single parameter",
+    "urgent response",
+    "clinical response"
+   ]
+  },
+  {
+   "id": "c08",
+   "category": "urgent_systolic_low",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: systolic 89 at or below 90 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "systolic",
+    "red score",
+    "single parameter",
+    "urgent response",
+    "clinical response"
+   ]
+  },
+  {
+   "id": "c09",
+   "category": "urgent_pulse",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: pulse 38 outside 41-130 bpm"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "pulse rate",
+    "heart rate",
+    "bradycardia",
+    "tachycardia",
+    "red score",
+    "single red"
+   ]
+  },
+  {
+   "id": "c10",
+   "category": "urgent_pulse",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: pulse 136 outside 41-130 bpm"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "pulse rate",
+    "heart rate",
+    "bradycardia",
+    "tachycardia",
+    "red score",
+    "single red"
+   ]
+  },
+  {
+   "id": "c11",
+   "category": "urgent_pulse",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: pulse 34 outside 41-130 bpm"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "pulse rate",
+    "heart rate",
+    "bradycardia",
+    "tachycardia",
+    "red score",
+    "single red"
+   ]
+  },
+  {
+   "id": "c12",
+   "category": "urgent_temperature",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: temperature 39.4 C outside 35.0-39.1 C"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "temperature",
+    "pyrexia",
+    "hypothermia"
+   ]
+  },
+  {
+   "id": "c13",
+   "category": "urgent_temperature",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: temperature 34.8 C outside 35.0-39.1 C"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "temperature",
+    "pyrexia",
+    "hypothermia"
+   ]
+  },
+  {
+   "id": "c14",
+   "category": "urgent_temperature",
+   "kind": "urgent",
+   "reasons": [
+    "URGENT: temperature 39.6 C outside 35.0-39.1 C"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "temperature",
+    "pyrexia",
+    "hypothermia"
+   ]
+  },
+  {
+   "id": "c15",
+   "category": "attention_bp",
+   "kind": "review",
+   "reasons": [
+    "outside TIHM check limits: diastolic 152 outside 50-110 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136",
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "blood pressure",
+    "hypertension",
+    "diastolic",
+    "systolic"
+   ]
+  },
+  {
+   "id": "c16",
+   "category": "attention_bp",
+   "kind": "review",
+   "reasons": [
+    "outside TIHM check limits: systolic 196 outside 80-190 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136",
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "blood pressure",
+    "hypertension",
+    "diastolic",
+    "systolic"
+   ]
+  },
+  {
+   "id": "c17",
+   "category": "attention_bp",
+   "kind": "review",
+   "reasons": [
+    "outside TIHM check limits: diastolic 46 outside 50-110 mmHg"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136",
+    "RCP-NEWS2"
+   ],
+   "key_phrases": [
+    "blood pressure",
+    "hypertension",
+    "diastolic",
+    "systolic"
+   ]
+  },
+  {
+   "id": "c18",
+   "category": "attention_pulse",
+   "kind": "review",
+   "reasons": [
+    "outside TIHM check limits: pulse 120 outside 55-100 bpm"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2",
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "pulse",
+    "heart rate"
+   ]
+  },
+  {
+   "id": "c19",
+   "category": "attention_pulse",
+   "kind": "review",
+   "reasons": [
+    "outside TIHM check limits: pulse 48 outside 55-100 bpm"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2",
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "pulse",
+    "heart rate"
+   ]
+  },
+  {
+   "id": "c20",
+   "category": "attention_pulse",
+   "kind": "review",
+   "reasons": [
+    "pulse 120 vs usual 72 (+5.0 SD)",
+    "outside TIHM check limits: pulse 120 outside 55-100 bpm"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "RCP-NEWS2",
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "pulse",
+    "heart rate"
+   ]
+  },
+  {
+   "id": "c21",
+   "category": "personal_deviation",
+   "kind": "review",
+   "reasons": [
+    "systolic 168 vs usual 134 (+2.1 SD)"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "home blood pressure",
+    "ambulatory",
+    "measurement",
+    "blood pressure monitoring",
+    "variab"
+   ]
+  },
+  {
+   "id": "c22",
+   "category": "personal_deviation",
+   "kind": "review",
+   "reasons": [
+    "diastolic 152 vs usual 92 (+5.7 SD)"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "home blood pressure",
+    "ambulatory",
+    "measurement",
+    "blood pressure monitoring",
+    "variab"
+   ]
+  },
+  {
+   "id": "c23",
+   "category": "personal_deviation",
+   "kind": "review",
+   "reasons": [
+    "systolic 127 vs usual 157 (-2.2 SD)"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "home blood pressure",
+    "ambulatory",
+    "measurement",
+    "blood pressure monitoring",
+    "variab"
+   ]
+  },
+  {
+   "id": "c24",
+   "category": "personal_deviation",
+   "kind": "review",
+   "reasons": [
+    "pulse 72 vs usual 104 (-2.1 SD)"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG136"
+   ],
+   "key_phrases": [
+    "home blood pressure",
+    "ambulatory",
+    "measurement",
+    "blood pressure monitoring",
+    "variab"
+   ]
+  },
+  {
+   "id": "c25",
+   "category": "agitation",
+   "kind": "review",
+   "reasons": [
+    "agitation risk 24% in the afternoon window: fridge door 62 (usual-adjusted z +4.4), short gaps 273 (usual-adjusted z +3.8), kitchen 73 (usual-adjusted z +2.9)"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG97",
+    "NICE-CG103"
+   ],
+   "key_phrases": [
+    "agitation",
+    "distress",
+    "aggress",
+    "non-pharmacological",
+    "behaviour that challenges",
+    "delirium",
+    "pain"
+   ]
+  },
+  {
+   "id": "c26",
+   "category": "agitation",
+   "kind": "review",
+   "reasons": [
+    "agitation risk 17% in the morning window: hallway 36 (usual-adjusted z +1.5), back door 23 (usual-adjusted z +1.5)"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG97",
+    "NICE-CG103"
+   ],
+   "key_phrases": [
+    "agitation",
+    "distress",
+    "aggress",
+    "non-pharmacological",
+    "behaviour that challenges",
+    "delirium",
+    "pain"
+   ]
+  },
+  {
+   "id": "c27",
+   "category": "agitation",
+   "kind": "review",
+   "reasons": [
+    "agitation risk 51% in the morning window: short gaps 137 (usual-adjusted z +4.8), hallway 51 (usual-adjusted z +4.2), transitions 161 (usual-adjusted z +3.0)"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG97",
+    "NICE-CG103"
+   ],
+   "key_phrases": [
+    "agitation",
+    "distress",
+    "aggress",
+    "non-pharmacological",
+    "behaviour that challenges",
+    "delirium",
+    "pain"
+   ]
+  },
+  {
+   "id": "c28",
+   "category": "agitation",
+   "kind": "review",
+   "reasons": [
+    "agitation risk 13% in the night window: bedroom 34 (usual-adjusted z +1.9), max gap min 209 (usual-adjusted z +1.1)"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG97",
+    "NICE-CG103"
+   ],
+   "key_phrases": [
+    "agitation",
+    "distress",
+    "aggress",
+    "non-pharmacological",
+    "behaviour that challenges",
+    "delirium",
+    "pain"
+   ]
+  },
+  {
+   "id": "c29",
+   "category": "agitation",
+   "kind": "review",
+   "reasons": [
+    "agitation risk 6% in the afternoon window"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG97",
+    "NICE-CG103"
+   ],
+   "key_phrases": [
+    "agitation",
+    "distress",
+    "aggress",
+    "non-pharmacological",
+    "behaviour that challenges",
+    "delirium",
+    "pain"
+   ]
+  },
+  {
+   "id": "c30",
+   "category": "agitation",
+   "kind": "review",
+   "reasons": [
+    "agitation risk 28% in the afternoon window: lounge 92 (usual-adjusted z +4.2), short gaps 186 (usual-adjusted z +2.1)"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG97",
+    "NICE-CG103"
+   ],
+   "key_phrases": [
+    "agitation",
+    "distress",
+    "aggress",
+    "non-pharmacological",
+    "behaviour that challenges",
+    "delirium",
+    "pain"
+   ]
+  },
+  {
+   "id": "c31",
+   "category": "agitation",
+   "kind": "review",
+   "reasons": [
+    "systolic 168 vs usual 134 (+2.1 SD)",
+    "agitation risk 22% in the morning window: bathroom 6 (usual-adjusted z +2.7), doors 22 (usual-adjusted z +2.6)"
+   ],
+   "expect_source": true,
+   "gold_docs": [
+    "NICE-NG97",
+    "NICE-CG103"
+   ],
+   "key_phrases": [
+    "agitation",
+    "distress",
+    "aggress",
+    "non-pharmacological",
+    "behaviour that challenges",
+    "delirium",
+    "pain"
+   ]
+  },
+  {
+   "id": "c32",
+   "category": "event_rate_only",
+   "kind": "review",
+   "reasons": [
+    "1 confirmed BP/pulse event day(s) in 1 days: personal rate 36% (95% CI 3%-82%)"
+   ],
+   "expect_source": false,
+   "gold_docs": [],
+   "key_phrases": []
+  },
+  {
+   "id": "c33",
+   "category": "event_rate_only",
+   "kind": "review",
+   "reasons": [
+    "17 confirmed BP/pulse event day(s) in 26 days: personal rate 62% (95% CI 44%-78%)"
+   ],
+   "expect_source": false,
+   "gold_docs": [],
+   "key_phrases": []
+  },
+  {
+   "id": "c34",
+   "category": "event_rate_only",
+   "kind": "review",
+   "reasons": [
+    "3 confirmed BP/pulse event day(s) in 14 days: personal rate 24% (95% CI 10%-43%)"
+   ],
+   "expect_source": false,
+   "gold_docs": [],
+   "key_phrases": []
+  },
+  {
+   "id": "c35",
+   "category": "event_rate_only",
+   "kind": "review",
+   "reasons": [
+    "5 confirmed BP/pulse event day(s) in 9 days: personal rate 51% (95% CI 25%-77%)"
+   ],
+   "expect_source": false,
+   "gold_docs": [],
+   "key_phrases": []
+  },
+  {
+   "id": "c36",
+   "category": "data_check_only",
+   "kind": "review",
+   "reasons": [
+    "data check: no BP / pulse reading for 8 days; check the sensors / devices before reading this as a change in the person"
+   ],
+   "expect_source": false,
+   "gold_docs": [],
+   "key_phrases": []
+  },
+  {
+   "id": "c37",
+   "category": "data_check_only",
+   "kind": "review",
+   "reasons": [
+    "data check: no sensor events in the morning window, usual about 64; no sensor events in the afternoon window, usual about 41; check the sensors / devices before reading this as a change in the person"
+   ],
+   "expect_source": false,
+   "gold_docs": [],
+   "key_phrases": []
+  }
+ ],
+ "revisions": [
+  "After the first run (reports/metrics/v2_evidence_first_run.json) the key phrases for urgent_pulse were widened to accept NEWS2's 'single red score' passages, which are what applies to an extreme pulse, and attention_bp now also accepts NEWS2 passages on diastolic / severe hypertension. The first run is kept so the change is visible; these two categories were therefore revised after seeing results."
+ ]
+}

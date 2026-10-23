@@ -33,7 +33,7 @@ An audit of the labels shows that TIHM's blood-pressure labels largely follow a 
 | Vitals priority (personal Bayesian rate) | PR-AUC 0.62, significantly better than the study's own threshold rule (+0.050, CI 0.016–0.077) | 0.28 |
 | Review Coordinator (4 reviews/day) | 0.45 confirmed events per review | 0.25 for random selection |
 
-With real processes, urgent alerts are queued 0.26 s (median) after a red-flag reading. Killing an agent mid-run loses no alerts and leaves the review decisions unchanged.
+With real processes, urgent alerts are queued 0.29 s (median) after a red-flag reading. Killing an agent mid-run loses no alerts and leaves the review decisions unchanged.
 
 ---
 
@@ -282,8 +282,8 @@ with $\bar v = 0.30$ and $\bar a = 0.036$ from out-of-fold scores. Patients unse
 | Patient-days scored | 222 |
 | Days allocated | 28 (112 reviews) |
 | Messages left unconsumed | 0 |
-| URGENT latency, reading → alert queued | median 0.26 s, max 0.41 s |
-| URGENT latency, reading → dry-run email sent | median 0.26 s |
+| URGENT latency, reading → alert queued | median 0.29 s, max 0.43 s |
+| URGENT latency, reading → dry-run email sent | median 0.29 s |
 | Patient Monitor killed (SIGKILL) half-way | detected and restarted after 12 s |
 | Kill run vs uninterrupted run | 0 lost alerts, 0 extra alerts, identical review picks and statuses |
 

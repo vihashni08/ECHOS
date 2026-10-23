@@ -40,7 +40,7 @@ Method, equations, results and limitations: docs/METHOD.md (the source of truth 
   smtplib.SMTP); real mail only with scripts/start.sh --real --yes.
 
 ## Evaluation (scripts/evaluation/, all write reports/metrics/v2_*.json; patient-level rows go to git-ignored data/v2/)
-- label_audit.py, vitals_eval.py, agitation_eval.py, allocation_eval.py (uses the OOF scores; includes the plain BP-limit rules, which match ECHOS on events per review: 0.471 vs 0.452), team_e2e.py (real processes + SIGKILL kill test), demo_data.py (audit grid, budget curves, You-vs-ECHOS days; run after the evals).
+- label_audit.py, vitals_eval.py, agitation_eval.py, allocation_eval.py (uses the OOF scores; includes the plain BP-limit rules, which match ECHOS on events per review: 0.471 vs 0.452), team_e2e.py (real processes + SIGKILL kill test), demo_data.py (audit grid, budget curves, You-vs-ECHOS days; run after the evals), evidence_eval.py (gold set evidence_gold.json, hand labels evidence_labels.json; calls Gemini once, answers cached), quality_eval.py (sensor-silence firing rates).
 - scripts/train_v2.py -> models/v2 (per-fold + 'all' models, base rates). scripts/rebuild_models.sh runs everything in order.
 - Protocol: 5-fold GroupKFold BY PATIENT (echos/data/splits.py), everything fitted on training patients only, 1 alert / patient-week budget, PR-AUC primary,
   1000 patient-level bootstrap CIs, paired bootstrap for differences ("better" only if the whole CI > 0).

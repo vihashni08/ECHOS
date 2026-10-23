@@ -4,10 +4,10 @@
     "days_scored": 222,
     "alerts": 21,
     "urgent_latency_s": {
-      "event_to_queued_median": 0.23497700691223145,
-      "event_to_queued_max": 0.4143848419189453,
-      "event_to_sent_median": 0.23853611946105957,
-      "event_to_sent_max": 0.41977715492248535
+      "event_to_queued_median": 0.2880971431732178,
+      "event_to_queued_max": 0.4344329833984375,
+      "event_to_sent_median": 0.29462122917175293,
+      "event_to_sent_max": 0.4395020008087158
     },
     "reviews": 112,
     "days_allocated": 28,
@@ -29,21 +29,21 @@
     },
     "unconsumed_messages": 0,
     "injected_reading": {
-      "event_id": 122,
+      "event_id": 121,
       "day": "2019-05-27",
       "ts": "2019-05-27T18:00:00"
     },
-    "wall_s": 30.6
+    "wall_s": 30.9
   },
   "kill_run": {
     "events": 470,
     "days_scored": 222,
     "alerts": 21,
     "urgent_latency_s": {
-      "event_to_queued_median": 0.31348705291748047,
-      "event_to_queued_max": 13.222403049468994,
-      "event_to_sent_median": 0.3186299800872803,
-      "event_to_sent_max": 13.225697994232178
+      "event_to_queued_median": 0.32498788833618164,
+      "event_to_queued_max": 10.82712697982788,
+      "event_to_sent_median": 0.3300809860229492,
+      "event_to_sent_max": 10.830573081970215
     },
     "reviews": 112,
     "days_allocated": 28,
@@ -72,10 +72,10 @@
     "wall_s": 33.2,
     "kill": {
       "agent": "patient_monitor",
-      "at_event": 236,
+      "at_event": 239,
       "detected_and_restarted": true,
-      "restart_s": 12.2,
-      "new_pid": 36473,
+      "restart_s": 11.9,
+      "new_pid": 38388,
       "reason": "missed_heartbeats"
     }
   },

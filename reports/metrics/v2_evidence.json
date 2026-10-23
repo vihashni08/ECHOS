@@ -1,0 +1,156 @@
+{
+  "gold_cases": 37,
+  "documents_indexed": [
+    "NICE-CG103",
+    "NICE-NG136",
+    "NICE-NG97",
+    "RCP-NEWS2"
+  ],
+  "retrieval": {
+    "routed": {
+      "n": 31,
+      "hit_at_1": 0.5483870967741935,
+      "hit_at_3": 1.0,
+      "mrr": 0.7526881720430109
+    },
+    "naive": {
+      "n": 31,
+      "hit_at_1": 0.45161290322580644,
+      "hit_at_3": 0.5483870967741935,
+      "mrr": 0.4946236559139785
+    },
+    "by_category": {
+      "urgent_bp_high": {
+        "n": 4,
+        "hit_at_3": 1.0
+      },
+      "urgent_systolic_low": {
+        "n": 4,
+        "hit_at_3": 1.0
+      },
+      "urgent_pulse": {
+        "n": 3,
+        "hit_at_3": 1.0
+      },
+      "urgent_temperature": {
+        "n": 3,
+        "hit_at_3": 1.0
+      },
+      "attention_bp": {
+        "n": 3,
+        "hit_at_3": 1.0
+      },
+      "attention_pulse": {
+        "n": 3,
+        "hit_at_3": 1.0
+      },
+      "personal_deviation": {
+        "n": 4,
+        "hit_at_3": 1.0
+      },
+      "agitation": {
+        "n": 7,
+        "hit_at_3": 1.0
+      }
+    },
+    "abstain_cases": 6,
+    "correct_abstentions": 6,
+    "false_sources": []
+  },
+  "annotator": "Claude (Sonnet 5.5), drafted from the guideline text and the reason types the system emits; to be spot-checked by the project team",
+  "first_run_retrieval": {
+    "routed": {
+      "n": 31,
+      "hit_at_1": 0.45161290322580644,
+      "hit_at_3": 0.8064516129032258,
+      "mrr": 0.6075268817204301
+    },
+    "naive": {
+      "n": 31,
+      "hit_at_1": 0.3225806451612903,
+      "hit_at_3": 0.41935483870967744,
+      "mrr": 0.3655913978494624
+    },
+    "correct_abstentions": 1,
+    "abstain_cases": 6,
+    "note": "before the routing fix (event-rate and data-check reasons no longer retrieve) and before two gold categories were widened; see gold 'revisions'"
+  },
+  "gold_revisions": [
+    "After the first run (reports/metrics/v2_evidence_first_run.json) the key phrases for urgent_pulse were widened to accept NEWS2's 'single red score' passages, which are what applies to an extreme pulse, and attention_bp now also accepts NEWS2 passages on diastolic / severe hypertension. The first run is kept so the change is visible; these two categories were therefore revised after seeing results."
+  ],
+  "first_run_generation": {
+    "note": "generation results of the FIRST run, with the original prompt (the model often put [FACTS] / [reasons] in brackets as if they were passages, which the validator rejects)",
+    "generation": {
+      "cases": 31,
+      "llm_calls_made": 59,
+      "model": "gemini-3.5-flash-lite",
+      "g0_no_retrieval": {
+        "accepted_by_validator": 0.6774193548387096,
+        "with_untraceable_numbers": 0.0,
+        "with_banned_wording": 0.25806451612903225
+      },
+      "g1_with_retrieval_raw": {
+        "accepted_by_validator": 0.6774193548387096,
+        "rejected": 10,
+        "reject_reasons": {
+          "json": 0,
+          "citations": 10,
+          "numbers": 0,
+          "wording": 0,
+          "length": 0,
+          "llm": 0
+        }
+      },
+      "g2_shipped": {
+        "gemini_text_shown": 0.6774193548387096,
+        "template_fallback": 0.32258064516129037
+      }
+    },
+    "later_runs": [
+      {
+        "change": "prompt: brackets only around passage ids",
+        "g1_accepted": 0.903,
+        "g0_no_retrieval_with_banned_wording": 0.258
+      },
+      {
+        "change": "rule note added to the facts (what produced the reason); this is the final system",
+        "g1_accepted": 0.839,
+        "g0_no_retrieval_with_banned_wording": 0.097
+      }
+    ],
+    "caution": "31 cases and a stochastic model: acceptance and wording rates move by several points between runs, so treat them as indicative"
+  },
+  "generation": {
+    "cases": 31,
+    "llm_calls_made": 0,
+    "model": "gemini-3.5-flash-lite",
+    "g0_no_retrieval": {
+      "accepted_by_validator": 0.5483870967741935,
+      "with_untraceable_numbers": 0.0,
+      "with_banned_wording": 0.0967741935483871
+    },
+    "g1_with_retrieval_raw": {
+      "accepted_by_validator": 0.8387096774193549,
+      "rejected": 5,
+      "reject_reasons": {
+        "json": 0,
+        "citations": 5,
+        "numbers": 0,
+        "wording": 0,
+        "length": 0,
+        "llm": 0
+      }
+    },
+    "g2_shipped": {
+      "gemini_text_shown": 0.8387096774193549,
+      "template_fallback": 0.16129032258064513
+    }
+  },
+  "faithfulness": {
+    "labelled_gemini_texts": 26,
+    "supported": 0.8461538461538461,
+    "partly_supported": 0.15384615384615385,
+    "unsupported": 0.0,
+    "annotator": "Claude (Sonnet 5.5), reading each generated text against its cited passages; strict rubric: supported = every statement is in the facts, the rule note or the cited passage; partly = a statement is softened, loosely supported, misleading in emphasis or cites a passage for no claim; unsupported = a statement is in none of them. To be spot-checked by the project team."
+  }
+}

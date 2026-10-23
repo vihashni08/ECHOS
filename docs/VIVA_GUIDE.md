@@ -20,7 +20,7 @@ Headline results (out-of-fold, split by patient, patient-bootstrap 95% CIs):
 | Agitation detector | PR-AUC 0.270 (0.196–0.354); 88 of 135 episodes caught at 1 alert per patient-week | chance 0.016 |
 | Vitals review priority | PR-AUC 0.619 (0.433–0.718) | chance 0.283; beats the study's own threshold rule by +0.050 (0.016–0.077) |
 | Review Coordinator (K = 4) | 0.452 confirmed events per review | random 0.250 |
-| URGENT alert latency | 0.26 s median, reading → queued | kill an agent: 0 lost, 0 extra alerts |
+| URGENT alert latency | 0.29 s median, reading → queued | kill an agent: 0 lost, 0 extra alerts |
 
 ---
 
@@ -257,7 +257,8 @@ Check in code: `urgent_flags` uses inclusive limits (`<=`, `>=`). Read it agains
 - **Generation (`explain.py`, `llm.py`):** Gemini receives only the structured reasons and the retrieved passages (no patient id) and must cite passage ids and add no numbers of its own.
 - **Validator (`validator.py`, no LLM):** JSON shape, every citation was actually retrieved, every number appears in the facts or a cited passage, no diagnosis / medication wording, length. Fail: a fixed template card.
 - **Safety:** Care requests evidence only after the alert is queued; URGENT cards are processed first; answers are cached in `data/knowledge/llm_cache.sqlite`; tests never call Gemini (`ECHOS_EVIDENCE_LLM=off`).
-- **Honest limits:** the validator proves traceability to the inputs, not that the guideline is the right one for the person; retrieval quality was checked on hand examples, there is **no gold-set evaluation yet** (planned: ~30 reason-to-passage pairs, report hit rate and faithfulness); the "Gemini, checked" note quality is modest and sometimes only loosely relevant.
+- **Evaluation (`v2_evidence.json`, 37 hand-built cases, annotator Claude, not yet spot-checked by you):** retrieval hit@3 1.00 (hit@1 0.55) against 0.55 for naive retrieval, 6 of 6 correct abstentions; Gemini + retrieval accepted by the validator on 26 of 31; of those 26, 22 supported, 4 partly, 0 unsupported; Gemini without retrieval used diagnosis / treatment wording in 3 of 31. **Be ready to say:** the first run was worse (hit@3 0.81, 1 of 6 abstentions, 68% accepted) and I fixed the routing, the prompt and the facts, and widened two gold categories after seeing results; n is small; the model is stochastic; and this checks traceability, not clinical correctness.
+- **Honest limits:** the validator proves traceability to the inputs, not that the guideline is the right one for the person (one demo card cites the dementia guideline next to a sensor-check sentence that actually comes from the facts); only four guidelines are indexed; the top retrieved passage is right 55% of the time.
 
 **New screens:** Morning briefing (three claims, urgent pinned, review cards with evidence and the cutoff), Decision trace (8 steps + memory card; "models trained per patient: 0"), Test it yourself (audit wall, You vs ECHOS on 10 evenly spread days, budget sliders), Under the hood (4 agents, crash diff, risks), Presenter mode.
 
@@ -317,8 +318,8 @@ K = 4: ECHOS 0.452 vs random 0.250 (1.8×). K = 2: 0.457 (0.495 with fairness) v
 | Patient-days scored / days allocated / reviews | 222 / 28 / 112 |
 | Messages left unconsumed | 0 |
 | Alerts raised | 21 |
-| URGENT latency, reading → alert queued | median 0.256 s, max 0.405 s |
-| URGENT latency, reading → dry-run email sent | median 0.259 s, max 0.410 s |
+| URGENT latency, reading → alert queued | median 0.288 s, max 0.434 s |
+| URGENT latency, reading → dry-run email sent | median 0.295 s, max 0.440 s |
 | Whole replay wall time | 31.0 s (33.1 s with the kill) |
 | SIGKILL of Patient Monitor at event 239 | detected by missed heartbeats, restarted in **11.9 s** |
 | Kill run vs uninterrupted run | **0 lost, 0 extra alerts**; identical review picks, case statuses, days scored |

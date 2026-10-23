@@ -194,6 +194,26 @@ EM learned a near-permanent unstable state ($b\approx0.97$). The HMM therefore d
 - **A simple BP-limit rule matches or slightly beats ECHOS on total events per review** (0.471 and 0.440 vs 0.452; no CI computed). The rule follows up 8% of agitation episodes against ECHOS's 61%. ECHOS's case is balance across both conditions, not more events in total.
 - The fairness floor cuts never-reviewed patients from 22 to 8 at about 6% fewer events per review.
 
+### 5.4 Evidence agent (`scripts/evaluation/evidence_eval.py` → `v2_evidence.json`)
+37 hand-built cases (`evidence_gold.json`: the reason wording the Patient Monitor writes, numbers varied; 31 should have a guideline source, 6 should not). Index: NICE NG136, NG97, CG103 and RCP NEWS2. A passage is relevant when it comes from a gold document **and** contains a key phrase. The gold set and the faithfulness labels were written by Claude (Sonnet 5.5) and have not yet been checked by the team.
+
+| | Result |
+|---|---|
+| Retrieval, 31 cases with a source (routed by reason type) | hit@1 0.55, **hit@3 1.00**, MRR 0.75 |
+| Same, naive retrieval (raw reason text, all documents) | hit@1 0.45, hit@3 0.55, MRR 0.49 |
+| Correct abstention ("no supporting source") on 6 cases | 6 of 6 |
+| Gemini + retrieved passages, accepted by the validator | 26 of 31 (0.84); 5 rejected for citation problems and replaced by the template |
+| Gemini without retrieval, same validator | 17 of 31 accepted (0.55); 3 of 31 (0.10) used diagnosis / treatment wording; no invented numbers |
+| Faithfulness of the 26 accepted Gemini texts (hand labels, strict rubric) | 22 supported (0.85), 4 partly supported (0.15), 0 unsupported |
+
+**How it changed during evaluation (all kept in the metrics files):**
+- *First run* (`v2_evidence_first_run.json`): hit@3 0.81 and only 1 of 6 correct abstentions: personal-event-rate and data-check reasons were retrieving unrelated blood-pressure passages, which Gemini then cited. Fix: reasons no guideline covers now trigger no retrieval.
+- Two gold categories (urgent pulse, diastolic attention) were **widened after seeing the first run** because the retrieved NEWS2 "single red score" passages were in fact the right ones. Hit@3 of 1.00 is therefore on the revised gold set, not the original (0.81).
+- *Generation:* 68% accepted at first (the model wrote [FACTS] as if it were a passage); after telling it to bracket only passage ids, 90%; after adding the rule that produced the reason to the facts (so it need not infer "this is a red score"), 84%. The per-run numbers move by several points because the model is stochastic and n = 31.
+- Hand labels found that, before the rule note, urgent notes stated "this is a red score" as a bridging claim no cited passage made. The rule note fixed this.
+
+**What this does and does not show.** Retrieval is reliable for the reason types the system emits and abstains correctly, but the top passage is right only 55% of the time. Validated Gemini text is traceable to its inputs; 15% of the checked texts are only partly supported (softened recommendations, loosely relevant citations, one misleading emphasis for a reading below the person's usual). This is a small, single-annotator evaluation of traceability and relevance, not clinical correctness.
+
 ## 6. The agents at run time (`echos/team/`, `python -m echos.team.runtime`)
 
 Four agent processes (the three below plus the Evidence agent, `echos/team/evidence_agent.py`) run under a supervisor that restarts any process whose heartbeat stops. They share no memory and talk only over the SQLite message bus.
@@ -218,8 +238,8 @@ Four agent processes (the three below plus the Evidence agent, `echos/team/evide
 | Patient-days scored | 222 |
 | Days allocated | 28 (112 reviews) |
 | Messages left unconsumed | 0 |
-| URGENT latency, reading → alert queued | median 0.26 s, max 0.41 s |
-| URGENT latency, reading → dry-run email sent | median 0.26 s |
+| URGENT latency, reading → alert queued | median 0.29 s, max 0.43 s |
+| URGENT latency, reading → dry-run email sent | median 0.29 s |
 | Patient Monitor killed (SIGKILL) half-way | detected and restarted after 12 s (missed heartbeats) |
 | Kill run vs uninterrupted run | 0 lost alerts, 0 extra alerts, identical review picks and case statuses |
 

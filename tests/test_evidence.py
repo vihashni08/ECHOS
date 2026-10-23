@@ -101,3 +101,14 @@ def test_urgent_cards_come_first(tmp_path):
     ag.step()
     with eng.begin() as c:
         assert c.execute(select(S.evidence_card.c.kind)).scalars().all() == ["urgent"]
+
+
+def test_reasons_without_a_guideline_get_no_source_and_rules_are_named(retriever):
+    from echos.evidence import explain
+    rate = ["17 confirmed BP/pulse event day(s) in 26 days: personal rate 62% (95% CI 44%-78%)"]
+    check = ["data check: no BP / pulse reading for 8 days; check the sensors / devices before reading this as a change in the person"]
+    assert explain.build_queries(rate) == [] and explain.build_queries(check) == []
+    assert explain.retrieve(retriever, rate, 3, 0.08) == []                       # a personal event rate has no guideline behind it
+    assert any("NEWS2" in n for n in explain.rule_notes(["URGENT: pulse 38 outside 41-130 bpm"]))
+    assert any("NG136" in n for n in explain.rule_notes(["URGENT: systolic 192 at or above 180 mmHg"]))
+    assert explain.rule_notes(rate) == []

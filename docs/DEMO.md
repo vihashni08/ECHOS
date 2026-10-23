@@ -9,7 +9,7 @@
    ```bash
    PYTHONPATH=. .venv/bin/python scripts/evaluation/demo_data.py
    ```
-3. **Warm the cache:** run `scripts/start.sh`, open **Demo tools**, choose 20 events/s and press **Play**, and wait about 10 minutes (the Gemini free tier is rate-limited). Gemini's answers are stored in `data/knowledge/llm_cache.sqlite`, so every later run, including resets, makes no API call and works offline.
+3. **Warm the cache (again after any change to the Evidence prompt, routing or index: the cache is keyed by the exact prompt):** run `scripts/start.sh`, open **Demo tools**, choose 20 events/s and press **Play**, and wait about 10 minutes (the Gemini free tier is rate-limited). Gemini's answers are stored in `data/knowledge/llm_cache.sqlite`, so every later run, including resets, makes no API call and works offline.
 4. Keep the Mac awake (the replay pauses when it sleeps).
 
 ## Start

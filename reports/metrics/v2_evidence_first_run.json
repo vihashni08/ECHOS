@@ -1,0 +1,68 @@
+{
+  "gold_cases": 37,
+  "documents_indexed": [
+    "NICE-CG103",
+    "NICE-NG136",
+    "NICE-NG97",
+    "RCP-NEWS2"
+  ],
+  "retrieval": {
+    "routed": {
+      "n": 31,
+      "hit_at_1": 0.45161290322580644,
+      "hit_at_3": 0.8064516129032258,
+      "mrr": 0.6075268817204301
+    },
+    "naive": {
+      "n": 31,
+      "hit_at_1": 0.3225806451612903,
+      "hit_at_3": 0.41935483870967744,
+      "mrr": 0.3655913978494624
+    },
+    "by_category": {
+      "urgent_bp_high": {
+        "n": 4,
+        "hit_at_3": 1.0
+      },
+      "urgent_systolic_low": {
+        "n": 4,
+        "hit_at_3": 1.0
+      },
+      "urgent_pulse": {
+        "n": 3,
+        "hit_at_3": 0.0
+      },
+      "urgent_temperature": {
+        "n": 3,
+        "hit_at_3": 1.0
+      },
+      "attention_bp": {
+        "n": 3,
+        "hit_at_3": 0.0
+      },
+      "attention_pulse": {
+        "n": 3,
+        "hit_at_3": 1.0
+      },
+      "personal_deviation": {
+        "n": 4,
+        "hit_at_3": 1.0
+      },
+      "agitation": {
+        "n": 7,
+        "hit_at_3": 1.0
+      }
+    },
+    "abstain_cases": 6,
+    "correct_abstentions": 1,
+    "false_sources": [
+      "c32",
+      "c33",
+      "c34",
+      "c35",
+      "c37"
+    ]
+  },
+  "annotator": "Claude (Sonnet 5.5), drafted from the guideline text and the reason types the system emits; to be spot-checked by the project team",
+  "generation": "skipped: no key or --retrieval-only"
+}

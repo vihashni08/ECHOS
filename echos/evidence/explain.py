@@ -18,25 +18,24 @@ from echos.evidence.llm import LLMError
 SYSTEM = (
     "You write one short note for a clinician explaining why a person in home dementia monitoring was flagged today. "
     "Use ONLY the FACTS and the PASSAGES provided. Rules: (1) at most 3 sentences, plain English; (2) every statement taken from a passage must carry its id "
-    "in square brackets, e.g. [NICE-NG136-p12-3]; (3) do not write any number that is not in the FACTS or in a cited passage; (4) no diagnosis, no medication "
+    "in square brackets, e.g. [NICE-NG136-p12-3]; put brackets ONLY around passage ids, never around FACTS, reasons or anything else; (3) do not write any number that is not in the FACTS or in a cited passage; (4) no diagnosis, no medication "
     "or dose advice, no treatment instructions: say what the guideline says to check or consider; (5) if the passages do not support a statement, leave it out. "
     'Reply with JSON only: {"explanation": "...", "citations": ["<passage id>", ...]}.')
 
 VITAL_DOCS = {"NICE-NG136", "RCP-NEWS2"}
-# (reason pattern, query, documents allowed for this topic). Agitation text comes only from the dementia guideline: if it is not indexed there is no source.
+# (reason pattern, query, documents allowed for this topic). Agitation text comes only from the dementia and delirium guidelines: if they are not indexed there is no source.
 TOPICS = [
     (re.compile(r"systolic \d+ at or below|pulse .* outside|temperature .* outside", re.I), "early warning score clinical response red score urgent assessment pulse temperature systolic", {"RCP-NEWS2"}),
     (re.compile(r"at or above (180|120)", re.I), "severe hypertension blood pressure 180/120 same-day specialist assessment target organ damage", {"NICE-NG136"}),
     (re.compile(r"vs usual|SD\)", re.I), "blood pressure monitoring measurement variability home", {"NICE-NG136"}),
-    (re.compile(r"confirmed BP/pulse", re.I), "blood pressure monitoring review follow up", {"NICE-NG136"}),
-    (re.compile(r"agitation", re.I), "agitation distress dementia assess possible causes pain environment non-pharmacological", {"NICE-NG97"}),
+    (re.compile(r"agitation", re.I), "agitation distress dementia assess possible causes pain environment non-pharmacological delirium", {"NICE-NG97", "NICE-CG103"}),
     (re.compile(r"TIHM check limits", re.I), "blood pressure heart rate temperature thresholds assessment", VITAL_DOCS),
 ]
 
 
 def build_queries(reasons: list[str]) -> list[tuple[str, set]]:
-    out = [(topic, docs) for rx, topic, docs in TOPICS if any(rx.search(r) for r in reasons)]
-    return out or [(" ".join(reasons), VITAL_DOCS)]
+    # Reasons that no topic covers (a personal event rate, a data-quality note) have no guideline behind them: no query, so no source is cited.
+    return [(topic, docs) for rx, topic, docs in TOPICS if any(rx.search(r) for r in reasons)]
 
 
 def build_query(reasons: list[str]) -> str:
@@ -57,8 +56,23 @@ def retrieve(retriever, reasons: list[str], k: int, min_score: float) -> list[di
     return out
 
 
+RULE_NOTES = [
+    (re.compile(r"URGENT: (systolic \d+ at or below|pulse|temperature)", re.I),
+     "These limits are the NEWS2 single-parameter red-score limits (Royal College of Physicians 2017). A red score is what triggered the urgent alert."),
+    (re.compile(r"URGENT: .* at or above (180|120)", re.I),
+     "This is the NICE NG136 severe hypertension threshold (clinic blood pressure 180/120 mmHg or higher). It is what triggered the urgent alert."),
+    (re.compile(r"outside TIHM check limits", re.I),
+     "These are the TIHM study's own daily-check limits; they are an attention note, not an urgent alert."),
+]
+
+
+def rule_notes(reasons: list[str]) -> list[str]:
+    """Which rule produced a reason, in words, so the model need not infer it from the passages (a bridging claim it cannot cite)."""
+    return list(dict.fromkeys(note for rx, note in RULE_NOTES if any(rx.search(r) for r in reasons)))
+
+
 def facts_text(facts: dict) -> str:
-    return " ".join(facts.get("reasons") or []) + " " + json.dumps(facts.get("vitals") or {}, default=str)
+    return " ".join(facts.get("reasons") or []) + " " + " ".join(rule_notes(facts.get("reasons") or [])) + " " + json.dumps(facts.get("vitals") or {}, default=str)
 
 
 def _short(text: str, n: int) -> str:
@@ -75,7 +89,7 @@ def template_text(facts: dict, passages: list[dict]) -> str:
 
 
 def _user_prompt(facts: dict, passages: list[dict]) -> str:
-    return json.dumps({"FACTS": {"kind": facts.get("kind"), "reasons": facts.get("reasons"), "vitals": facts.get("vitals")},
+    return json.dumps({"FACTS": {"kind": facts.get("kind"), "reasons": facts.get("reasons"), "rule": rule_notes(facts.get("reasons") or []), "vitals": facts.get("vitals")},
                        "PASSAGES": [{"id": p["id"], "source": p["source"], "page": p["page"], "text": _short(p["text"], 110)} for p in passages]},
                       default=str, ensure_ascii=False)
 

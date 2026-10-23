@@ -1,0 +1,109 @@
+{
+ "annotator": "Claude (Sonnet 5.5), reading each generated text against its cited passages; strict rubric: supported = every statement is in the facts, the rule note or the cited passage; partly = a statement is softened, loosely supported, misleading in emphasis or cites a passage for no claim; unsupported = a statement is in none of them. To be spot-checked by the project team.",
+ "labels": {
+  "c01": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c02": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c03": {
+   "verdict": "partly",
+   "note": "softens the guideline's 'carry out investigations' to 'consider'"
+  },
+  "c04": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c05": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c06": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c07": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c08": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c09": {
+   "verdict": "supported",
+   "note": "does not name the pulse, only the red score"
+  },
+  "c10": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c11": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c12": {
+   "verdict": "supported",
+   "note": "circular (flagged because of a red score) but not wrong; does not mention the temperature"
+  },
+  "c13": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c14": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c18": {
+   "verdict": "supported",
+   "note": "tachycardia causes match the cited passage"
+  },
+  "c20": {
+   "verdict": "supported",
+   "note": "the citation is not attached to any claim"
+  },
+  "c21": {
+   "verdict": "partly",
+   "note": "cites a committee-rationale passage about targets for a statement that only loosely follows from it"
+  },
+  "c22": {
+   "verdict": "supported",
+   "note": "faithful to the passage; the ABPM advice is of doubtful relevance for a large deviation from the person's own usual"
+  },
+  "c23": {
+   "verdict": "partly",
+   "note": "faithful to the passage, but a reading BELOW the usual is answered with advice about staying below target: misleading emphasis"
+  },
+  "c25": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c26": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c27": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c28": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c29": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c30": {
+   "verdict": "supported",
+   "note": ""
+  },
+  "c31": {
+   "verdict": "partly",
+   "note": "closing sentence cites a passage for no claim (empty citation); the blood-pressure advice is faithful but of doubtful relevance"
+  }
+ }
+}

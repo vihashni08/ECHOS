@@ -1,0 +1,42 @@
+{
+  "note": "generation results of the FIRST run, with the original prompt (the model often put [FACTS] / [reasons] in brackets as if they were passages, which the validator rejects)",
+  "generation": {
+    "cases": 31,
+    "llm_calls_made": 59,
+    "model": "gemini-3.5-flash-lite",
+    "g0_no_retrieval": {
+      "accepted_by_validator": 0.6774193548387096,
+      "with_untraceable_numbers": 0.0,
+      "with_banned_wording": 0.25806451612903225
+    },
+    "g1_with_retrieval_raw": {
+      "accepted_by_validator": 0.6774193548387096,
+      "rejected": 10,
+      "reject_reasons": {
+        "json": 0,
+        "citations": 10,
+        "numbers": 0,
+        "wording": 0,
+        "length": 0,
+        "llm": 0
+      }
+    },
+    "g2_shipped": {
+      "gemini_text_shown": 0.6774193548387096,
+      "template_fallback": 0.32258064516129037
+    }
+  },
+  "later_runs": [
+    {
+      "change": "prompt: brackets only around passage ids",
+      "g1_accepted": 0.903,
+      "g0_no_retrieval_with_banned_wording": 0.258
+    },
+    {
+      "change": "rule note added to the facts (what produced the reason); this is the final system",
+      "g1_accepted": 0.839,
+      "g0_no_retrieval_with_banned_wording": 0.097
+    }
+  ],
+  "caution": "31 cases and a stochastic model: acceptance and wording rates move by several points between runs, so treat them as indicative"
+}
