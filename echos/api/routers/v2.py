@@ -3,6 +3,7 @@ learning signal) and the demo 'critical reading' injection. Like the rest of the
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -11,6 +12,7 @@ from sqlalchemy import func, select
 
 from echos.api import services as V
 from echos.api.deps import ERR, ctx_of
+from echos.config import ROOT
 from echos.orchestrator import state as S
 from echos.team import bus
 
@@ -157,5 +159,125 @@ def v2_summary(request: Request):
         reviews = dict(c.execute(select(S.review_list.c.outcome, func.count()).group_by(S.review_list.c.outcome)).fetchall())
         topics = dict(c.execute(select(S.agent_message.c.topic, func.count()).group_by(S.agent_message.c.topic)).fetchall())
         status = dict(c.execute(select(S.case_state.c.status, func.count()).group_by(S.case_state.c.status)).fetchall())
-    return {"patient_days_scored": scored, "urgent_alerts": urgent, "reviews": sum(reviews.values()),
+        cards = dict(c.execute(select(S.evidence_card.c.source, func.count()).group_by(S.evidence_card.c.source)).fetchall())
+    return {"evidence_cards": cards, "patient_days_scored": scored, "urgent_alerts": urgent, "reviews": sum(reviews.values()),
             "reviews_confirmed": reviews.get("CONFIRMED", 0), "reviews_no_event": reviews.get("NO_EVENT", 0), "messages": topics, "case_status": status}
+
+
+# ---- Evidence agent cards and the decision trace (the 'Decision Trace' screen)
+class EvidenceCard(BaseModel):
+    card_id: str
+    patient_id: str
+    day: str
+    kind: str = Field(description="'urgent' (an alert) or 'review' (an assigned review)")
+    source: str = Field(description="'gemini' (validated generated text) or 'template' (fixed wording)")
+    explanation: str
+    citations: list[str] = []
+    passages: list[dict] = Field(default=[], description="retrieved guideline passages: id, source, url, page, text, score")
+    validator: dict = {}
+    model: Optional[str] = None
+
+
+def _cards(c, day: Optional[str], pid: Optional[str]) -> list[dict]:
+    q = select(S.evidence_card).order_by(S.evidence_card.c.created_ts)
+    if day:
+        q = q.where(S.evidence_card.c.day == day)
+    if pid:
+        q = q.where(S.evidence_card.c.patient_id == pid)
+    out = []
+    for r in c.execute(q).fetchall():
+        d = json.loads(r.card)
+        out.append({"card_id": r.card_id, "patient_id": r.patient_id, "day": r.day, "kind": r.kind, "source": r.source, "explanation": d.get("explanation", ""),
+                    "citations": d.get("citations") or [], "passages": d.get("passages") or [], "validator": d.get("validator") or {}, "model": d.get("model")})
+    return out
+
+
+@router.get("/v2/evidence", response_model=list[EvidenceCard], tags=["v2"])
+def evidence(request: Request, day: Optional[str] = None, patient_id: Optional[str] = None):
+    """Evidence cards written by the Evidence agent: a short explanation citing guideline passages for each urgent alert and assigned review."""
+    ctx = ctx_of(request)
+    with ctx.eng.begin() as c:
+        return _cards(c, day, patient_id)
+
+
+@router.get("/v2/trace/{pid}/{day}", tags=["v2"])
+def decision_trace(request: Request, pid: str, day: str):
+    """Everything the agents did for one person on one day, in order: the Patient Monitor's scores, its review request, the Coordinator's decision,
+    the Care agent's task / alert, the Evidence card, and the bus messages that connected them."""
+    ctx = ctx_of(request)
+    V.require_patient(ctx, pid)
+    with ctx.eng.begin() as c:
+        res = c.execute(select(S.agent_output.c.result).where((S.agent_output.c.agent_id == "patient_monitor") & (S.agent_output.c.patient_id == pid)
+                                                              & (S.agent_output.c.day == day)).order_by(S.agent_output.c.event_id)).fetchall()
+        msgs = c.execute(select(S.agent_message).where((S.agent_message.c.patient_id == pid) & (S.agent_message.c.day == day))
+                         .order_by(S.agent_message.c.id)).fetchall()
+        review = c.execute(select(S.review_list).where((S.review_list.c.patient_id == pid) & (S.review_list.c.day == day))).first()
+        case = c.execute(select(S.case_state.c.status).where((S.case_state.c.patient_id == pid) & (S.case_state.c.day == day))).scalar()
+        task = c.execute(select(S.care_task).where((S.care_task.c.patient_id == pid) & (S.care_task.c.day == day))).first()
+        alerts = c.execute(select(S.alerts.c.alert_id, S.alerts.c.event_time).where((S.alerts.c.patient_id == pid) & S.alerts.c.alert_id.like(f"{pid}|{day}|%"))).fetchall()
+        cards = _cards(c, day, pid)
+        decision = c.execute(select(S.agent_message.c.payload).where((S.agent_message.c.topic == "review_decision") & (S.agent_message.c.day == day))
+                             .order_by(S.agent_message.c.id.desc())).first()
+    monitor = json.loads(res[0][0]) if res else None
+    req = next((json.loads(m.payload) for m in msgs if m.topic == "review_request"), None)
+    return {"patient_id": pid, "day": day, "status": case, "monitor": monitor, "review_request": req,
+            "review": ({k: getattr(review, k) for k in ("rank", "reason", "priority", "vitals_risk", "agitation_risk", "lift_vitals", "lift_agitation", "outcome")} if review else None),
+            "coordinator": json.loads(decision[0]) if decision else None,
+            "care_task": ({"title": task.title, "detail": task.detail, "status": task.status} if task else None),
+            "alerts": [{"alert_id": a.alert_id, "event_time": a.event_time} for a in alerts], "evidence": cards,
+            "messages": [{"id": m.id, "sender": m.sender, "recipient": m.recipient, "topic": m.topic, "status": m.status} for m in msgs]}
+
+
+@router.get("/v2/patients/{pid}/memory", tags=["v2"])
+def patient_memory(request: Request, pid: str):
+    """What one Patient Monitor remembers about its person: a summary of the saved state (a few numbers, not a trained model)."""
+    ctx = ctx_of(request)
+    V.require_patient(ctx, pid)
+    with ctx.eng.begin() as c:
+        row = c.execute(select(S.patient_agent.c.state, S.patient_agent.c.updated_ts).where(S.patient_agent.c.patient_id == pid)).first()
+    if not row:
+        return {"patient_id": pid, "known": False}
+    st = json.loads(row[0])
+    vh = st.get("vit_hist") or {}
+    sh = st.get("slot_hist") or {}
+    k, n = int(st.get("k") or 0), int(st.get("n") or 0)
+    numbers = sum(len(v) for v in vh.values()) + 2 + sum(len(w) * 16 for w in sh.values()) + len(st.get("episode_windows") or [])
+    return {"patient_id": pid, "known": True, "updated_ts": row[1], "vitals_history": {v: (vals[-28:]) for v, vals in vh.items()},
+            "events_k": k, "days_n": n, "windows_seen": int(st.get("windows_seen") or 0), "episodes": len(st.get("episode_windows") or []),
+            "slot_history_windows": {slot: len(w) for slot, w in sh.items()}, "days_scored": len(st.get("days_done") or []),
+            "pending_days": sorted((st.get("pending") or {}).keys()), "numbers_stored": numbers}
+
+
+# ---- data behind the interactive demo screens (scripts/evaluation/demo_data.py, scripts/evaluation/team_e2e.py)
+def _json_file(path: Path):
+    if not path.exists():
+        raise HTTPException(404, f"{path.name} missing: run PYTHONPATH=. python scripts/evaluation/demo_data.py")
+    return json.loads(path.read_text())
+
+
+@router.get("/v2/demo/audit", tags=["v2"])
+def demo_audit():
+    """Aggregate grid of patient-days by (systolic, diastolic) bin and how many carry a BP label: the 160/100 wall of the label audit."""
+    return _json_file(ROOT / "reports" / "metrics" / "v2_demo_audit.json")
+
+
+@router.get("/v2/demo/budget", tags=["v2"])
+def demo_budget():
+    """Events per review for every policy at K = 1..10 and several fairness floors (out-of-fold replay)."""
+    return _json_file(ROOT / "reports" / "metrics" / "v2_demo_budget.json")
+
+
+@router.get("/v2/demo/game", tags=["v2"])
+def demo_game():
+    """'You vs ECHOS': days with what a clinician could see for each (de-identified) person, what ECHOS ranked, and what TIHM later confirmed."""
+    g = _json_file(ROOT / "data" / "v2" / "game.json")
+    for d in g["days"]:
+        for p in d["patients"]:
+            p.pop("real_id", None)
+    return g
+
+
+@router.get("/v2/runtime", tags=["v2"])
+def runtime_report():
+    """The crash test: the reference run and the run with the Patient Monitor killed, side by side (reports/metrics/v2_runtime.json)."""
+    return _json_file(ROOT / "reports" / "metrics" / "v2_runtime.json")

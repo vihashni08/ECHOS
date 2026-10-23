@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAgents, useConfig, useKill } from "@/lib/queries"
 
-export const NAME: Record<string, string> = { patient_monitor: "Patient Monitor", review_coordinator: "Review Coordinator", care: "Care agent" }
+export const NAME: Record<string, string> = { patient_monitor: "Patient Monitor", review_coordinator: "Review Coordinator", care: "Care agent", evidence: "Evidence agent" }
 
 export default function AgentStrip() {
   const agents = useAgents()
@@ -19,7 +19,7 @@ export default function AgentStrip() {
       <CardHeader><CardTitle>Agents</CardTitle></CardHeader>
       <CardContent className="flex flex-col gap-3">
         {!agents.data ? <Skeleton className="h-16 w-full" /> : (
-          <ul className="grid gap-2 sm:grid-cols-3" data-testid="agent-strip">
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4" data-testid="agent-strip">
             {agents.data.map((a) => (
               <li key={a.agent} className="flex flex-col gap-1.5 rounded-lg border p-3 text-sm">
                 <div className="font-medium">{NAME[a.agent] ?? a.agent}</div>

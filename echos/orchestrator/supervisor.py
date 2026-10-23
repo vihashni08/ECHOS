@@ -17,11 +17,11 @@ from sqlalchemy import func, select
 from echos.config import ROOT, load_config
 from echos.orchestrator import state as S
 
-KINDS = {"patient_monitor": ("day", "reading"), "review_coordinator": ("day_close",), "care": ("outcome",)}   # event_log kinds each agent consumes (stall check)
+KINDS = {"patient_monitor": ("day", "reading"), "review_coordinator": ("day_close",), "care": ("outcome",), "evidence": ()}   # event_log kinds each agent consumes (stall check)
 
 
 class Supervisor:
-    def __init__(self, db, agents=("patient_monitor", "review_coordinator", "care"), hb_s=None, ck_s=None, stall_s=None,
+    def __init__(self, db, agents=("patient_monitor", "review_coordinator", "care", "evidence"), hb_s=None, ck_s=None, stall_s=None,
                  poll_s=None, missed=None, startup_grace_s=45.0, no_restart=()):
         cfg = load_config()
         self.db, self.agents = str(db) if db else None, list(agents)

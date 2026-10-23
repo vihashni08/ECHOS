@@ -27,7 +27,7 @@ def load():
     ag = pd.read_parquet(V2 / "oof_agitation.parquet")
     ag["day"] = (ag["w"] - pd.Timedelta(hours=1)).dt.normalize()   # night window ending 08:00 belongs to that morning's day
     agd = ag.groupby(["patient_id", "day"]).agg(a=("p_agitation", "max"), ep=("y", "sum")).reset_index()
-    vit = vit.rename(columns={"beta_forecast": "v"})[["patient_id", "day", "v", "event"]]
+    vit = vit.rename(columns={"beta_forecast": "v"})[["patient_id", "day", "v", "event", "sys", "dia", "hr"]]
     d = agd.merge(vit, on=["patient_id", "day"], how="outer")
     d["ep"] = d["ep"].fillna(0).astype(int)
     d["event"] = d["event"].fillna(0).astype(int)
@@ -62,6 +62,13 @@ def run(d: pd.DataFrame, policy: str, k: int, fairness: int | None = None, seed:
             pick = [c.patient_id for c in sorted(cands, key=lambda c: (-(0 if c.vitals_risk is None or np.isnan(c.vitals_risk) else c.vitals_risk), c.patient_id))[:k]]
         elif policy == "agitation_only":
             pick = [c.patient_id for c in sorted(cands, key=lambda c: (-(0 if c.agitation_risk is None or np.isnan(c.agitation_risk) else c.agitation_risk), c.patient_id))[:k]]
+        elif policy in ("tihm_limits", "bp_160_100"):
+            # the simple rules a team could follow without any model: review whoever is past the limit today (highest systolic first)
+            from echos.monitor import cohort
+            flag = (g.apply(lambda r: bool(cohort.safety_flags({"sys": r.sys, "dia": r.dia, "hr": r.hr})), axis=1) if policy == "tihm_limits"
+                    else ((g.sys >= 160) | (g.dia >= 100))).astype(int)
+            key = dict(zip(g.patient_id, flag * 1000 + g.sys.fillna(0)))
+            pick = sorted(key, key=lambda p: (-key[p], p))[:k]
         elif policy in ("echos", "prob_union"):
             pick = [c.patient_id for c, _ in AL.select(cands, k, fairness)]
         elif policy == "oracle":
@@ -93,7 +100,7 @@ def main() -> dict:
                      "agitation_episodes": int(d.ep.sum()), "vitals_events": int(d.event.sum()),
                      "definition": "agitation followed up = reviewed the same day; vitals event anticipated = reviewed 1-3 days before"},
            "by_k": {}}
-    policies = [("random", None), ("round_robin", None), ("vitals_only", None), ("agitation_only", None), ("prob_union", None), ("echos", None), ("echos", 7),
+    policies = [("random", None), ("round_robin", None), ("vitals_only", None), ("agitation_only", None), ("prob_union", None), ("tihm_limits", None), ("bp_160_100", None), ("echos", None), ("echos", 7),
                 ("oracle", None)]
     for k in (2, 4, 6):
         res = {}

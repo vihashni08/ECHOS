@@ -23,7 +23,7 @@ import pandas as pd
 from sqlalchemy import select
 
 from echos.config import load_config
-from echos.monitor import agitation as A, cohort, personal_baseline as PB, risk as R, store
+from echos.monitor import agitation as A, cohort, personal_baseline as PB, quality as Q, risk as R, store
 from echos.orchestrator import state as S
 from echos.team import bus
 from echos.team.agent_base import AgentBase
@@ -54,6 +54,7 @@ class PatientMonitor:
     days_done: list = field(default_factory=list)        # days scored (last 60)
     feedback_days: list = field(default_factory=list)    # days whose feedback was applied (last 60)
     pending: dict = field(default_factory=dict)           # day -> that day's scores + window counters, until its feedback arrives
+    last_vitals_day: str | None = None                    # last day with a BP / pulse reading (data-quality rule: stale vitals)
 
     # ------------------------------------------------------------ persistence
     def to_json(self) -> str:
@@ -110,8 +111,10 @@ class PatientMonitor:
             reasons = models.agitation.top_reasons(pd.Series(row))
             w_idx = self.windows_seen
             self.windows_seen += 1
+            silent, usual = Q.silent_window(raw["total"], [h["total"] for h in self.slot_hist.get(slot, [])[-cfg["baseline_slots"]:]], load_config()["monitor"])   # past only
             self.slot_hist[slot] = (self.slot_hist.get(slot, []) + [raw])[-cfg["baseline_slots"]:]
-            out.append({"w": w["w"], "slot": int(slot), "p": round(p, 4), "reasons": reasons, "events": int(raw["total"]), "idx": w_idx})
+            out.append({"w": w["w"], "slot": int(slot), "p": round(p, 4), "reasons": reasons, "events": int(raw["total"]), "idx": w_idx, "silent": silent,
+                        "usual": None if usual is None else round(usual, 1)})
         return out
 
     # ------------------------------------------------------------ day / feedback
@@ -122,8 +125,13 @@ class PatientMonitor:
         attention = cohort.safety_flags(readings)
         wins = self.score_windows(payload.get("windows") or [], models)
         a_max = max([w["p"] for w in wins], default=None)
-        res = {"day": day, "vitals": vit, "safety": safety, "attention": attention, "agitation": wins, "agitation_max": a_max,
-               "has_vitals": any(vit[v]["value"] is not None for v in VITALS), "n_windows": len(wins), "models": models.fold}
+        has_v = any(vit[v]["value"] is not None for v in VITALS)
+        gap = None if has_v else Q.vitals_gap_days(day, self.last_vitals_day)      # stale vitals only when today has no reading
+        quality = Q.assess_day(day, wins, gap, load_config()["monitor"])
+        if has_v:
+            self.last_vitals_day = day
+        res = {"quality": quality, "day": day, "vitals": vit, "safety": safety, "attention": attention, "agitation": wins, "agitation_max": a_max,
+               "has_vitals": has_v, "n_windows": len(wins), "models": models.fold}
         self.pending[day] = res
         self.days_done = (self.days_done + [day])[-60:]
         return res
@@ -160,6 +168,9 @@ class PatientMonitor:
         if best and best["p"] >= 0.05:
             label = {8: "night", 12: "morning", 18: "afternoon"}[best["slot"]]
             out.append(f"agitation risk {best['p']:.0%} in the {label} window" + (f": {', '.join(best['reasons'])}" if best["reasons"] else ""))
+        q = today.get("quality") or {}
+        if q.get("flags"):
+            out.append("data check: " + "; ".join(q["flags"]))
         for s in today.get("safety") or []:
             out.append(f"URGENT: {s}")
         for s in today.get("attention") or []:
@@ -228,7 +239,7 @@ class PatientMonitorAgent(AgentBase):
             S.insert_ignore(c, S.agent_output, event_id=ev.event_id, agent_id=AGENT, patient_id=pid, day=ev.day, result=S.j(res), done_ts=S.now())
             prev = c.execute(select(S.case_state.c.status).where((S.case_state.c.patient_id == pid) & (S.case_state.c.day == ev.day))).scalar()
             if prev != "URGENT":
-                S.upsert(c, S.case_state, ["patient_id", "day"], patient_id=pid, day=ev.day, status=status, data_gap=not res.get("has_vitals", True) and not res.get("n_windows"),
+                S.upsert(c, S.case_state, ["patient_id", "day"], patient_id=pid, day=ev.day, status=status, data_gap=bool((not res.get("has_vitals", True) and not res.get("n_windows")) or (res.get("quality") or {}).get("device_problem")),
                          days_since_vitals=None, reasons=S.j(res["safety"]), report=None, updated_ts=S.now())
         self.done_waiting(ev.event_id)
         return True

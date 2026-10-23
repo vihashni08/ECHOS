@@ -4,10 +4,10 @@
     "days_scored": 222,
     "alerts": 21,
     "urgent_latency_s": {
-      "event_to_queued_median": 0.21288514137268066,
-      "event_to_queued_max": 0.39086413383483887,
-      "event_to_sent_median": 0.22679686546325684,
-      "event_to_sent_max": 0.40006089210510254
+      "event_to_queued_median": 0.23497700691223145,
+      "event_to_queued_max": 0.4143848419189453,
+      "event_to_sent_median": 0.23853611946105957,
+      "event_to_sent_max": 0.41977715492248535
     },
     "reviews": 112,
     "days_allocated": 28,
@@ -18,8 +18,10 @@
       "WATCH": 93
     },
     "messages": {
+      "care:evidence_request": 133,
       "care:feedback": 221,
       "care:urgent_sent": 21,
+      "evidence:evidence_ready": 133,
       "patient_monitor:review_request": 221,
       "patient_monitor:urgent": 21,
       "review_coordinator:assign": 112,
@@ -27,21 +29,21 @@
     },
     "unconsumed_messages": 0,
     "injected_reading": {
-      "event_id": 120,
+      "event_id": 122,
       "day": "2019-05-27",
       "ts": "2019-05-27T18:00:00"
     },
-    "wall_s": 31.0
+    "wall_s": 30.6
   },
   "kill_run": {
     "events": 470,
     "days_scored": 222,
     "alerts": 21,
     "urgent_latency_s": {
-      "event_to_queued_median": 0.2542121410369873,
-      "event_to_queued_max": 10.86130404472351,
-      "event_to_sent_median": 0.26579928398132324,
-      "event_to_sent_max": 10.867455959320068
+      "event_to_queued_median": 0.31348705291748047,
+      "event_to_queued_max": 13.222403049468994,
+      "event_to_sent_median": 0.3186299800872803,
+      "event_to_sent_max": 13.225697994232178
     },
     "reviews": 112,
     "days_allocated": 28,
@@ -52,8 +54,10 @@
       "WATCH": 93
     },
     "messages": {
+      "care:evidence_request": 133,
       "care:feedback": 221,
       "care:urgent_sent": 21,
+      "evidence:evidence_ready": 133,
       "patient_monitor:review_request": 221,
       "patient_monitor:urgent": 21,
       "review_coordinator:assign": 112,
@@ -65,13 +69,13 @@
       "day": "2019-05-27",
       "ts": "2019-05-27T18:00:00"
     },
-    "wall_s": 33.1,
+    "wall_s": 33.2,
     "kill": {
       "agent": "patient_monitor",
-      "at_event": 239,
+      "at_event": 236,
       "detected_and_restarted": true,
-      "restart_s": 11.9,
-      "new_pid": 21922,
+      "restart_s": 12.2,
+      "new_pid": 36473,
       "reason": "missed_heartbeats"
     }
   },

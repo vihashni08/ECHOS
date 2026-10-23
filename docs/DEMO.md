@@ -1,57 +1,49 @@
 # Demo script (about 10 minutes)
 
-## Before the demo
+## Before the demo (once, the day before)
+1. Put `ECHOS_LLM_API_KEY` in `.env` (Gemini). Without it the Evidence agent writes fixed-template cards and everything else works.
+2. Build the guideline index and the demo data:
+   ```bash
+   PYTHONPATH=. .venv/bin/python scripts/build_knowledge.py
+   ```
+   ```bash
+   PYTHONPATH=. .venv/bin/python scripts/evaluation/demo_data.py
+   ```
+3. **Warm the cache:** run `scripts/start.sh`, open **Demo tools**, choose 20 events/s and press **Play**, and wait about 10 minutes (the Gemini free tier is rate-limited). Gemini's answers are stored in `data/knowledge/llm_cache.sqlite`, so every later run, including resets, makes no API call and works offline.
+4. Keep the Mac awake (the replay pauses when it sleeps).
+
+## Start
 ```bash
 scripts/start.sh
 ```
+Open http://localhost:5173, press **Presenter** (top bar) for the step strip, then **Demo tools → Play** and let the replay finish before you begin. Mail is a dry run. Say once: "this is a historical test; the system only sees data up to each day."
 
-Open http://localhost:5173 and check that the top bar says **REPLAY** and **Live**. Mail is a dry run: nothing leaves the machine.
+## 1. The question (1 min), How it works
+A small team can review only a few people a day. ECHOS says who, today, and why. Decision support, not diagnosis.
 
-## 1. The problem (1 min), on How it works
-- A small clinical team cannot read every reading from every home. The question each morning is who to look at, and why.
-- **Label audit:** 88% of days with BP ≥ 160/100 are labelled, so "detecting" the labels from the same day's readings would be circular. That is why ECHOS ranks people for review and only alerts on red flags.
+## 2. Audit first (1 min), Test it yourself → "Why no detector"
+88% of days at or above 160/100 are labelled, 3.7% below. The labels are confirmed threshold alerts, so a model that "detects" them re-learns a threshold. Thresholds stay rules.
 
-## 2. Start the agents (1 min)
-1. Open **Demo tools** and choose 20 events/s.
-2. Press **Play**.
-3. Close the sheet.
-4. Open **Agents**: three processes, alive, with heartbeats.
-5. The **message trace** fills up. Point out:
-   - `review request` (Patient Monitor → Review Coordinator)
-   - `feedback` (Care agent → Patient Monitor)
-   - `assign review` (Review Coordinator → Care agent)
+## 3. You vs ECHOS (3 min), Test it yourself → "You vs ECHOS"
+Let the examiner pick four people on two or three days, reveal, and read the bars. Then the honest line: a plain BP-limit rule wins on BP/pulse events (BP labels are threshold alerts); it finds almost no agitation. ECHOS covers both, so it is a balanced policy. Over all 92 days at K = 4: BP-limit rule 0.471, ECHOS 0.452, random 0.250 events per review.
 
-## 3. Today (2 min)
-- **Review list.** Four people are ranked by how far a risk is above its base rate. Read one card's reasons aloud: "agitation risk 24% in the afternoon window: fridge door 62 (usual-adjusted z +4.4)…" or "17 confirmed BP/pulse event days in 26 days: personal rate 60% (95% CI 42–77%)".
-- **Fairness.** A patient unseen for a week is picked even with a low score.
-- **Urgent alerts.** Point out the escalation countdown.
+## 4. Morning briefing and Decision trace (2 min)
+Briefing: a ranked card with its reasons, the cutoff, and the cited guideline passage (open it). Click **Open the decision trace**: eight steps from raw readings to the evidence card. Point at the memory card: "this is all one agent knows about a person; models trained per patient: 0."
 
-## 4. One person (2 min)
-Open **Patients** and choose 46286.
-- **BP and pulse** against their own usual. The dashed line starts at the population average and moves to their own level (cold start), and red-flag readings are marked.
-- **The 3-day risk climbs** as confirmed events arrive. This is the Patient Monitor learning from the feedback.
-- **The day log and their agent messages.**
+## 5. The budget is a decision (30 s), Test it yourself → budget
+Drag K, change the fairness floor.
 
-## 5. Red flag → URGENT (1 min)
-1. Open **Demo tools** → **Inject a reading**.
-2. Choose a patient and "Severe high BP 192/124", then press **Inject**.
-3. Open **Alerts**: the new red-flag alert, queued about 0.2 s after the reading.
-4. Press **I have seen this**: the escalation timer stops.
+## 6. Red flag, then crash (1.5 min)
+Demo tools → **Inject a reading** → "Severe high BP 192/124" → the alert is queued about 0.2 s later and the evidence card follows. On **Under the hood** kill the Patient Monitor; about 12 s later it is back. The crash table shows identical alerts and review picks with and without the kill.
 
-## 6. Crash an agent (1 min)
-1. On **Agents**, kill the Patient Monitor.
-2. About 12 s later: "alive again", restarts: 1.
-3. Nothing was lost. The kill test (`reports/metrics/v2_runtime.json`) shows identical review picks and alerts with and without the crash.
-
-## 7. Results and limits (2 min), on How it works
-- **Agitation:** PR-AUC 0.27 vs 0.016 chance; 88 of 135 episodes caught.
-- **BP / pulse priority:** 0.62 vs 0.28; better than the study's own threshold rule.
-- **Coordinator:** 0.45 vs 0.25 events per review.
-- **Limits:** 41–56 patients over 3 months; labels are confirmed alerts; no forecasting of new episodes; replay, not live patients.
+## 7. Risks and limits (1 min), Under the hood → Risks
+Say them before you are asked: 41 to 56 people over 3 months, labels are confirmed alerts, replay not live, no clinical validation, a BP-limit rule matches ECHOS on total events.
 
 ## If something goes wrong
 | Problem | Fix |
 |---|---|
 | "API not reachable" banner | Restart `scripts/start.sh` |
-| Play says the store holds events | Use **Reset** in Demo tools (or restart; the demo database starts fresh) |
-| Charts are empty | The replay has not reached that person yet |
+| Play says the store holds events | Use **Reset** in Demo tools |
+| Evidence cards say "Template" | No key, no network, or the check failed: the fixed wording is the designed fallback |
+| "Data file missing" on Test it yourself | Run `scripts/evaluation/demo_data.py` |
+| Evidence says "no supporting source" for agitation | Only NICE NG136 and NEWS2 are indexed. Add NICE NG97 as `data/knowledge/raw/NICE-NG97.pdf` and rerun `scripts/build_knowledge.py` |

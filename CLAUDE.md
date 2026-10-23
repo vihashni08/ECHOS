@@ -19,11 +19,12 @@ Method, equations, results and limitations: docs/METHOD.md (the source of truth 
 - cohort.py: urgent_flags = NEWS2 red scores + BP >= 180/120 (URGENT); safety_flags = TIHM Table 5 limits (attention notes only).
 - episode.py: two-state HMM (Baum-Welch) kept as an ABLATION (it lost to the Beta rate). store.py: per-fold saved models (models/v2, git-ignored).
 
-## Agents (echos/team/; each a separate process under the supervisor; they talk ONLY via the SQLite bus agent_message)
-- Patient Monitor (patient_monitor.py, one PatientMonitor per person, memory in table patient_agent): scores 'day' / 'reading' events; red flag -> 'urgent'
+## Agents (echos/team/; four, each a separate process under the supervisor; they talk ONLY via the SQLite bus agent_message)
+- Patient Monitor (patient_monitor.py, one PatientMonitor per person, memory in table patient_agent; also runs the sensor-silence / stale-vitals rules of echos/monitor/quality.py: a 'data check' note + case_state.data_gap, never a score change): scores 'day' / 'reading' events; red flag -> 'urgent'
   to care; after 'feedback' -> 'review_request' to review_coordinator. Waits for the previous day's recorded outcome before scoring a person's next day.
 - Review Coordinator (review_coordinator.py, memory in agent_state): on 'day_close' waits for every request (longer while the monitor is down), allocates
   config review.k_per_day, writes review_list + case status REVIEW / WATCH / NORMAL (never downgrades URGENT), sends 'assign' and 'review_decision'.
+- Evidence agent (evidence_agent.py + echos/evidence/): on `evidence_request` from Care (sent AFTER an alert is queued) retrieves guideline passages (TF-IDF over data/knowledge/raw: NICE NG136, RCP NEWS2; add NG97 for agitation), Gemini (ECHOS_LLM_API_KEY, config `evidence:`) writes a cited note from structured reasons + passages only, echos/evidence/validator.py checks numbers / citations / wording, else fixed template; URGENT first; answers cached in data/knowledge/llm_cache.sqlite; tests and e2e set ECHOS_EVIDENCE_LLM=off (never call Gemini). Table evidence_card, API /api/v2/evidence, /api/v2/trace/{pid}/{day}.
 - Care agent (care_agent.py + coordinator.py lifecycle): 'urgent' -> fixed-template alert via the dispatcher at once; 'assign' -> CLINICIAN_REVIEW task;
   'outcome' events / 'clinician_outcome' -> 'feedback' to the monitor; escalation NEW->SENT->ACKNOWLEDGED->RESOLVED / ESCALATED / EXPIRED.
 - agent_base.py: heartbeat, cursor (agent_checkpoint), memory, wait rule (peer_down / waited_enough). run_agent.py: one agent per process.
@@ -39,7 +40,7 @@ Method, equations, results and limitations: docs/METHOD.md (the source of truth 
   smtplib.SMTP); real mail only with scripts/start.sh --real --yes.
 
 ## Evaluation (scripts/evaluation/, all write reports/metrics/v2_*.json; patient-level rows go to git-ignored data/v2/)
-- label_audit.py, vitals_eval.py, agitation_eval.py, allocation_eval.py (uses the OOF scores), team_e2e.py (real processes + SIGKILL kill test).
+- label_audit.py, vitals_eval.py, agitation_eval.py, allocation_eval.py (uses the OOF scores; includes the plain BP-limit rules, which match ECHOS on events per review: 0.471 vs 0.452), team_e2e.py (real processes + SIGKILL kill test), demo_data.py (audit grid, budget curves, You-vs-ECHOS days; run after the evals).
 - scripts/train_v2.py -> models/v2 (per-fold + 'all' models, base rates). scripts/rebuild_models.sh runs everything in order.
 - Protocol: 5-fold GroupKFold BY PATIENT (echos/data/splits.py), everything fitted on training patients only, 1 alert / patient-week budget, PR-AUC primary,
   1000 patient-level bootstrap CIs, paired bootstrap for differences ("better" only if the whole CI > 0).

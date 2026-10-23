@@ -15,6 +15,7 @@ from echos.orchestrator import state as S
 from echos.team import bus
 from echos.team.care_agent import CareAgent
 from echos.team.patient_monitor import PatientMonitor, PatientMonitorAgent
+from echos.team.evidence_agent import EvidenceAgent
 from echos.team.review_coordinator import ReviewCoordinatorAgent
 
 
@@ -66,8 +67,9 @@ def _run(eng, models_dir, k=1):
     pm = PatientMonitorAgent(eng, models_dir=models_dir)
     rc = ReviewCoordinatorAgent(eng, models_dir=models_dir, cfg={"k_per_day": k, "fairness_days": 3, "fair_share": 0.5, "watch_lift": 1.5, "wait_s": 0})
     ca = CareAgent(eng, disp)
+    ev = EvidenceAgent(eng, retriever=None, llm=None)          # template mode: no index, no network
     for _ in range(200):
-        if not (pm.step() + ca.step() + rc.step()):
+        if not (pm.step() + ca.step() + rc.step() + ev.step()):
             break
     disp.run_due()
     return pm, rc, ca
@@ -165,6 +167,10 @@ def test_v2_api(eng, models_dir, tmp_path):
     o = cl.post("/api/v2/reviews/outcome", json={"patient_id": "p1", "day": "2019-05-06", "vitals_event": True}).json()
     assert o["status"] == "QUEUED"
     assert bus.poll(eng, "care", ["clinician_outcome"])[0]["payload"]["vitals_event"] is True
+    ev_cards = cl.get("/api/v2/evidence", params={"patient_id": "p1"}).json()                  # one urgent card, template mode (no index in tests)
+    assert [c["kind"] for c in ev_cards].count("urgent") == 1 and all(c["source"] == "template" for c in ev_cards)
+    tr = cl.get("/api/v2/trace/p1/2019-05-03").json()
+    assert tr["status"] == "URGENT" and tr["monitor"]["safety"] and any(m["topic"] == "urgent" for m in tr["messages"]) and tr["evidence"]
     s = cl.get("/api/v2/summary").json()
     assert s["urgent_alerts"] == 1 and s["reviews"] == 6
     ev = cl.get("/api/events", params={"last_event_id": 0, "max_seconds": 1.5}).text      # the SSE stream replays the feed (alerts, review lists, messages)

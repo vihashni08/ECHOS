@@ -10,7 +10,7 @@ Agent: its own process with a goal, a persistent belief (memory), its own decisi
 
 ### Patient Monitor (`patient_monitor`)
 
-One per person. Learns what is usual for this person (blood pressure, pulse, daily activity by time of day), scores each day, sends an URGENT message on a red-flag reading and a review request with plain-words reasons after the day's feedback.
+One per person. Learns what is usual for this person (blood pressure, pulse, daily activity by time of day), scores each day, flags probable sensor silence or stale vitals, sends an URGENT message on a red-flag reading and a review request with plain-words reasons after the day's feedback.
 
 - **Takes in:** the day's readings and activity windows; FEEDBACK messages (clinician / study outcome)
 - **Produces:** urgent -> Care agent; review_request (vitals risk, agitation risk, reasons) -> Review Coordinator
@@ -34,6 +34,15 @@ Makes sure every urgent case and every assigned review reaches a person: queues 
 - **Produces:** alert e-mails (dry run unless configured), review tasks, feedback -> Patient Monitor
 - **If it fails:** the outbox keeps every alert; a restarted Care agent resumes sending and escalating from the database
 - **Never:** change a risk score or a review decision
+
+### Evidence agent (`evidence`)
+
+Gives every urgent alert and every assigned review a short explanation that cites guideline passages (NICE NG136, RCP NEWS2) found by a local index; Gemini writes the wording from the retrieved passages only, a non-LLM validator checks it, and a fixed template is used when anything fails.
+
+- **Takes in:** evidence_request messages from the Care agent (sent after the alert is queued)
+- **Produces:** a cited evidence card per case (evidence_card table); evidence_ready broadcast
+- **If it fails:** the supervisor restarts it; answers are cached so nothing is asked twice; with no key, no network or a failed check the template card is used
+- **Never:** delay an URGENT alert, change a risk or a review decision, or give a diagnosis or medication advice
 
 ## Tools
 

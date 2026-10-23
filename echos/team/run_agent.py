@@ -1,6 +1,6 @@
 """Run ONE v2 agent as its own process (the supervisor starts three of these):
 
-    python -m echos.team.run_agent --agent patient_monitor|review_coordinator|care [--db PATH]
+    python -m echos.team.run_agent --agent patient_monitor|review_coordinator|care|evidence [--db PATH]
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import signal
 
 from echos.orchestrator import state as S
 
-AGENTS = ("patient_monitor", "review_coordinator", "care")
+AGENTS = ("patient_monitor", "review_coordinator", "care", "evidence")
 
 
 def build(name: str, eng, hb_s=None):
@@ -28,6 +28,9 @@ def build(name: str, eng, hb_s=None):
         disp.recover()                 # retries left in the outbox by a previous process
         disp.start_sweeper()
         return CareAgent(eng, disp, hb_s=hb_s)
+    if name == "evidence":
+        from echos.team.evidence_agent import EvidenceAgent
+        return EvidenceAgent(eng, hb_s=hb_s)
     raise ValueError(f"unknown agent {name!r} (choose from {AGENTS})")
 
 

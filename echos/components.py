@@ -5,7 +5,7 @@ from __future__ import annotations
 
 COMPONENTS = [
     {"id": "patient_monitor", "name": "Patient Monitor", "kind": "agent", "worker": True,
-     "role": "One per person. Learns what is usual for this person (blood pressure, pulse, daily activity by time of day), scores each day, "
+     "role": "One per person. Learns what is usual for this person (blood pressure, pulse, daily activity by time of day), scores each day, flags probable sensor silence or stale vitals, "
              "sends an URGENT message on a red-flag reading and a review request with plain-words reasons after the day's feedback.",
      "inputs": "the day's readings and activity windows; FEEDBACK messages (clinician / study outcome)",
      "outputs": "urgent -> Care agent; review_request (vitals risk, agitation risk, reasons) -> Review Coordinator",
@@ -25,6 +25,13 @@ COMPONENTS = [
      "outputs": "alert e-mails (dry run unless configured), review tasks, feedback -> Patient Monitor",
      "on_failure": "the outbox keeps every alert; a restarted Care agent resumes sending and escalating from the database",
      "never": "change a risk score or a review decision"},
+    {"id": "evidence", "name": "Evidence agent", "kind": "agent", "worker": True,
+     "role": "Gives every urgent alert and every assigned review a short explanation that cites guideline passages (NICE NG136, RCP NEWS2) found by a local index; "
+             "Gemini writes the wording from the retrieved passages only, a non-LLM validator checks it, and a fixed template is used when anything fails.",
+     "inputs": "evidence_request messages from the Care agent (sent after the alert is queued)",
+     "outputs": "a cited evidence card per case (evidence_card table); evidence_ready broadcast",
+     "on_failure": "the supervisor restarts it; answers are cached so nothing is asked twice; with no key, no network or a failed check the template card is used",
+     "never": "delay an URGENT alert, change a risk or a review decision, or give a diagnosis or medication advice"},
     {"id": "personal_baseline", "name": "Personal baseline (tool)", "kind": "tool", "worker": False,
      "role": "Normal-Inverse-Gamma model of each person's usual reading: 'systolic 172 vs usual 138 (+3.1 SD)'.",
      "inputs": "the person's past readings", "outputs": "usual, z-score, surprise", "on_failure": "a new person starts at the population usual",

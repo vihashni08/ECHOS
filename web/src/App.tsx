@@ -8,6 +8,8 @@ import Review from "@/pages/Review"
 import Alerts from "@/pages/Alerts"
 import Agents from "@/pages/Agents"
 import HowItWorks from "@/pages/HowItWorks"
+import Trace from "@/pages/Trace"
+import TestYourself from "@/pages/TestYourself"
 import PatientPage, { PatientRedirect } from "@/pages/PatientPage"
 
 function Need({ role, children }: { role: Role; children: React.ReactNode }) {
@@ -22,6 +24,10 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Today />} />
+        <Route path="trace" element={<Trace />} />
+        <Route path="trace/:pid" element={<Trace />} />
+        <Route path="trace/:pid/:day" element={<Trace />} />
+        <Route path="test" element={<TestYourself />} />
         <Route path="review" element={<Review />} />
         <Route path="alerts" element={<Alerts />} />
         <Route path="agents" element={<Need role="clinician"><Agents /></Need>} />

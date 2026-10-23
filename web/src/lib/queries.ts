@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { call, client } from "./api"
+import { API_URL, ApiError, call, client } from "./api"
+import { getToken } from "./auth"
 
 const poll = (ms: number) => ({ refetchInterval: ms, retry: 1 })
 
@@ -75,3 +76,34 @@ export function useResolve() {
 
 // ---- authentication (optional on the server)
 export const useMe = () => useQuery({ queryKey: ["me"], queryFn: () => call(client.GET("/api/auth/me")), retry: 1, staleTime: 5000 })
+
+// ---- Evidence agent, decision trace, patient memory, demo data
+export type Passage = { id: string; doc: string; source: string; url: string; page: number; text: string; score: number }
+export type EvidenceCardT = { card_id: string; patient_id: string; day: string; kind: "urgent" | "review"; source: "gemini" | "template"; explanation: string; citations: string[];
+  passages: Passage[]; validator: { ok?: boolean | null; problems?: string[] }; model?: string | null }
+export const useEvidence = (day?: string, patientId?: string) =>
+  useQuery({ queryKey: ["evidence", day, patientId], queryFn: async () => (await call(client.GET("/api/v2/evidence", { params: { query: { day, patient_id: patientId } } }))) as unknown as EvidenceCardT[], ...poll(3000) })
+export type Trace = { patient_id: string; day: string; status?: string | null; monitor?: Record<string, any> | null; review_request?: Record<string, any> | null;
+  review?: Record<string, any> | null; coordinator?: Record<string, any> | null; care_task?: Record<string, any> | null; alerts: { alert_id: string; event_time?: string }[];
+  evidence: EvidenceCardT[]; messages: { id: number; sender: string; recipient: string; topic: string; status: string }[] }
+async function getJson<T>(path: string): Promise<T> {
+  const r = await fetch(`${API_URL}${path}`, { headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {} })
+  if (!r.ok) throw new ApiError(r.status, r.status === 404 ? "Data file missing: run scripts/evaluation/demo_data.py" : `HTTP ${r.status}`)
+  return r.json()
+}
+export const useTrace = (pid?: string, day?: string) => useQuery({ queryKey: ["trace", pid, day], enabled: !!pid && !!day, queryFn: () => getJson<Trace>(`/api/v2/trace/${pid}/${day}`), ...poll(3000) })
+export type Memory = { patient_id: string; known: boolean; vitals_history?: Record<string, number[]>; events_k?: number; days_n?: number; windows_seen?: number; episodes?: number;
+  slot_history_windows?: Record<string, number>; days_scored?: number; pending_days?: string[]; numbers_stored?: number }
+export const useMemoryCard = (pid?: string) => useQuery({ queryKey: ["memory", pid], enabled: !!pid, queryFn: () => getJson<Memory>(`/api/v2/patients/${pid}/memory`), ...poll(4000) })
+export type AuditGrid = { cells: { sys: number; dia: number; n: number; labelled: number }[]; wall: { rule: string; days: number; share_labelled: number; below_days: number; below_share_labelled: number } }
+export const useDemoAudit = () => useQuery({ queryKey: ["demo-audit"], queryFn: () => getJson<AuditGrid>("/api/v2/demo/audit"), staleTime: 600000, retry: 1 })
+export type BudgetRow = { events_per_review: number; agitation_followed_up: number; vitals_anticipated: number; patients_never_reviewed: number; max_days_without_review: number }
+export type Budget = { k: number[]; policies: Record<string, BudgetRow[]> }
+export const useDemoBudget = () => useQuery({ queryKey: ["demo-budget"], queryFn: () => getJson<Budget>("/api/v2/demo/budget"), staleTime: 600000, retry: 1 })
+export type GamePerson = { id: string; sys: number | null; dia: number | null; hr: number | null; sys_z: number | null; events_14d: number; activity: number | null; activity_z: number | null;
+  tihm_flag: boolean; agitation_episodes: number; vitals_events_next3: number; found: number; lift: number }
+export type GameDay = { day: string; k: number; patients: GamePerson[]; echos: string[]; threshold: string[]; echos_found: number; threshold_found: number;
+  echos_split: { agitation: number; vitals: number }; threshold_split: { agitation: number; vitals: number }; random_found: number; best_possible: number }
+export type Game = { k: number; found_definition: string; days: GameDay[] }
+export const useDemoGame = () => useQuery({ queryKey: ["demo-game"], queryFn: () => getJson<Game>("/api/v2/demo/game"), staleTime: 600000, retry: 1 })
+export const useRuntime = () => useQuery({ queryKey: ["runtime"], queryFn: () => getJson<Record<string, any>>("/api/v2/runtime"), staleTime: 600000, retry: 1 })

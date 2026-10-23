@@ -1,10 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { BellRing, Bot, ClipboardList, LogOut, HeartPulse, LayoutDashboard, Moon, Settings2, Sun, User, WifiOff } from "lucide-react"
+import { BellRing, Bot, ClipboardList, FlaskConical, GitBranch, LogOut, HeartPulse, LayoutDashboard, Moon, Settings2, Sun, User, WifiOff } from "lucide-react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import ErrorBoundary from "./ErrorBoundary"
 import { DemoToolsButton } from "./DemoTools"
 import { ModeBadge, ModeBanner } from "./ModeBadge"
+import { PresenterBar, PresenterToggle } from "./Presenter"
 import { useSimState } from "@/lib/queries"
 import { atLeast, setToken, type Role } from "@/lib/auth"
 import { useMe } from "@/lib/queries"
@@ -13,11 +14,13 @@ import { useTheme } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
 const NAV: { to: string; label: string; icon: typeof User; end?: boolean; need?: Role }[] = [
-  { to: "/", label: "Today", icon: LayoutDashboard, end: true },
+  { to: "/", label: "Morning briefing", icon: LayoutDashboard, end: true },
+  { to: "/trace", label: "Decision trace", icon: GitBranch },
+  { to: "/test", label: "Test it yourself", icon: FlaskConical },
   { to: "/review", label: "Review board", icon: ClipboardList },
   { to: "/patient", label: "Patients", icon: User },
   { to: "/alerts", label: "Alerts", icon: BellRing },
-  { to: "/agents", label: "Agents", icon: Bot, need: "clinician" },
+  { to: "/agents", label: "Under the hood", icon: Bot, need: "clinician" },
   { to: "/how", label: "How it works", icon: Settings2 },
 ]
 
@@ -72,6 +75,7 @@ function TopBar() {
       {me.data?.auth_enabled && me.data.role && (
         <span className="inline-flex items-center gap-2 text-sm" data-testid="role"><span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold">{me.data.role}</span>
           <Button variant="outline" size="sm" onClick={() => { setToken(null); qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" }); qc.invalidateQueries({ queryKey: ["me"] }) }} data-testid="logout"><LogOut className="size-4" aria-hidden="true" />Log out</Button></span>)}
+      <PresenterToggle />
       {atLeast(me.data?.role, "operator") && <DemoToolsButton />}
       <ThemeToggle />
     </header>
@@ -106,7 +110,8 @@ export default function Layout() {
         <TopBar />
         <ApiBanner />
         <ModeBanner />
-        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 p-4 outline-none md:p-6"><ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary></main>
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 p-4 pb-24 outline-none md:p-6"><ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary></main>
+        <PresenterBar />
       </div>
     </div>
   )

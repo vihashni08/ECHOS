@@ -24,8 +24,10 @@ def components(ctx: Ctx) -> list[dict]:
         scored = c.execute(select(func.count()).select_from(S.agent_output).where(S.agent_output.c.agent_id == "patient_monitor")).scalar()
         reviews = c.execute(select(func.count()).select_from(S.review_list)).scalar()
         msgs = c.execute(select(func.count()).select_from(S.agent_message)).scalar()
+        cards = dict(c.execute(select(S.evidence_card.c.source, func.count()).group_by(S.evidence_card.c.source)).fetchall())
     detail = {"patient_monitor": f"{scored} patient-day(s) scored", "review_coordinator": f"{reviews} review(s) assigned",
-              "care": f"{open_alerts} open alert(s), {tasks} open task(s)", "bus": f"{msgs} message(s)"}
+              "care": f"{open_alerts} open alert(s), {tasks} open task(s)", "bus": f"{msgs} message(s)",
+              "evidence": f"{sum(cards.values())} card(s): {cards.get('gemini', 0)} Gemini-written, {cards.get('template', 0)} template"}
     out = []
     for comp in COMPONENTS:
         d = {k: comp[k] for k in ("id", "name", "kind", "role", "inputs", "outputs", "on_failure", "never")}

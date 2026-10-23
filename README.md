@@ -4,11 +4,12 @@
 
 ECHOS is a decision-support system for home monitoring of people living with dementia, built on the public TIHM dataset. It is not a diagnostic tool, and no model decides an emergency.
 
-Three cooperating agents run as separate processes and talk only through a message bus:
+Four cooperating agents run as separate processes and talk only through a message bus:
 
 - **Patient Monitor (one per person).** Learns what is usual for that person: blood pressure, pulse, and room activity by time of day. It raises an **URGENT** message on a red-flag reading. After each day's outcome it asks for a clinician review, with its risks and plain-words reasons.
 - **Review Coordinator.** Shares a small team's **K reviews per day** across everyone. Priority is how far each risk is above its base rate, with a fairness floor so nobody goes unseen for more than a week.
 - **Care agent.** Delivers URGENT alerts at once, escalates when nobody acknowledges, opens review tasks, and sends the clinician's outcome back to the Patient Monitor, which learns from it.
+- **Evidence agent.** Gives every urgent alert and review card a short explanation that cites a guideline passage (NICE NG136, RCP NEWS2) found by a local index. Gemini writes the wording from the retrieved passages only; a non-LLM validator checks it; a fixed template is used if anything fails. It never delays an alert.
 
 ## Results
 5-fold cross-validation split by patient, with patient-level bootstrap 95% CIs. Full method, equations and limitations: [docs/METHOD.md](docs/METHOD.md).
@@ -17,8 +18,8 @@ Three cooperating agents run as separate processes and talk only through a messa
 |---|---|---|
 | Agitation detection (activity sensors) | PR-AUC 0.27 (0.20–0.35), ROC 0.96; 88 of 135 episodes at 1 alert / patient-week | chance 0.016 |
 | BP / pulse review priority (personal Bayesian rate) | PR-AUC 0.62 (0.43–0.72) | chance 0.28; significantly above the study's own threshold rule (+0.050) |
-| Review Coordinator, 4 reviews / day | 0.45 confirmed events per review | random 0.25 |
-| URGENT alert, reading → queued | 0.21 s median | killing an agent: 0 lost, 0 extra alerts |
+| Review Coordinator, 4 reviews / day | 0.45 confirmed events per review (follows up 61% of agitation episodes) | random 0.25; a plain BP-limit rule gets 0.47 but follows up 8% of agitation |
+| URGENT alert, reading → queued | 0.26 s median | killing an agent: 0 lost, 0 extra alerts |
 
 **Label audit.** 88% of days with BP ≥ 160/100 carry a BP label. The labels are confirmed threshold alerts, so ECHOS does not claim same-day vitals "detection" or forecasting of new episodes.
 
@@ -75,11 +76,12 @@ The Playwright suite starts its own stack on ports 8010 / 5180 and checks every 
 |---|---|
 | `echos/monitor/` | Methods: `cohort` (data used), `personal_baseline` (NIG), `risk` (Beta event rate), `agitation`, `allocation`, `episode` (HMM ablation), `metrics`, `store` (saved models) |
 | `echos/team/` | Agents: `patient_monitor`, `review_coordinator`, `care_agent` (+ `coordinator` alert lifecycle), `bus`, `agent_base`, `run_agent`, `runtime` |
+| `echos/evidence/` | Evidence agent's tools: `corpus` (guideline index, TF-IDF), `llm` (Gemini client, FakeLLM), `explain` (retrieve, write, check), `validator` |
 | `echos/alerts/` | URGENT alert payload (fixed template), dispatcher (outbox, retries), mailers, acknowledgement link |
 | `echos/sim/` | Real-data replay (`replay_v2`) and its controller |
 | `echos/orchestrator/` | SQLite state, supervisor (restarts agents), watchdog (restarts the runtime) |
 | `echos/api/` | FastAPI: reads SQLite only, never loads a model ([docs/API.md](docs/API.md)) |
-| `web/` | React app: Today, Review board, Patients, Alerts, Agents, How it works |
+| `web/` | React app: Morning briefing, Decision trace, Test it yourself, Review board, Patients, Alerts, Under the hood, How it works, Presenter mode |
 | `scripts/evaluation/` | The evaluation scripts above |
 | `docs/` | METHOD (method + results), ARCHITECTURE, COMPONENTS (generated), DEMO, API, DATA_STATEMENT, REPORT_DRAFT |
 

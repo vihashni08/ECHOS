@@ -1,9 +1,10 @@
 import { CheckCircle2, CircleDashed, Scale, XCircle } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import EvidenceCard from "@/components/EvidenceCard"
 import type { Schemas } from "@/lib/api"
 import { pct, personLabel } from "@/lib/live"
-import { useOutcome } from "@/lib/queries"
+import { useOutcome, type EvidenceCardT } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 
 type Item = Schemas["ReviewItem"]
@@ -21,7 +22,7 @@ function driver(i: Item) {
   return la > lv ? `agitation ${la.toFixed(1)}× usual rate` : `BP / pulse ${lv.toFixed(1)}× usual rate`
 }
 
-export default function ReviewList({ items, withActions }: { items: Item[]; withActions?: boolean }) {
+export default function ReviewList({ items, withActions, evidence, cutoff }: { items: Item[]; withActions?: boolean; evidence?: EvidenceCardT[]; cutoff?: number }) {
   const out = useOutcome()
   return (
     <ol className="flex flex-col gap-2" data-testid="review-list">
@@ -46,6 +47,9 @@ export default function ReviewList({ items, withActions }: { items: Item[]; with
             <dt className="text-muted-foreground">Agitation today (highest window)</dt><dd className="font-semibold">{pct(i.agitation_risk, 1)}</dd>
           </dl>
           {i.why.length > 0 && <ul className="list-disc pl-5 text-sm">{i.why.map((w, k) => <li key={k}>{w}</li>)}</ul>}
+          {cutoff != null && i.reason !== "fairness" && <p className="num text-xs text-muted-foreground" data-testid="cutoff">priority {i.priority.toFixed(2)} · today's cutoff {cutoff.toFixed(2)} (lowest selected on priority)</p>}
+          {evidence && <EvidenceCard card={evidence.find((c) => c.kind === "review" && c.patient_id === i.patient_id && c.day === i.day)} />}
+          <Link to={`/trace/${i.patient_id}/${i.day}`} className="self-start text-xs underline" data-testid="open-trace">Open the decision trace</Link>
           {withActions && !i.outcome && (
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" disabled={out.isPending} onClick={() => out.mutate({ patient_id: i.patient_id, day: i.day, vitals_event: true })} data-testid="confirm">Confirm a problem</Button>

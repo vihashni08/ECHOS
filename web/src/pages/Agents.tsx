@@ -1,13 +1,14 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import AgentStrip, { NAME } from "@/components/AgentStrip"
+import { CrashDiff, Risks } from "@/components/CrashAndRisks"
 import { CardSkeleton } from "@/components/States"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { personLabel } from "@/lib/live"
 import { useComponents, useMessages } from "@/lib/queries"
 
 const TOPIC: Record<string, string> = { urgent: "URGENT reading", review_request: "review request", feedback: "feedback (outcome)", assign: "assign review",
-  review_decision: "review decision", urgent_sent: "alert queued", urgent_duplicate: "duplicate alert ignored", alert_escalated: "alert escalated", clinician_outcome: "clinician outcome" }
+  review_decision: "review decision", evidence_request: "evidence request", evidence_ready: "evidence ready", urgent_sent: "alert queued", urgent_duplicate: "duplicate alert ignored", alert_escalated: "alert escalated", clinician_outcome: "clinician outcome" }
 const who = (x: string) => NAME[x] ?? (x === "all" ? "everyone (log)" : x === "clinician" ? "Clinician (API)" : x)
 
 function summarise(topic: string, p: Record<string, unknown>): string {
@@ -29,11 +30,11 @@ export default function Agents() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-2xl font-semibold">Agents</h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">Three agents, each its own process with its own goal, memory and decisions. They never call each other: every hand-over is a message on the bus below, so you can follow who told whom what.</p>
+        <h1 className="text-2xl font-semibold">Under the hood</h1>
+        <p className="max-w-3xl text-sm text-muted-foreground">Four agents, each its own process with its own goal, memory and decisions: three decide, one cites the evidence. They never call each other: every hand-over is a message on the bus below, so you can follow who told whom what.</p>
       </div>
       <AgentStrip />
-      <section aria-label="The three agents" className="grid gap-3 md:grid-cols-3">
+      <section aria-label="The agents" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {!comps.data ? <CardSkeleton /> : comps.data.filter((c) => c.kind === "agent").map((c) => (
           <Card key={c.id}><CardHeader><CardTitle>{c.name}</CardTitle></CardHeader><CardContent className="flex flex-col gap-1.5 text-sm">
             <p>{c.role}</p>
@@ -43,6 +44,7 @@ export default function Agents() {
             {c.detail && <p className="num text-muted-foreground">{c.detail}</p>}
           </CardContent></Card>))}
       </section>
+      <CrashDiff />
       <Card>
         <CardHeader><CardTitle>Message trace (newest first)</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -65,6 +67,7 @@ export default function Agents() {
             </div>)}
         </CardContent>
       </Card>
+      <Risks />
     </div>
   )
 }

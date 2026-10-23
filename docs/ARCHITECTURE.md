@@ -17,7 +17,8 @@ TIHM files ──> replay controller ──> event_log (SQLite) ─────�
 supervisor: restarts an agent process with a stale heartbeat or a stalled cursor
 watchdog:   restarts the whole runtime if it dies; the controller resumes where event_log says it was
 API (FastAPI): reads SQLite + reports/metrics, writes commands to sim_command; SSE from event_feed (SQLite triggers)
-web (React):   Today · Review board · Patients · Alerts · Agents · How it works
+web (React):   Morning briefing · Decision trace · Test it yourself · Review board · Patients · Alerts · Under the hood · How it works (+ Presenter mode)
+Evidence agent (process): Care --evidence_request--> Evidence: TF-IDF guideline retrieval -> Gemini (cached) -> validator -> evidence_card (template if any step fails)
 ```
 
 ## Design rules
@@ -48,5 +49,6 @@ web (React):   Today · Review board · Patients · Alerts · Agents · How it w
 | `review_list` | Coordinator decisions and outcomes |
 | `agent_message` | The bus |
 | `alerts`, `outbox`, `alert_state`, `care_task` | Delivery and lifecycle |
+| `evidence_card` | The Evidence agent's cited note per urgent alert / assigned review |
 | `agent_heartbeat`, `agent_checkpoint`, `restart_log` | Liveness and recovery |
 | `sim_state`, `sim_command`, `event_feed` | API ↔ runtime and SSE |

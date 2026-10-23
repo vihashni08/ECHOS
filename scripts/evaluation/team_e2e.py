@@ -28,6 +28,7 @@ OUT = ROOT / "reports" / "metrics" / "v2_runtime.json"
 def run(db: Path, patients: int, days: int, kill: bool, speed: float = 60.0, timeout: float = 600.0) -> dict:
     for f in db.parent.glob(db.name + "*"):
         f.unlink()
+    os.environ["ECHOS_EVIDENCE_LLM"] = "off"                           # the runtime evidence is template-only here: no network, deterministic
     os.environ["ECHOS_DRY_RUN"] = "1"                                  # dry-run mailer: the outbox is filled, SMTP is never used
     os.environ.setdefault("ECHOS_CAREGIVER_EMAIL", "caregiver@example.test")
     os.environ.setdefault("ECHOS_CLINICIAN_EMAIL", "clinician@example.test")

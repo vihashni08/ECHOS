@@ -63,6 +63,11 @@ monitor:   # ECHOS v2 core (echos/monitor/): personal Bayesian episode tracker +
     water_low: 40
     water_high: 70
     weight_loss_pct: 5
+  quality:                   # sensor-silence / data-quality rules (echos/monitor/quality.py): a flag next to the reasons, never a change to a score
+    min_usual_events: 20     # a window with ZERO events is 'silent' when this person's same-slot usual (median of the previous windows) is at least this
+    min_history_windows: 4
+    silent_windows_per_day: 2   # this many silent windows in a day = probable device problem
+    max_vitals_gap_days: 7      # no BP / pulse reading for longer than this = stale vitals
   agitation:
     slot_hours: [8, 12, 18]  # TIHM's agitation model ran every ~6 h; windows end at these hours (night window 18:00 -> 08:00)
     baseline_slots: 14       # personal baseline = the same slot on the previous 14 days
@@ -75,3 +80,11 @@ review:   # Review Coordinator (echos/team/review_coordinator.py); K and the fai
   watch_lift: 1.5           # not selected but >= 1.5x a base rate -> WATCH (dashboard only, no notification)
   wait_s: 20                # wait this long (wall clock) for every Patient Monitor's request before allocating with what has arrived ...
   max_wait_s: 300           # ... or up to this long while the agent being waited for is down (stale heartbeat, supervisor restarting it)
+evidence:   # Evidence agent (echos/team/evidence_agent.py, echos/evidence/): cited explanations from a local guideline index + Gemini
+  use_llm: true             # false (or ECHOS_EVIDENCE_LLM=off, or no ECHOS_LLM_API_KEY in .env) -> fixed-template cards only
+  model: gemini-3.5-flash-lite   # the model v1 used; override with ECHOS_LLM_MODEL. Check it against your quota
+  temperature: 0.1
+  timeout_s: 20
+  rpm: 15                   # requests per minute sent to the API (the first replay fills the cache; later runs make no calls)
+  k: 3                      # passages retrieved per case
+  min_score: 0.08           # cosine below this = "no supporting source found"

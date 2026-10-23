@@ -14,6 +14,12 @@ def _never_real_smtp(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_real_llm(monkeypatch):
+    """Tests never call Gemini: the Evidence agent runs in template mode unless a test passes a FakeLLM."""
+    monkeypatch.setenv("ECHOS_EVIDENCE_LLM", "off")
+
+
+@pytest.fixture(autouse=True)
 def _test_recipients(monkeypatch):
     """.env is not loaded in tests; alerts go to FakeMailer / DryRun with example.test addresses only."""
     monkeypatch.setenv("ECHOS_CAREGIVER_EMAIL", "caregiver@example.test")

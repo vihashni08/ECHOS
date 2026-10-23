@@ -110,6 +110,14 @@ Why two tiers (`scripts/evaluation/label_audit.py`, q5):
 | URGENT red flags | 3.5% | 0.18 | 86% |
 | TIHM attention limits | 11.5% | 0.60 | 60% |
 
+### 3.5b Data-quality rules: sensor silence (`echos/monitor/quality.py`)
+A quiet home and a dead sensor look the same in raw counts. Two rules, no model, nothing imputed, no score changed (config `monitor.quality`):
+- **Silent window:** zero sensor events although this person's same-slot usual (median of the previous 14 same-slot windows, at least 4, past only) is at least 20 events.
+- **Stale vitals:** no BP / pulse reading for more than 7 days since the person's last one.
+- A day is a **probable device problem** when at least 2 of its windows are silent, or the vitals are stale. The Patient Monitor adds "data check: ..." to the review reasons and sets `case_state.data_gap`.
+- **Measured** (`scripts/evaluation/quality_eval.py` → `v2_quality.json`): on real TIHM data 7.4% of windows are silent (632 of 8,516); 216 probable device-problem days = 0.54 per patient-week, affecting 46 of 56 patients; 53 stale-vitals days of 2,201. Only 1 silent window carries an agitation label.
+- **Not measured:** sensitivity. TIHM has no ground truth for sensor failures; detection is tested only on a synthetic outage (`tests/test_quality.py`). The rule cannot tell a failed sensor from a person who is away.
+
 ### 3.6 Episode tracker: two-state hidden Markov model (`echos/monitor/episode.py`, ablation)
 - **States:** stable / unstable.
 - **Fitting:** Baum-Welch (EM) on the label sequences.
@@ -177,21 +185,25 @@ EM learned a near-permanent unstable state ($b\approx0.97$). The HMM therefore d
 | Vitals only | 0.04 | 0.49 | 0.393 | 29 |
 | Agitation only | 0.64 | 0.16 | 0.368 | 23 |
 | Probability union | 0.11 | 0.50 | 0.429 | 28 |
+| Simple rule: review whoever is past TIHM's BP limits | 0.08 | 0.57 | **0.471** | 15 |
+| Simple rule: review whoever is >= 160/100 | 0.13 | 0.51 | 0.440 | 15 |
 | **ECHOS (lift)** | **0.61** | 0.29 | **0.452** | 22 |
 | ECHOS + fairness (7 d) | 0.51 | 0.30 | 0.424 | **8** |
 
 - ECHOS gets 1.8× the events per review of random, and covers both conditions.
+- **A simple BP-limit rule matches or slightly beats ECHOS on total events per review** (0.471 and 0.440 vs 0.452; no CI computed). The rule follows up 8% of agitation episodes against ECHOS's 61%. ECHOS's case is balance across both conditions, not more events in total.
 - The fairness floor cuts never-reviewed patients from 22 to 8 at about 6% fewer events per review.
 
 ## 6. The agents at run time (`echos/team/`, `python -m echos.team.runtime`)
 
-Three agent processes run under a supervisor that restarts any process whose heartbeat stops. They share no memory and talk only over the SQLite message bus.
+Four agent processes (the three below plus the Evidence agent, `echos/team/evidence_agent.py`) run under a supervisor that restarts any process whose heartbeat stops. They share no memory and talk only over the SQLite message bus.
 
 | Agent | Belief it keeps | Decides | Sends |
 |---|---|---|---|
 | Patient Monitor (one per person, `patient_monitor.py`) | Personal vitals history (NIG); confirmed event counts (Beta); same-slot activity history and episode history | Whether today's reading is a red flag; today's agitation probability per window; its 3-day vitals risk after the day's feedback | `urgent` → Care; `review_request` → Coordinator |
 | Review Coordinator (`review_coordinator.py`) | Last review day per patient | Which K patients are reviewed today (lift priority, fairness floor) | `assign` → Care; `review_decision` → Monitors |
-| Care agent (`care_agent.py`) | Alert lifecycle (NEW → SENT → ACKNOWLEDGED / ESCALATED) | Send, resend or escalate; open review tasks | URGENT emails (fixed template); `feedback` → Monitor |
+| Care agent (`care_agent.py`) | Alert lifecycle (NEW → SENT → ACKNOWLEDGED / ESCALATED) | Send, resend or escalate; open review tasks | URGENT emails (fixed template); `feedback` → Monitor; `evidence_request` → Evidence |
+| Evidence agent (`evidence_agent.py`) | Guideline index (NICE NG136, RCP NEWS2) and cached Gemini answers | Which passages to cite; whether the generated text passes the validator, else a fixed template | `evidence_card` (read by the API and UI) |
 
 **The learning loop.** The clinician's outcome (in replay, TIHM's record of what the monitoring team confirmed) goes Care → Monitor as `feedback`. The monitor updates its event rate and episode history from it before it scores the next day.
 
@@ -206,8 +218,8 @@ Three agent processes run under a supervisor that restarts any process whose hea
 | Patient-days scored | 222 |
 | Days allocated | 28 (112 reviews) |
 | Messages left unconsumed | 0 |
-| URGENT latency, reading → alert queued | median 0.21 s, max 0.39 s |
-| URGENT latency, reading → dry-run email sent | median 0.23 s |
+| URGENT latency, reading → alert queued | median 0.26 s, max 0.41 s |
+| URGENT latency, reading → dry-run email sent | median 0.26 s |
 | Patient Monitor killed (SIGKILL) half-way | detected and restarted after 12 s (missed heartbeats) |
 | Kill run vs uninterrupted run | 0 lost alerts, 0 extra alerts, identical review picks and case statuses |
 

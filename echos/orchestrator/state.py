@@ -152,3 +152,8 @@ review_list = Table("review_list", md, Column("day", String, primary_key=True), 
                     Column("lift_agitation", Float), Column("why", Text), Column("created_ts", Float),
                     Column("outcome", String), Column("outcome_ts", Float))          # CONFIRMED / NO_EVENT, set from the clinician's feedback
 agent_state = Table("agent_state", md, Column("agent_id", String, primary_key=True), Column("key", String, primary_key=True), Column("value", Text))
+
+# ---- Evidence agent (echos/team/evidence_agent.py): one cited explanation per urgent alert / assigned review
+evidence_card = Table("evidence_card", md, Column("card_id", String, primary_key=True),          # <kind>|<patient>|<day>|<ref>
+                      Column("patient_id", String, index=True), Column("day", String, index=True), Column("kind", String), Column("ref", String),
+                      Column("card", Text), Column("source", String), Column("created_ts", Float))

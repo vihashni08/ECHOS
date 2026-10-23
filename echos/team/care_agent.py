@@ -58,6 +58,9 @@ class CareAgent(AgentBase):
         p = urgent_payload(m["patient_id"], m["day"], m["payload"])
         queued = bool(self.dispatcher.dispatch(p)) if self.dispatcher is not None else False
         bus.post(self.eng, AGENT, "all", "urgent_sent" if queued else "urgent_duplicate", m["patient_id"], m["day"], {"alert_id": p.alert_id})
+        if queued:          # evidence is requested only AFTER the alert is queued: it can never delay an URGENT alert
+            bus.post(self.eng, AGENT, "evidence", "evidence_request", m["patient_id"], m["day"],
+                     {"kind": "urgent", "ref": p.alert_id, "reasons": m["payload"].get("reasons") or [], "vitals": m["payload"].get("vitals")})
 
     # ---- ASSIGN: a clinician review task with the monitor's reasons
     def _known_outcome(self, patient_id: str, day: str):
@@ -74,6 +77,8 @@ class CareAgent(AgentBase):
         known = self._known_outcome(m["patient_id"], m["day"])
         done = known is not None
         confirmed = bool(known and (known.get("vitals_event") or known.get("agitation_windows")))
+        bus.post(self.eng, AGENT, "evidence", "evidence_request", m["patient_id"], m["day"],
+                 {"kind": "review", "ref": str(pl.get("rank")), "reasons": reasons})
         with self.eng.begin() as c:
             S.insert_ignore(c, S.care_task, patient_id=m["patient_id"], day=m["day"], kind="CLINICIAN_REVIEW", alert_id="", created_by=AGENT,
                             created_ts=S.now(), due_ts=S.now() + 86400, status="DONE" if done else "OPEN", done_ts=S.now() if done else None,
