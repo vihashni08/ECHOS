@@ -1,4 +1,4 @@
-# ECHOS v2: Evidence-Centred Health Observation and Support through Collaborative AI Agents
+# ECHOS v2: Integrated Healthcare Monitoring and Decision Support System using Multi Agents
 Multi-agent decision support for home monitoring of people living with dementia (TIHM). Not a diagnostic tool; no model decides an emergency.
 Method, equations, results and limitations: docs/METHOD.md (the source of truth for numbers). v1 (falls, LLM reports, live ingestion) = git tag v1-before-refactor.
 

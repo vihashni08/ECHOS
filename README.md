@@ -1,6 +1,6 @@
 # ECHOS v2
 
-**Evidence-Centred Health Observation and Support through collaborative AI agents.**
+**Integrated Healthcare Monitoring and Decision Support System using Multi Agents.**
 
 ECHOS is a decision-support system for home monitoring of people living with dementia, built on the public TIHM dataset. It is not a diagnostic tool, and no model decides an emergency.
 

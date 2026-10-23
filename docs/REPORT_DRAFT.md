@@ -1,4 +1,4 @@
-# ECHOS: Integrated Healthcare Monitoring and Decision Support Using Cooperating Agents
+# ECHOS: Integrated Healthcare Monitoring and Decision Support System using Multi Agents
 
 *Draft report sections: Abstract, Introduction, Data, Method, Evaluation, Results, Discussion, Limitations, Conclusion.*
 *Every number comes from `reports/metrics/v2_*.json` and can be regenerated with the scripts named in the text.*
