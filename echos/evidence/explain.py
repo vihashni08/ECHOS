@@ -57,7 +57,7 @@ def retrieve(retriever, reasons: list[str], k: int, min_score: float) -> list[di
 
 
 RULE_NOTES = [
-    (re.compile(r"URGENT: (systolic \d+ at or below|pulse|temperature)", re.I),
+    (re.compile(r"URGENT: (systolic \d+ at or below|pulse)", re.I),
      "These limits are the NEWS2 single-parameter red-score limits (Royal College of Physicians 2017). A red score is what triggered the urgent alert."),
     (re.compile(r"URGENT: .* at or above (180|120)", re.I),
      "This is the NICE NG136 severe hypertension threshold (clinic blood pressure 180/120 mmHg or higher). It is what triggered the urgent alert."),
@@ -66,9 +66,31 @@ RULE_NOTES = [
 ]
 
 
+# NEWS2 Chart 3: temperature <= 35.0 C scores 3 (a red score), but >= 39.1 C scores only 2, so the high limit is not a red score.
+TEMP_REASON = re.compile(r"URGENT: temperature (\d+(?:\.\d+)?) C outside (\d+(?:\.\d+)?)-(\d+(?:\.\d+)?) C", re.I)
+TEMP_LOW_NOTE = ("A temperature of 35.0 C or below is a NEWS2 single-parameter red score (Royal College of Physicians 2017). "
+                 "A red score is what triggered the urgent alert.")
+TEMP_HIGH_NOTE = ("A temperature of 39.1 C or above scores 2 on NEWS2 (Royal College of Physicians 2017); it is not a red score. "
+                  "ECHOS treats it as urgent under its own rule derived from NEWS2.")
+TEMP_UNKNOWN_NOTE = ("The temperature limits are derived from NEWS2 (Royal College of Physicians 2017): 35.0 C or below is a red score; "
+                     "39.1 C or above scores 2 and is not a red score.")
+
+
+def _temperature_note(reason: str) -> str | None:
+    if not re.search(r"URGENT: temperature", reason, re.I):
+        return None
+    m = TEMP_REASON.search(reason)
+    if not m:
+        return TEMP_UNKNOWN_NOTE
+    value, low = float(m.group(1)), float(m.group(2))
+    return TEMP_LOW_NOTE if value <= low else TEMP_HIGH_NOTE
+
+
 def rule_notes(reasons: list[str]) -> list[str]:
     """Which rule produced a reason, in words, so the model need not infer it from the passages (a bridging claim it cannot cite)."""
-    return list(dict.fromkeys(note for rx, note in RULE_NOTES if any(rx.search(r) for r in reasons)))
+    notes = [note for rx, note in RULE_NOTES if any(rx.search(r) for r in reasons)]
+    notes += [n for n in (_temperature_note(r) for r in reasons) if n]
+    return list(dict.fromkeys(notes))
 
 
 def facts_text(facts: dict) -> str:

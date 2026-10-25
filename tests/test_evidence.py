@@ -112,3 +112,22 @@ def test_reasons_without_a_guideline_get_no_source_and_rules_are_named(retriever
     assert any("NEWS2" in n for n in explain.rule_notes(["URGENT: pulse 38 outside 41-130 bpm"]))
     assert any("NG136" in n for n in explain.rule_notes(["URGENT: systolic 192 at or above 180 mmHg"]))
     assert explain.rule_notes(rate) == []
+
+
+def test_temperature_rule_note_matches_news2_chart():
+    """NEWS2 Chart 3: <= 35.0 C is a red score (3); >= 39.1 C scores 2, so it must not be called a red score."""
+    from echos.evidence import explain
+    from echos.monitor.cohort import urgent_flags
+    high = ["URGENT: " + r for r in urgent_flags({"temp": 39.4})]
+    low = ["URGENT: " + r for r in urgent_flags({"temp": 34.8})]
+    assert high == ["URGENT: temperature 39.4 C outside 35.0-39.1 C"]       # the format the Patient Monitor really writes
+    (hi_note,) = explain.rule_notes(high)
+    assert "scores 2" in hi_note and "not a red score" in hi_note and "red score is what triggered" not in hi_note
+    (lo_note,) = explain.rule_notes(low)
+    assert "red score" in lo_note and "35.0" in lo_note and "scores 2" not in lo_note
+    assert explain.rule_notes(["URGENT: temperature reading odd"]) == [explain.TEMP_UNKNOWN_NOTE]
+    pulse = "URGENT: pulse 38 outside 41-130 bpm"
+    assert explain.rule_notes([pulse]) == [explain.RULE_NOTES[0][1]]          # pulse and systolic keep the red-score note
+    assert explain.rule_notes([pulse] + high) == [explain.RULE_NOTES[0][1], explain.TEMP_HIGH_NOTE]
+    facts = explain.facts_text({"reasons": high})
+    assert "39.1" in facts and "2" in facts                                  # numbers in the note stay traceable for the validator
