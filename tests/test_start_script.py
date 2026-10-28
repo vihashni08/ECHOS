@@ -51,10 +51,13 @@ def test_safe_defaults_in_the_script_text():
                     reason="needs models/v2, web/node_modules and .venv")
 def test_check_start_prints_only_urls_and_stops_everything(monkeypatch):
     api, web = free_port(), free_port()
+    demo = ROOT / "data" / "echos_demo.db"                                       # a demo may be running: --check must not touch its database
+    before = demo.stat().st_ino if demo.exists() else None
     r = run("--check", "--auth", env={"ECHOS_API_PORT": str(api), "ECHOS_WEB_PORT": str(web)}, timeout=200)
     assert r.returncode == 0, r.stdout + r.stderr
     assert f"http://localhost:{web}" in r.stdout and f"http://127.0.0.1:{api}" in r.stdout
     assert "dry-run mail" in r.stdout
+    assert (demo.stat().st_ino if demo.exists() else None) == before
     tok = (ROOT / "data" / "auth_tokens.txt").read_text().split()[1::2]
     assert tok and not any(t in r.stdout + r.stderr for t in tok)                # tokens are never printed
     for p in (api, web):                                                         # everything was stopped again

@@ -2236,6 +2236,84 @@
     }
    }
   },
+  "/api/v2/day": {
+   "get": {
+    "tags": [
+     "v2"
+    ],
+    "summary": "Daily Review",
+    "description": "One day, every patient, all four agents (the demo's main view): each person's readings against their usual, red flags and agitation\nwindows (Patient Monitor), risks and priority = max(v / v_bar, a / a_bar) with the top K picked (Review Coordinator), urgent alerts and review\ntasks (Care agent), and the guideline-cited explanation for each (Evidence agent). Defaults to the latest allocated day.",
+    "operationId": "daily_review_api_v2_day_get",
+    "parameters": [
+     {
+      "name": "day",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Day"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "404": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Not Found"
+     },
+     "409": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Conflict"
+     },
+     "422": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Unprocessable Entity"
+     },
+     "403": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorOut"
+        }
+       }
+      },
+      "description": "Forbidden"
+     }
+    }
+   }
+  },
   "/api/v2/trace/{pid}/{day}": {
    "get": {
     "tags": [

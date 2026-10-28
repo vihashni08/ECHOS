@@ -4,6 +4,8 @@ import Login from "@/pages/Login"
 import { useMe } from "@/lib/queries"
 import { atLeast, type Role } from "@/lib/auth"
 import Today from "@/pages/Today"
+import DailyReview from "@/pages/DailyReview"
+import Report from "@/pages/Report"
 import Review from "@/pages/Review"
 import Alerts from "@/pages/Alerts"
 import Agents from "@/pages/Agents"
@@ -23,7 +25,10 @@ export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<Today />} />
+        <Route index element={<DailyReview />} />
+        <Route path="briefing" element={<Today />} />
+        <Route path="report" element={<Report />} />
+        <Route path="system" element={<Need role="clinician"><Agents /></Need>} />
         <Route path="trace" element={<Trace />} />
         <Route path="trace/:pid" element={<Trace />} />
         <Route path="trace/:pid/:day" element={<Trace />} />

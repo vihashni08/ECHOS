@@ -535,6 +535,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/day": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daily Review
+         * @description One day, every patient, all four agents (the demo's main view): each person's readings against their usual, red flags and agitation
+         *     windows (Patient Monitor), risks and priority = max(v / v_bar, a / a_bar) with the top K picked (Review Coordinator), urgent alerts and review
+         *     tasks (Care agent), and the guideline-cited explanation for each (Evidence agent). Defaults to the latest allocated day.
+         */
+        get: operations["daily_review_api_v2_day_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/trace/{pid}/{day}": {
         parameters: {
             query?: never;
@@ -2820,6 +2842,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvidenceCard"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    daily_review_api_v2_day_get: {
+        parameters: {
+            query?: {
+                day?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Forbidden */

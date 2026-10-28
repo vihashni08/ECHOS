@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright"
 import { expect, test } from "@playwright/test"
 import { API, json, replayToEnd, setTheme, watchConsole } from "./helpers"
 
-const ROUTES = ["/", "/trace", "/test?tab=audit", "/test?tab=game", "/test?tab=budget", "/review", "/patient", "/alerts", "/agents", "/how"]
+const ROUTES = ["/", "/briefing", "/report", "/system", "/trace", "/test?tab=audit", "/test?tab=game", "/test?tab=budget", "/review", "/patient", "/alerts", "/agents", "/how"]
 
 test.beforeAll(async () => { await replayToEnd() })
 
@@ -15,9 +15,31 @@ test("each page loads without console errors", async ({ page }) => {
   expect(errors.filter((e) => !e.includes("woff2")), errors.join("\n")).toEqual([])
 })
 
+test("Daily review: every patient's readings, the top K picked with reasons and cited guideline passages, and day navigation", async ({ page }) => {
+  const d = await json<{ day: string; days: string[]; k: number; patients: { patient_id: string; rank: number | null }[] }>("/v2/day")
+  await page.goto("/")
+  await expect(page.getByTestId("steps")).toContainText("Evidence agent")
+  await expect(page.getByTestId("day-select")).toHaveValue(d.day)
+  await expect(page.getByTestId("day-table").locator("tbody tr")).toHaveCount(d.patients.length)
+  const picks = d.patients.filter((p) => p.rank != null)
+  await expect(page.getByTestId("picked-row")).toHaveCount(picks.length)
+  await expect(page.getByTestId("pick").first()).toContainText(picks[0].patient_id)
+  await expect(page.getByTestId("pick").first().getByTestId("evidence-card")).toBeVisible({ timeout: 20000 })
+  await expect(page.getByTestId("agent-pill")).toContainText("4/4 agents running")
+  await page.getByRole("button", { name: "Previous day" }).click()
+  await expect(page.getByTestId("day-select")).toHaveValue(d.days[d.days.indexOf(d.day) - 1])
+})
+
+test("Report: method, limitations and the numbered references", async ({ page }) => {
+  await page.goto("/report")
+  await expect(page.getByTestId("limitations")).toContainText("Small cohort")
+  await expect(page.getByTestId("references")).toContainText("Palermo")
+  await expect(page.getByTestId("references")).toContainText("NG97")
+})
+
 test("Morning briefing shows the three claims, the review list with evidence cards, the stats and the caseload", async ({ page }) => {
   const r = await json<{ day: string; items: { patient_id: string; why: string[] }[] }>("/v2/review")
-  await page.goto("/")
+  await page.goto("/briefing")
   await expect(page.getByTestId("review-item")).toHaveCount(r.items.length)
   await expect(page.getByTestId("review-list")).toContainText(r.items[0].patient_id)
   await expect(page.getByTestId("claims")).toContainText("Audit first")

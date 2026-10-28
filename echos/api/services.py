@@ -212,7 +212,7 @@ def agent_health(ctx: Ctx) -> list[dict]:
 # ------------------------------------------------------------------ system
 def read_metrics(ctx: Ctx, names: Optional[list[str]]) -> dict:
     avail = sorted(p.stem for p in ctx.metrics_dir.glob("*.json"))
-    want = names or [n for n in ("v2_label_audit", "v2_vitals", "v2_agitation", "v2_allocation", "v2_runtime") if n in avail]
+    want = names or [n for n in ("v2_label_audit", "v2_vitals", "v2_agitation", "v2_allocation", "v2_runtime", "v2_evidence") if n in avail]
     return {"available": avail, "files": {n: json.loads((ctx.metrics_dir / f"{n}.json").read_text()) for n in want if n in avail}}
 
 

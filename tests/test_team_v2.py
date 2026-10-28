@@ -161,6 +161,14 @@ def test_v2_api(eng, models_dir, tmp_path):
     assert [p["patient_id"] for p in cl.get("/api/patients").json()["items"]] == ["p1", "p2", "p3"]     # no empty id from day_close events
     r = cl.get("/api/v2/review").json()
     assert r["day"] == "2019-05-06" and len(r["items"]) == 1 and r["items"][0]["outcome"] in ("CONFIRMED", "NO_EVENT")
+    dv = cl.get("/api/v2/day").json()                                                       # the daily review: every patient, one day, all four agents
+    assert dv["day"] == "2019-05-06" and dv["allocated"] and {p["patient_id"] for p in dv["patients"]} == {"p1", "p2", "p3"}
+    picked = [p for p in dv["patients"] if p["rank"] is not None]
+    assert len(picked) == 1 and dv["patients"][0] is not None and dv["patients"][0]["rank"] == 1     # picks come first
+    assert all(p["priority"] is None or p["priority"] <= picked[0]["priority"] + 1e-9 for p in dv["patients"] if p["pick_reason"] != "fairness")
+    d3 = cl.get("/api/v2/day", params={"day": "2019-05-03"}).json()
+    p1 = next(p for p in d3["patients"] if p["patient_id"] == "p1")
+    assert p1["urgent"] and any(c["kind"] == "urgent" for c in p1["evidence"]) and p1["vitals"]
     t = cl.get("/api/v2/patients/p1/monitor").json()
     assert t[0]["day"] == "2019-05-06" and any(d["urgent"] for d in t)
     assert t[0]["rate_ci95"][0] <= t[0]["rate"] <= t[0]["rate_ci95"][1]

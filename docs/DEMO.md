@@ -1,49 +1,53 @@
-# Demo script (about 10 minutes)
+# Demo script (about 8 minutes)
 
-## Before the demo (once, the day before)
-1. Put `ECHOS_LLM_API_KEY` in `.env` (Gemini). Without it the Evidence agent writes fixed-template cards and everything else works.
-2. Build the guideline index and the demo data:
-   ```bash
-   PYTHONPATH=. .venv/bin/python scripts/build_knowledge.py
-   ```
-   ```bash
-   PYTHONPATH=. .venv/bin/python scripts/evaluation/demo_data.py
-   ```
-3. **Warm the cache (again after any change to the Evidence prompt, routing or index: the cache is keyed by the exact prompt):** run `scripts/start.sh`, open **Demo tools**, choose 20 events/s and press **Play**, and wait about 10 minutes (the Gemini free tier is rate-limited). Gemini's answers are stored in `data/knowledge/llm_cache.sqlite`, so every later run, including resets, makes no API call and works offline.
-4. Keep the Mac awake (the replay pauses when it sleeps).
-
-## Start
+## Before the panel
 ```bash
 scripts/start.sh
 ```
-Open http://localhost:5173, press **Presenter** (top bar) for the step strip, then **Demo tools → Play** and let the replay finish before you begin. Mail is a dry run. Say once: "this is a historical test; the system only sees data up to each day."
+It starts the API, the four agents and the web app, replays the first 21 of the 28 demo days quickly and **pauses** (about 30 s).
+Open http://localhost:5173. The top bar should say **REPLAY · paused 357/470**, **Live** and **4/4 agents running**. Mail is a dry run.
+For a clean run again: Ctrl-C, then `scripts/start.sh` again.
 
-## 1. The question (1 min), How it works
-A small team can review only a few people a day. ECHOS says who, today, and why. Decision support, not diagnosis.
+The menu has four items: **Daily review** (the demo), **Patients**, **Report & references**, **System (4 agents)**.
 
-## 2. Audit first (1 min), Test it yourself → "Why no detector"
-88% of days at or above 160/100 are labelled, 3.7% below. The labels are confirmed threshold alerts, so a model that "detects" them re-learns a threshold. Thresholds stay rules.
+## 1. Daily review: the core of ECHOS (4 min)
+Say: "A small team can review four people a day. This is one real day from the TIHM study for our 8 demo patients."
+1. **The four steps across the top** are the four agents: Patient Monitor reads each person's day, Review Coordinator picks the top 4,
+   Care agent alerts and opens tasks, Evidence agent cites the guideline.
+2. **Section 1, every patient:** each BP and pulse is shown next to *that person's own usual* (▲/▼ = more than 2 of their own SDs away),
+   the most unusual activity window, the two risks, and the priority: how many times above the average person.
+   The top 4 rows carry **Review #1–#4**.
+3. **Section 2, the 4 reviews:** read one card aloud: the reasons (e.g. "agitation risk 37% in the afternoon window: fridge door 44,
+   usual-adjusted z +2.7") and the **guideline passage**. Click the passage line to show the NICE NG97 / NEWS2 text and page. The badge
+   says whether Gemini wrote it (checked by the validator) or the fixed template was used. "Study record" shows what really happened.
+4. **Change the day** with ◀ ▶. Go to **2019-06-08**: section 3 shows two urgent alerts (diastolic 136 → NICE NG136 p.24;
+   systolic 87 → NEWS2 p.53 and p.19).
 
-## 3. You vs ECHOS (3 min), Test it yourself → "You vs ECHOS"
-Let the examiner pick four people on two or three days, reveal, and read the bars. Then the honest line: a plain BP-limit rule wins on BP/pulse events (BP labels are threshold alerts); it finds almost no agitation. ECHOS covers both, so it is a balanced policy. Over all 92 days at K = 4: BP-limit rule 0.471, ECHOS 0.452, random 0.250 events per review.
+## 2. Live: the agents at work (2 min)
+1. **Demo tools → Play** (5 events/s). Close the sheet. The page moves forward day by day to 16 June (about 25 s) as the agents decide.
+2. **Demo tools → Inject a reading:** patient 0d5ef, "Severe high BP 192/124", **Inject**. On Daily review (16 June), the patient row turns red
+   and section 3 shows the urgent alert at once; the Evidence agent's cited card follows about 10 s later (sooner from the cache, or the template offline).
 
-## 4. Morning briefing and Decision trace (2 min)
-Briefing: a ranked card with its reasons, the cutoff, and the cited guideline passage (open it). Click **Open the decision trace**: eight steps from raw readings to the evidence card. Point at the memory card: "this is all one agent knows about a person; models trained per patient: 0."
+## 3. System (4 agents): it is real (1 min)
+Four processes, heartbeats, the message trace. **Kill agent** on the Patient Monitor: about 14 s later it is alive again (restarts: 1), nothing lost.
 
-## 5. The budget is a decision (30 s), Test it yourself → budget
-Drag K, change the fairness floor.
+## 4. Report & references (1 min)
+Method with the equations, how it was evaluated (split by patient, PR-AUC, bootstrap CIs), findings, limitations, and the 13 numbered references
+every [n] on the pages links to. **Print / save as PDF** gives a clean copy.
 
-## 6. Red flag, then crash (1.5 min)
-Demo tools → **Inject a reading** → "Severe high BP 192/124" → the alert is queued about 0.2 s later and the evidence card follows. On **Under the hood** kill the Patient Monitor; about 12 s later it is back. The crash table shows identical alerts and review picks with and without the kill.
-
-## 7. Risks and limits (1 min), Under the hood → Risks
-Say them before you are asked: 41 to 56 people over 3 months, labels are confirmed alerts, replay not live, no clinical validation, a BP-limit rule matches ECHOS on total events.
+## Likely questions
+| Question | Answer |
+|---|---|
+| Why is 87 mmHg a red flag? | NEWS2 red score: systolic ≤ 90 [2]. Patient 46286 is really that low in TIHM. |
+| Why these 4 and not d93d8 (92% BP risk)? | Priority is risk ÷ the average person's risk; an agitation risk 10× above average outranks a BP risk 3× above. |
+| Where is the algorithm? | Report §2: personal Bayesian baseline and event rate, XGBoost + Platt for agitation, lift allocation, TF-IDF retrieval + validator for evidence. |
+| Does Gemini decide anything? | No. It only words the explanation, from retrieved passages, and a validator checks it; scores, picks and alerts never use it. |
+| Real agents? | Separate processes with their own memory and goals, talking only via the message bus; the kill test proves it. |
 
 ## If something goes wrong
 | Problem | Fix |
 |---|---|
-| "API not reachable" banner | Restart `scripts/start.sh` |
-| Play says the store holds events | Use **Reset** in Demo tools |
-| Evidence cards say "Template" | No key, no network, or the check failed: the fixed wording is the designed fallback |
-| "Data file missing" on Test it yourself | Run `scripts/evaluation/demo_data.py` |
-| Evidence says "no supporting source" for agitation | Only NICE NG136 and NEWS2 are indexed. Add NICE NG97 as `data/knowledge/raw/NICE-NG97.pdf` and rerun `scripts/build_knowledge.py` |
+| "API not reachable" banner | Ctrl-C, run `scripts/start.sh` again |
+| Port already in use | Another copy is running: stop it |
+| Evidence card says "waiting" | Give it ~10 s (Gemini); offline it uses the template |
+| Running the tests during the demo | Safe now: `--check` uses its own database |

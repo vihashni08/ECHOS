@@ -107,3 +107,18 @@ export type GameDay = { day: string; k: number; patients: GamePerson[]; echos: s
 export type Game = { k: number; found_definition: string; days: GameDay[] }
 export const useDemoGame = () => useQuery({ queryKey: ["demo-game"], queryFn: () => getJson<Game>("/api/v2/demo/game"), staleTime: 600000, retry: 1 })
 export const useRuntime = () => useQuery({ queryKey: ["runtime"], queryFn: () => getJson<Record<string, any>>("/api/v2/runtime"), staleTime: 600000, retry: 1 })
+
+// ---- the daily review (one day, every patient, all four agents)
+type Vit = { value?: number | null; usual?: number | null; z?: number | null; n_past?: number }
+export type DayWindow = { w: string; slot: number; p: number; reasons: string[]; events?: number; usual?: number; silent?: boolean }
+export type DayPatient = {
+  patient_id: string; scored: boolean; status?: string | null; vitals: Record<string, Vit>; urgent: string[]; attention: string[]; agitation: DayWindow[]
+  agitation_max?: number | null; quality?: { flags?: string[]; device_problem?: boolean }; injected?: boolean
+  vitals_risk?: number | null; agitation_risk?: number | null; rate?: number | null; rate_ci95?: number[] | null; reasons: string[]
+  lift_vitals?: number | null; lift_agitation?: number | null; priority?: number | null
+  rank?: number | null; pick_reason?: string | null; outcome?: string | null
+  alerts: { alert_id: string; reasons?: string[] | null; severity?: string | null }[]; evidence: EvidenceCardT[]
+}
+export type DayView = { day: string | null; days: string[]; allocated: boolean; k: number; base_rates: { v_bar?: number | null; a_bar?: number | null }; patients: DayPatient[] }
+export const useDay = (day?: string) =>
+  useQuery({ queryKey: ["day", day], queryFn: async () => (await call(client.GET("/api/v2/day", { params: { query: { day } } }))) as unknown as DayView, ...poll(3000) })

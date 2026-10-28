@@ -8,7 +8,7 @@ export const STEPS: { path: string; title: string; line: string }[] = [
   { path: "/how", title: "The question", line: "A small team can review only a few people a day. ECHOS answers: who, today, and why? It is decision support, not a diagnosis." },
   { path: "/test?tab=audit", title: "Audit first", line: "Labels are confirmed threshold alerts. Almost every day above 160/100 is labelled, so 'detecting' them would re-learn a threshold. That is why thresholds stay rules." },
   { path: "/test?tab=game", title: "You vs ECHOS", line: "Pick four people to review. Then see what TIHM confirmed. A BP-limit rule wins on BP events, ECHOS covers agitation too: it is a balanced policy." },
-  { path: "/", title: "Morning briefing", line: "The ranked list: each card says why, with the guideline passage that supports it." },
+  { path: "/", title: "Daily review", line: "One day, every patient: the readings against each person's usual, the top 4 picked and why, with the guideline passage that supports each reason." },
   { path: "/trace", title: "Decision trace", line: "One person, one day, every step: inputs, personal baseline, risk, lift, allocation, messages, evidence. No hidden model per person: a few numbers of memory." },
   { path: "/test?tab=budget", title: "The budget is a decision", line: "Move K and the fairness floor and watch events per review and never-reviewed patients change." },
   { path: "/agents", title: "Under the hood", line: "Four agents, one bus. Inject a red-flag reading, then kill an agent: the crash run matches the uninterrupted run." },

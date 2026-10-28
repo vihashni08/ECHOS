@@ -1,12 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { BellRing, Bot, ClipboardList, FlaskConical, GitBranch, LogOut, HeartPulse, LayoutDashboard, Moon, Settings2, Sun, User, WifiOff } from "lucide-react"
-import { NavLink, Outlet, useLocation } from "react-router-dom"
+import { BookOpen, Bot, LogOut, HeartPulse, LayoutDashboard, Moon, Sun, User, WifiOff } from "lucide-react"
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import ErrorBoundary from "./ErrorBoundary"
 import { DemoToolsButton } from "./DemoTools"
 import { ModeBadge, ModeBanner } from "./ModeBadge"
 import { PresenterBar, PresenterToggle } from "./Presenter"
-import { useSimState } from "@/lib/queries"
+import { useAgents, useSimState } from "@/lib/queries"
 import { atLeast, setToken, type Role } from "@/lib/auth"
 import { useMe } from "@/lib/queries"
 import { useEvents } from "@/lib/events"
@@ -14,14 +14,10 @@ import { useTheme } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
 const NAV: { to: string; label: string; icon: typeof User; end?: boolean; need?: Role }[] = [
-  { to: "/", label: "Morning briefing", icon: LayoutDashboard, end: true },
-  { to: "/trace", label: "Decision trace", icon: GitBranch },
-  { to: "/test", label: "Test it yourself", icon: FlaskConical },
-  { to: "/review", label: "Review board", icon: ClipboardList },
+  { to: "/", label: "Daily review", icon: LayoutDashboard, end: true },
   { to: "/patient", label: "Patients", icon: User },
-  { to: "/alerts", label: "Alerts", icon: BellRing },
-  { to: "/agents", label: "Under the hood", icon: Bot, need: "clinician" },
-  { to: "/how", label: "How it works", icon: Settings2 },
+  { to: "/report", label: "Report & references", icon: BookOpen },
+  { to: "/system", label: "System (4 agents)", icon: Bot, need: "clinician" },
 ]
 
 function NavItems({ row }: { row?: boolean }) {
@@ -37,6 +33,20 @@ function NavItems({ row }: { row?: boolean }) {
         </NavLink>
       ))}
     </>
+  )
+}
+
+/** How many agent processes answer right now (from the supervisor's heartbeats); links to the System page. */
+function AgentPill() {
+  const a = useAgents()
+  if (!a.data) return null
+  const alive = a.data.filter((x) => x.alive).length
+  const ok = alive === a.data.length
+  return (
+    <Link to="/system" data-testid="agent-pill" className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+      ok ? "border-normal-line text-normal-fg" : "border-urgent-line bg-urgent-bg text-urgent-fg")}>
+      <span className={cn("size-2 rounded-full", ok ? "bg-normal-line" : "bg-urgent-line")} aria-hidden="true" />{alive}/{a.data.length} agents running
+    </Link>
   )
 }
 
@@ -76,6 +86,7 @@ function TopBar() {
         <span className="inline-flex items-center gap-2 text-sm" data-testid="role"><span className="rounded-full border px-2.5 py-0.5 text-xs font-semibold">{me.data.role}</span>
           <Button variant="outline" size="sm" onClick={() => { setToken(null); qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" }); qc.invalidateQueries({ queryKey: ["me"] }) }} data-testid="logout"><LogOut className="size-4" aria-hidden="true" />Log out</Button></span>)}
       <PresenterToggle />
+      <AgentPill />
       {atLeast(me.data?.role, "operator") && <DemoToolsButton />}
       <ThemeToggle />
     </header>

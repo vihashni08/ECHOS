@@ -48,11 +48,14 @@ Method, equations, results and limitations: docs/METHOD.md (the source of truth 
 ## API and web
 - echos/api (FastAPI, scripts/run_api.sh [--dry] [--demo] [--auth] [--db PATH]): 127.0.0.1 only, CORS http://localhost:5173, auth optional (roles
   caregiver < clinician < operator). Never loads a model: reads SQLite + metrics, commands via sim_command, SSE /api/events from event_feed triggers.
-  v2 endpoints: /api/v2/review, /api/v2/patients/{id}/monitor, /api/v2/reviews/outcome, /api/v2/summary, /api/sim/reading. docs/API.md.
-- web/ (Vite + React + TS + Tailwind v4 + shadcn/ui + Recharts + TanStack Query): Today, Review board, Patients, Alerts, Agents, How it works; Demo tools
+  v2 endpoints: /api/v2/day (the Daily review: one day, every patient, all four agents), /api/v2/review, /api/v2/patients/{id}/monitor, /api/v2/reviews/outcome, /api/v2/summary, /api/sim/reading. docs/API.md.
+- web/ (Vite + React + TS + Tailwind v4 + shadcn/ui + Recharts + TanStack Query): menu = Daily review (/, the demo: readings vs usual, top K with reasons +
+  evidence cards, urgent alerts), Patients, Report & references (/report; refs in web/src/lib/refs.tsx, cited with <Cite n/>), System (/system); older pages
+  (/briefing, /trace, /test, /review, /alerts, /how) stay reachable but are not in the menu; Demo tools
   sheet (replay controls, inject a reading, kill an agent). Typed client: cd web && npm run gen:api. Charts: one y-axis, dashed = personal usual,
   colours --chart-1/2 (validated palette), red-flag markers always labelled.
-- One command: scripts/start.sh (fresh data/echos_demo.db, dry-run mail, --keep / --auth / --real --yes / --check).
+- One command: scripts/start.sh (fresh data/echos_demo.db, pre-fills 21 of 28 days then pauses at 5 ev/s, dry-run mail, --empty / --keep / --auth /
+  --real --yes / --check). --check uses data/echos_check.db + data/logs/check/ so tests never wipe a running demo. Demo script: docs/DEMO.md.
 - Checks: PYTHONPATH=. .venv/bin/python -m pytest -q; cd web && npm run build && node contrast.mjs && npx playwright test (own stack :8010/:5180,
   axe WCAG AA both themes) && npx playwright test -c playwright.auth.config.ts (:8031/:5201).
 

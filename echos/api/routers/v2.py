@@ -200,6 +200,61 @@ def evidence(request: Request, day: Optional[str] = None, patient_id: Optional[s
         return _cards(c, day, patient_id)
 
 
+@router.get("/v2/day", tags=["v2"])
+def daily_review(request: Request, day: Optional[str] = None):
+    """One day, every patient, all four agents (the demo's main view): each person's readings against their usual, red flags and agitation
+    windows (Patient Monitor), risks and priority = max(v / v_bar, a / a_bar) with the top K picked (Review Coordinator), urgent alerts and review
+    tasks (Care agent), and the guideline-cited explanation for each (Evidence agent). Defaults to the latest allocated day."""
+    from echos.monitor import store
+    ctx = ctx_of(request)
+    try:
+        rates = store.base_rates()
+    except Exception:            # models/v2 missing: show the day without priorities
+        rates = {}
+    v_bar, a_bar = rates.get("v_bar"), rates.get("a_bar")
+    with ctx.eng.begin() as c:
+        scored = sorted({r[0] for r in c.execute(select(S.agent_output.c.day).where(S.agent_output.c.agent_id == "patient_monitor"))})
+        allocated = sorted({r[0] for r in c.execute(select(S.review_list.c.day))})
+        d = day or (allocated[-1] if allocated else (scored[-1] if scored else None))
+        pids = sorted({r[0] for r in c.execute(select(S.agent_output.c.patient_id).where(S.agent_output.c.agent_id == "patient_monitor"))})
+        if not d:
+            return {"day": None, "days": [], "allocated": False, "k": int(ctx.cfg.get("review", {}).get("k_per_day", 4)), "base_rates": rates, "patients": []}
+        outs = c.execute(select(S.agent_output.c.patient_id, S.agent_output.c.result).where((S.agent_output.c.agent_id == "patient_monitor")
+                                                                                          & (S.agent_output.c.day == d)).order_by(S.agent_output.c.event_id)).fetchall()
+        reqs = {r.patient_id: json.loads(r.payload) for r in c.execute(select(S.agent_message.c.patient_id, S.agent_message.c.payload).where(
+            (S.agent_message.c.topic == "review_request") & (S.agent_message.c.day == d)).order_by(S.agent_message.c.id))}
+        picks = {r.patient_id: r for r in c.execute(select(S.review_list).where(S.review_list.c.day == d))}
+        status = dict(c.execute(select(S.case_state.c.patient_id, S.case_state.c.status).where(S.case_state.c.day == d)).fetchall())
+        alerts = c.execute(select(S.alerts.c.alert_id, S.alerts.c.patient_id, S.alerts.c.payload).where(S.alerts.c.alert_id.like(f"%|{d}|%"))).fetchall()
+        cards = _cards(c, d, None)
+    mon: dict = {}
+    for pid, res in outs:
+        r = json.loads(res)
+        m = mon.setdefault(pid, {"vitals": {}, "urgent": [], "attention": [], "agitation": [], "agitation_max": None, "quality": {}, "injected": False})
+        m["urgent"] += r.get("safety") or []
+        if r.get("reading"):
+            m["injected"] = True
+            continue
+        m.update({"vitals": r.get("vitals") or {}, "agitation_max": r.get("agitation_max"), "quality": r.get("quality") or {},
+                  "agitation": [{k: w.get(k) for k in ("w", "slot", "p", "reasons", "events", "usual", "silent")} for w in r.get("agitation") or []]})
+        m["attention"] += r.get("attention") or []
+    rows = []
+    for pid in pids:
+        m, q, pk = mon.get(pid), reqs.get(pid) or {}, picks.get(pid)
+        v, a = q.get("vitals_risk"), q.get("agitation_risk", (m or {}).get("agitation_max"))
+        lv = (v or 0) / v_bar if v_bar else None
+        la = (a or 0) / a_bar if a_bar else None
+        rows.append({"patient_id": pid, "scored": m is not None, "status": status.get(pid), **(m or {"vitals": {}, "urgent": [], "attention": [], "agitation": []}),
+                     "vitals_risk": v, "agitation_risk": a, "rate": q.get("rate"), "rate_ci95": q.get("rate_ci95"), "reasons": q.get("reasons") or [],
+                     "lift_vitals": lv, "lift_agitation": la, "priority": (max(lv or 0, la or 0) if (lv is not None or la is not None) and q else None),
+                     "rank": pk.rank if pk else None, "pick_reason": pk.reason if pk else None, "outcome": pk.outcome if pk else None,
+                     "alerts": [{"alert_id": x.alert_id, **({k: json.loads(x.payload or "{}").get(k) for k in ("reasons", "severity")})} for x in alerts if x.patient_id == pid],
+                     "evidence": [cd for cd in cards if cd["patient_id"] == pid]})
+    rows.sort(key=lambda r: (r["rank"] is None, r["rank"] or 0, -(r["priority"] or -1)))
+    return {"day": d, "days": scored, "allocated": d in allocated, "k": int(ctx.cfg.get("review", {}).get("k_per_day", 4)),
+            "base_rates": {"v_bar": v_bar, "a_bar": a_bar}, "patients": rows}
+
+
 @router.get("/v2/trace/{pid}/{day}", tags=["v2"])
 def decision_trace(request: Request, pid: str, day: str):
     """Everything the agents did for one person on one day, in order: the Patient Monitor's scores, its review request, the Coordinator's decision,
